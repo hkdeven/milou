@@ -176,6 +176,14 @@ this document in it before implementation begins.
 - Preserved the 120px display width, source aspect ratio, accessible alt text,
   and Tintin/Milou context.
 
+### September 11, 2026 — Manual README layout correction
+
+- The README image layout was manually corrected and the final rendered
+  arrangement was accepted.
+- Preserved the user's manual README change without further layout edits.
+- Learned that GitHub-rendered layout must be visually validated rather than
+  inferred from source markup alone.
+
 ## Why I started
 
 My work is distributed across multiple tools, and the main cost is often

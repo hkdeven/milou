@@ -26,6 +26,8 @@ the detailed reasoning and decisions behind each change.
   text-wrapping figure without changing the source asset.
 - Moved the image to the start of the introductory paragraph using inline
   left-float markup so the opening text wraps around it.
+- Recorded the accepted manual README layout correction and the lesson to
+  validate GitHub-rendered layout visually.
 
 ### Not implemented
 
