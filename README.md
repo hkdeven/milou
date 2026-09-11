@@ -53,7 +53,7 @@ delivery, and external write actions are not implemented yet.
 
 ## Status and next steps
 
-The first safe vertical slice is implemented on the development branch: a
+The first safe vertical slice is implemented on `main`: a
 read-only standard-library runtime can fetch configured JSON sources, report
 clear failures, filter freshness, deduplicate, rank with explainable global and
 non-US signals, enforce source/geographic diversity, and render cited Markdown.
