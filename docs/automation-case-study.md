@@ -166,6 +166,16 @@ this document in it before implementation begins.
 - Preserved accessible alt text and the concise Tintin/Milou caption in the
   README.
 
+### September 11, 2026 — README introductory paragraph image placement
+
+- Refined the layout requirement so the image must start the first
+  introductory paragraph rather than occupy a standalone figure block.
+- Chose GitHub-compatible inline left-float markup immediately before the
+  paragraph text, with explicit spacing and a clear break after the wrapped
+  introduction.
+- Preserved the 120px display width, source aspect ratio, accessible alt text,
+  and Tintin/Milou context.
+
 ## Why I started
 
 My work is distributed across multiple tools, and the main cost is often

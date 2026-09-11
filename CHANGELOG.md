@@ -24,6 +24,8 @@ the detailed reasoning and decisions behind each change.
   linked it from the canonical README.
 - Refined the README image presentation to a smaller, left-aligned,
   text-wrapping figure without changing the source asset.
+- Moved the image to the start of the introductory paragraph using inline
+  left-float markup so the opening text wraps around it.
 
 ### Not implemented
 
