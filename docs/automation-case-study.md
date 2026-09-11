@@ -139,6 +139,17 @@ this document in it before implementation begins.
 - The README should remain concise and link to detailed architecture, routine,
   source, and case-study documentation rather than duplicating it.
 
+### September 11, 2026 — README identity clarification
+
+- Feedback identified that the README was too generic and did not clearly
+  connect the project to Tintin and Milou.
+- Decided to make the README's opening explain Milou as Tintin's loyal scout:
+  the supervisor runs ahead, notices what is unseen, and fetches context
+  without taking over human judgment.
+- Kept the README technically concise while retaining the control-plane
+  concept, documented capabilities, safety boundary, repository map, current
+  status, and documentation-maintenance rules.
+
 ## Why I started
 
 My work is distributed across multiple tools, and the main cost is often
