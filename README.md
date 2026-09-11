@@ -7,6 +7,11 @@ routines. It supports human judgment; it does not replace it.
 
 Canonical repository: [github.com/hkdeven/milou](https://github.com/hkdeven/milou)
 
+![Milou, Tintin's loyal scout](docs/assets/milou.png)
+
+*Milou, Tintin's loyal scout: running ahead to notice the unseen and fetch
+context before the next decision.*
+
 ## What Milou does
 
 Routines do the domain work. Milou manages their registry, planning,

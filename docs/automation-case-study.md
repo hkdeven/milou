@@ -150,6 +150,14 @@ this document in it before implementation begins.
   concept, documented capabilities, safety boundary, repository map, current
   status, and documentation-maintenance rules.
 
+### September 11, 2026 — Milou visual identity
+
+- Adopted the supplied Milou image as the repository's visual identity.
+- Added it as a resized repository asset and linked it from the canonical
+  README with a concise caption connecting the image to Tintin's loyal scout.
+- Preserved the image's aspect ratio and legibility; no unrelated image was
+  substituted.
+
 ## Why I started
 
 My work is distributed across multiple tools, and the main cost is often

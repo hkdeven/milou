@@ -20,6 +20,8 @@ the detailed reasoning and decisions behind each change.
 - Corrected the canonical GitHub repository identity to
   [`hkdeven/milou`](https://github.com/hkdeven/milou); Milou remains the
   supervisor agent name.
+- Added the supplied Milou visual identity at `docs/assets/milou.png` and
+  linked it from the canonical README.
 
 ### Not implemented
 
