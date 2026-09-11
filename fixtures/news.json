@@ -1,0 +1,91 @@
+{
+  "Rest of World": [
+    {
+      "title": "Kenyan clinics test multilingual AI triage",
+      "url": "https://example.test/row/clinics",
+      "published_at": "2026-09-11T10:00:00Z",
+      "summary": "Clinics are testing a language-aware triage tool and documenting limits.",
+      "regions": ["Africa"],
+      "topics": ["deployment", "health"],
+      "significance": 0.8,
+      "evidence": 0.9,
+      "discussion": 0.7,
+      "non_us": true,
+      "event_key": "clinic-triage"
+    }
+  ],
+  "Euractiv": [
+    {
+      "title": "EU publishes model evaluation guidance",
+      "url": "https://example.test/euractiv/evaluation",
+      "published_at": "2026-09-11T08:00:00Z",
+      "summary": "The guidance describes evidence expected for high-risk model evaluations.",
+      "regions": ["Europe"],
+      "topics": ["policy", "safety"],
+      "significance": 0.9,
+      "evidence": 0.95,
+      "discussion": 0.8,
+      "non_us": true,
+      "event_key": "evaluation-guidance"
+    }
+  ],
+  "Nikkei Asia": [
+    {
+      "title": "Japanese manufacturers expand efficient AI chips",
+      "url": "https://example.test/nikkei/chips",
+      "published_at": "2026-09-10T20:00:00Z",
+      "summary": "Manufacturers announced a partnership focused on lower-power inference.",
+      "regions": ["East Asia"],
+      "topics": ["chips", "industry"],
+      "significance": 0.75,
+      "evidence": 0.8,
+      "discussion": 0.65,
+      "non_us": true,
+      "event_key": "efficient-chips"
+    }
+  ],
+  "TechCrunch": [
+    {
+      "title": "US startup announces model partnership",
+      "url": "https://example.test/tc/partnership",
+      "published_at": "2026-09-11T11:00:00Z",
+      "summary": "A startup announced a model partnership; terms remain preliminary.",
+      "regions": ["North America"],
+      "topics": ["business"],
+      "significance": 0.5,
+      "evidence": 0.55,
+      "discussion": 0.5,
+      "non_us": false,
+      "uncertainty": "Single-source announcement."
+    }
+  ],
+  "MIT Technology Review": [
+    {
+      "title": "Old AI policy explainer",
+      "url": "https://example.test/mit/old",
+      "published_at": "2026-09-01T11:00:00Z",
+      "summary": "Background context.",
+      "regions": ["North America"],
+      "topics": ["policy"],
+      "significance": 0.9,
+      "evidence": 0.9,
+      "discussion": 0.9,
+      "non_us": false
+    }
+  ],
+  "South China Morning Post": [
+    {
+      "title": "EU publishes model evaluation guidance",
+      "url": "https://example.test/scmp/evaluation",
+      "published_at": "2026-09-11T09:00:00Z",
+      "summary": "Regional account of the same guidance.",
+      "regions": ["East Asia"],
+      "topics": ["policy"],
+      "significance": 0.7,
+      "evidence": 0.7,
+      "discussion": 0.7,
+      "non_us": true,
+      "event_key": "evaluation-guidance"
+    }
+  ]
+}

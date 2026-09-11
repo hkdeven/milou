@@ -47,13 +47,20 @@ delivery, and external write actions are not implemented yet.
 - [`routines/daily-global-ai-news-brief.md`](routines/daily-global-ai-news-brief.md)
   — proposed daily news brief contract
 - [`CHANGELOG.md`](CHANGELOG.md) — notable project changes
+- [`milou_news/`](milou_news/) — read-only standard-library news-brief runtime
+- [`fixtures/news.json`](fixtures/news.json) — deterministic sample input for
+  the CLI and tests
 
 ## Status and next steps
 
-The documentation-first project structure and initial routine specifications are
-published on `main`. The next step is to test the news-brief contract with
-representative fixtures and an explicit evaluation process before implementing
-live collection or delivery.
+The first safe vertical slice is implemented on the development branch: a
+read-only standard-library runtime can fetch configured JSON sources, report
+clear failures, filter freshness, deduplicate, rank with explainable global and
+non-US signals, enforce source/geographic diversity, and render cited Markdown.
+Run `python3 -m unittest discover -s tests` and
+`python3 -m milou_news --fixture fixtures/news.json` to exercise it. Live
+integrations, credentials, scheduling, persistence, and delivery remain out of
+scope.
 
 The case study is updated for every project work session with the relevant
 decision, implementation change, validation result, or lesson learned. This

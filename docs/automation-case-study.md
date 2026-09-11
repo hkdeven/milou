@@ -184,6 +184,42 @@ this document in it before implementation begins.
 - Learned that GitHub-rendered layout must be visually validated rather than
   inferred from source markup alone.
 
+### September 11, 2026 — What's next: first safe vertical slice
+
+- Chose the read-only daily global AI news brief as Milou's first implemented
+  vertical slice.
+- The first slice will provide a small maintainable runtime with an explicit
+  routine model and registry, configured source definitions, source
+  fetching/parsing with visible failures, freshness filtering, deduplication,
+  global-discussion ranking with non-US weighting, geographic and source
+  diversity, and citation-linked Markdown output.
+- Tests will use local fixtures and mocked fetching only; no live external
+  integrations or credentials will be added.
+- The slice will include a simple CLI or callable entry point for generating a
+  report from fixture data while preserving the read-only safety boundary.
+
+### September 11, 2026 — First vertical slice implementation
+
+- Added `milou_news/`, a small Python standard-library runtime with an explicit
+  `daily-global-ai-news-brief` routine model and registry.
+- Added configured source definitions matching the documented initial source
+  set. JSON fetching is GET-only, injectable for tests, and converts malformed
+  payloads, missing fields, invalid timestamps, and unavailable sources into
+  visible per-source failures rather than guessed content.
+- Implemented UTC freshness filtering, event-key/title deduplication, weighted
+  ranking signals (global discussion, significance, freshness, evidence, and a
+  non-US adjustment), and greedy source/geographic diversity selection.
+- Implemented citation-linked Markdown output with publication metadata,
+  ranking signals, uncertainty labels, duplicate counts, and unavailable-source
+  notes. The CLI reads a local fixture and writes only to stdout.
+- Added deterministic fixture data and standard-library unit tests covering the
+  registry, parser failures, mocked fetching, freshness, deduplication,
+  explainable ranking, diversity, and report citations.
+- Validation: `python3 -m unittest discover -s tests` passes (6 tests), and the
+  fixture CLI produces a cited report without network access.
+- **Status:** Safe fixture-backed slice implemented; live collection and
+  delivery remain deliberately unimplemented.
+
 ## Why I started
 
 My work is distributed across multiple tools, and the main cost is often

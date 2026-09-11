@@ -7,6 +7,10 @@ the detailed reasoning and decisions behind each change.
 
 ### Added
 
+- Added the first safe vertical slice of the daily global AI news brief:
+  explicit routine registry, configured sources, injectable JSON fetching,
+  freshness filtering, duplicate handling, explainable ranking, diversity
+  selection, citation-linked Markdown output, fixtures, tests, and a CLI.
 - Established the initial repository structure for Milou, a bounded
   supervisor/control plane over replaceable routines.
 - Added the living automation case study under `docs/`.
@@ -31,5 +35,6 @@ the detailed reasoning and decisions behind each change.
 
 ### Not implemented
 
-- External integrations, routine execution, scheduling, and persistence remain
-  intentionally out of scope for this initial setup.
+- Live external integrations, credentials, scheduling, persistence, and report
+  delivery remain intentionally out of scope; the runtime is read-only and
+  uses fixture/mocked fetching in tests.
