@@ -1,8 +1,6 @@
 # Milou
 
-Canonical repository: [github.com/hkdeven/milou](https://github.com/hkdeven/milou)
-
-<img align="left" src="docs/assets/milou.png" width="120" alt="Milou, Tintin's loyal scout">&nbsp;&nbsp;
+<img align="right" src="docs/assets/milou.png" width="75" alt="Milou, Tintin's loyal scout">
 Milou is Tintin's loyal scout: the one who runs ahead, notices what is unseen,
 and fetches the context needed for the next decision. In this project, Milou
 is a bounded supervisor/control plane over small, replaceable automation
