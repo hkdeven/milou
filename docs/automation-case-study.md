@@ -158,6 +158,14 @@ this document in it before implementation begins.
 - Preserved the image's aspect ratio and legibility; no unrelated image was
   substituted.
 
+### September 11, 2026 — README image layout refinement
+
+- Feedback identified that the README image presentation was too large.
+- Decided to keep `docs/assets/milou.png` unchanged while displaying it at a
+  modest width, left-aligned with text wrapping around it.
+- Preserved accessible alt text and the concise Tintin/Milou caption in the
+  README.
+
 ## Why I started
 
 My work is distributed across multiple tools, and the main cost is often

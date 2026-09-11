@@ -7,10 +7,10 @@ routines. It supports human judgment; it does not replace it.
 
 Canonical repository: [github.com/hkdeven/milou](https://github.com/hkdeven/milou)
 
-![Milou, Tintin's loyal scout](docs/assets/milou.png)
-
-*Milou, Tintin's loyal scout: running ahead to notice the unseen and fetch
-context before the next decision.*
+<figure align="left">
+  <img src="docs/assets/milou.png" width="120" alt="Milou, Tintin's loyal scout">
+  <figcaption>Milou, Tintin's loyal scout: running ahead to notice the unseen and fetch context before the next decision.</figcaption>
+</figure>
 
 ## What Milou does
 

@@ -22,6 +22,8 @@ the detailed reasoning and decisions behind each change.
   supervisor agent name.
 - Added the supplied Milou visual identity at `docs/assets/milou.png` and
   linked it from the canonical README.
+- Refined the README image presentation to a smaller, left-aligned,
+  text-wrapping figure without changing the source asset.
 
 ### Not implemented
 
