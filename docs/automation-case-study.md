@@ -120,6 +120,16 @@ this document in it before implementation begins.
   `hkdeven/milou` repository and merged it to the default `main` branch.
 - Verified that `README.md` and the documentation are visible from `main`.
 
+### September 11, 2026 — Publication verification
+
+- Rechecked the initialization branch, local history, and canonical remote
+  before repeating the publication verification.
+- Confirmed the remote remains `https://github.com/hkdeven/milou.git` and that
+  the initialization pull request is merged.
+- Confirmed the published `main` branch exposes `README.md`, the case study,
+  architecture and source documentation, routine contracts, and
+  `CHANGELOG.md` through the authenticated GitHub contents API.
+
 ## Why I started
 
 My work is distributed across multiple tools, and the main cost is often
