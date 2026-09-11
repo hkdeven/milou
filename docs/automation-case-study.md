@@ -130,6 +130,15 @@ this document in it before implementation begins.
   architecture and source documentation, routine contracts, and
   `CHANGELOG.md` through the authenticated GitHub contents API.
 
+### September 11, 2026 — Canonical README maintenance rule
+
+- Established `README.md` on `main` as the canonical current project overview.
+- The README must be updated whenever Milou's identity, architecture,
+  documented or implemented capabilities, repository structure, status, or
+  next steps materially change.
+- The README should remain concise and link to detailed architecture, routine,
+  source, and case-study documentation rather than duplicating it.
+
 ## Why I started
 
 My work is distributed across multiple tools, and the main cost is often
