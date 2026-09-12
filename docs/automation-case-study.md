@@ -269,6 +269,35 @@ this document in it before implementation begins.
   integration or hosting details should be recorded while independent local
   interfaces, fixtures, tests, and behavior continue.
 
+### September 12, 2026 — Next article roadmap routines
+
+- Proceeded with the next safe, fixture-backed phase from the article roadmap:
+  **Commitments and Follow-Up Tracker**, **Stale Work Finder**, and
+  **Dependabot PR Triage**, in that order.
+- The commitments routine will detect explicit promises in structured
+  message/activity fixtures and report owner, commitment, source, age,
+  status/ambiguity, and a suggested follow-up without sending messages.
+- Stale Work Finder will identify aging authored pull requests, assigned
+  reviews, inactive assigned issues, and old drafts, grouped by urgency with
+  citations.
+- Dependabot PR Triage will classify dependency updates by security/urgency,
+  checks, conflicts, age, and safe-review recommendation without approving or
+  merging.
+- All three routines will remain read-only, fixture-backed, integrated with
+  the registry, canonical CLI, dated storage, authenticated archive, tests,
+  contracts, README, architecture, changelog, and case-study record.
+
+### September 12, 2026 — Article roadmap implementation result
+
+- Added three standard-library routines and registry entries. The canonical CLI
+  accepts both stable names and short aliases, and `ReportStore` metadata keeps
+  routine labels visible in the authenticated archive.
+- Added deterministic fixtures and contracts. Stale-work thresholds are
+  explicit (7/3/14/30 days); Dependabot output separates security urgency from
+  checks/conflicts and recommends review without approval or merge.
+- Validation: full unittest discovery, `compileall`, canonical CLI generation
+  and storage for all three fixtures, and `git diff --check`.
+
 ### September 12, 2026 — Private delivery implementation
 
 - Added `ReportStore` dated JSON/Markdown persistence and a

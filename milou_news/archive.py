@@ -1,6 +1,7 @@
 """Local, dated report persistence for the read-only delivery slice."""
 
 import json
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -17,8 +18,13 @@ class ReportStore:
         generated_at = (generated_at or datetime.now(timezone.utc)).astimezone(timezone.utc)
         directory = self.root / generated_at.strftime("%Y") / generated_at.strftime("%m") / generated_at.strftime("%d")
         directory.mkdir(parents=True, exist_ok=True)
-        stem = "report-" + generated_at.strftime("%H%M%S")
         payload = {"generated_at": generated_at.isoformat(), "markdown": markdown, "metadata": metadata or {}}
+        routine = (metadata or {}).get("routine")
+        suffix = ""
+        if routine:
+            safe_routine = re.sub(r"[^a-z0-9-]+", "-", str(routine).lower()).strip("-")
+            suffix = "-" + safe_routine if safe_routine else ""
+        stem = "report-" + generated_at.strftime("%H%M%S") + suffix
         json_path = directory / (stem + ".json")
         markdown_path = directory / (stem + ".md")
         json_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")

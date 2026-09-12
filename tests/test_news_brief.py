@@ -13,7 +13,9 @@ from milou_news.sources import FixtureFetcher, JsonSourceFetcher, SourceFetchErr
 from milou_news.archive import ReportStore
 from milou_news.generation import generate_and_store
 from milou_news.web import make_handler
-from milou_news.routines import generate_daily_wins, generate_morning_brief
+from milou_news.routines import (generate_daily_wins, generate_morning_brief,
+                                 generate_commitments_tracker, generate_stale_work_finder,
+                                 generate_dependabot_pr_triage)
 from http.server import ThreadingHTTPServer
 
 
@@ -38,6 +40,23 @@ class NewsBriefTests(unittest.TestCase):
         self.assertIn("daily-wins-recap", registry.names())
         self.assertIn("morning-brief-meeting-prep", registry.names())
         self.assertEqual(registry.get("daily-wins-recap").access, "read-only")
+        self.assertEqual(registry.get("dependabot-pr-triage").access, "read-only")
+
+    def test_article_roadmap_routines_are_read_only_and_cited(self):
+        with open("fixtures/commitments.json", encoding="utf-8") as handle:
+            report = generate_commitments_tracker(json.load(handle))
+        self.assertIn("Alex", report)
+        self.assertIn("messages/1", report)
+        self.assertIn("Suggested follow-up", report)
+        with open("fixtures/stale-work.json", encoding="utf-8") as handle:
+            report = generate_stale_work_finder(json.load(handle))
+        self.assertIn("Urgent", report)
+        self.assertIn("pull/8", report)
+        with open("fixtures/dependabot.json", encoding="utf-8") as handle:
+            report = generate_dependabot_pr_triage(json.load(handle))
+        self.assertIn("Security / urgent", report)
+        self.assertIn("do not auto-approve", report)
+        self.assertNotIn("merged", report.lower())
 
     def test_daily_wins_separates_facts_and_inferred_impact(self):
         with open("fixtures/activity.json", encoding="utf-8") as handle:

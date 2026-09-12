@@ -1,0 +1,16 @@
+{
+  "generated_at": "2026-09-12T07:00:00+00:00",
+  "messages": [
+    {
+      "author": "Alex",
+      "text": "I'll share the rollout notes by Friday.",
+      "timestamp": "2026-09-09T10:00:00+00:00",
+      "url": "https://example.test/messages/1"
+    },
+    {
+      "text": "We should discuss this sometime.",
+      "timestamp": "2026-09-10T10:00:00+00:00",
+      "url": "https://example.test/messages/2"
+    }
+  ]
+}

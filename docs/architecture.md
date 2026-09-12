@@ -104,6 +104,9 @@ and Morning Brief/Meeting Prep routines. They use only local structured input:
 Daily Wins labels supplied activity as verified facts and keeps impact as
 explicit inference, while Meeting Prep preserves per-meeting context and
 unknowns. Neither routine contacts people or changes calendar data.
+It also includes commitment detection, stale-work grouping, and Dependabot
+triage. These routines cite fixture evidence, expose ambiguity and thresholds,
+and only recommend human follow-up; they never send, approve, merge, or edit.
 
 Success will be evaluated using evidence such as false positives, missed
 items, time saved, context-switches avoided, useful decisions enabled, routine

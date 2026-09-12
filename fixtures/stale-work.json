@@ -1,0 +1,7 @@
+{
+  "generated_at": "2026-09-12T07:00:00+00:00",
+  "authored_prs": [{"title": "Accessibility follow-up", "updated_at": "2026-08-20T10:00:00+00:00", "url": "https://example.test/pull/8"}],
+  "assigned_reviews": [{"title": "Review API change", "updated_at": "2026-09-06T10:00:00+00:00", "url": "https://example.test/pull/9"}],
+  "assigned_issues": [{"title": "Document backup path", "updated_at": "2026-08-20T10:00:00+00:00", "url": "https://example.test/issues/3"}],
+  "drafts": [{"title": "Draft migration", "updated_at": "2026-08-01T10:00:00+00:00", "url": "https://example.test/pull/10"}]
+}

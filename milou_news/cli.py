@@ -6,7 +6,9 @@ from .config import SOURCES
 from .pipeline import BriefConfig, generate_brief
 from .sources import FixtureFetcher
 from .archive import ReportStore
-from .routines import generate_daily_wins, generate_morning_brief
+from .routines import (generate_daily_wins, generate_morning_brief,
+                       generate_commitments_tracker, generate_stale_work_finder,
+                       generate_dependabot_pr_triage)
 
 
 def main(argv=None) -> int:
@@ -20,6 +22,13 @@ def main(argv=None) -> int:
             "daily-wins-recap",
             "morning-brief",
             "morning-brief-meeting-prep",
+            "commitments",
+            "commitments-follow-up",
+            "commitments-follow-up-tracker",
+            "stale-work",
+            "stale-work-finder",
+            "dependabot",
+            "dependabot-pr-triage",
         ),
         default="news",
     )
@@ -33,10 +42,23 @@ def main(argv=None) -> int:
         report = generate_brief(SOURCES, FixtureFetcher(payload), config=BriefConfig(limit=args.limit))
     elif args.routine in ("daily-wins", "daily-wins-recap"):
         report = generate_daily_wins(payload)
-    else:
+    elif args.routine in ("morning-brief", "morning-brief-meeting-prep"):
         report = generate_morning_brief(payload)
+    elif args.routine in (
+        "commitments",
+        "commitments-follow-up",
+        "commitments-follow-up-tracker",
+    ):
+        report = generate_commitments_tracker(payload)
+    elif args.routine in ("stale-work", "stale-work-finder"):
+        report = generate_stale_work_finder(payload)
+    else:
+        report = generate_dependabot_pr_triage(payload)
     if args.store:
-        ReportStore(args.store).save(report, metadata={"routine": args.routine, "fixture": args.fixture})
+        ReportStore(args.store).save(
+            report,
+            metadata={"routine": args.routine, "fixture": args.fixture},
+        )
     print(report, end="")
     return 0
 

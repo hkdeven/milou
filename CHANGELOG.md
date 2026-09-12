@@ -51,3 +51,8 @@ the detailed reasoning and decisions behind each change.
   tests.
 - Live activity/calendar integrations and deployment remain intentionally out
   of scope; these routines accept local fixtures only.
+- Added fixture-backed Commitments and Follow-Up Tracker, Stale Work Finder,
+  and Dependabot PR Triage routines, registry entries, canonical CLI paths,
+  contracts, fixtures, and read-only tests/documentation.
+- Made same-second archived routine reports distinct by including the routine
+  name in stored filenames.

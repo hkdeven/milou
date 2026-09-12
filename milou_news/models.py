@@ -73,6 +73,18 @@ MORNING_BRIEF_ROUTINE = Routine(
     "0.1.0",
     "Prepare read-only, evidence-linked preparation notes for calendar meetings.",
 )
+COMMITMENTS_ROUTINE = Routine(
+    "commitments-follow-up-tracker", "0.1.0",
+    "Detect explicit commitments and suggest read-only follow-up from structured fixtures.",
+)
+STALE_WORK_ROUTINE = Routine(
+    "stale-work-finder", "0.1.0",
+    "Find aging authored PRs, reviews, issues, and drafts with cited urgency.",
+)
+DEPENDABOT_ROUTINE = Routine(
+    "dependabot-pr-triage", "0.1.0",
+    "Classify dependency updates and recommend safe human review.",
+)
 
 
 def default_registry() -> RoutineRegistry:
@@ -80,4 +92,7 @@ def default_registry() -> RoutineRegistry:
     registry.register(NEWS_ROUTINE)
     registry.register(DAILY_WINS_ROUTINE)
     registry.register(MORNING_BRIEF_ROUTINE)
+    registry.register(COMMITMENTS_ROUTINE)
+    registry.register(STALE_WORK_ROUTINE)
+    registry.register(DEPENDABOT_ROUTINE)
     return registry
