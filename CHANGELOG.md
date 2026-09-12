@@ -7,6 +7,13 @@ the detailed reasoning and decisions behind each change.
 
 ### Added
 
+- Added a standard-library delivery slice with dated Markdown/JSON report
+  persistence, fixture-backed generation callable/CLI storage, and a
+  responsive bearer-authenticated index/archive that fails closed when its
+  token is not configured.
+- Added private-host/reverse-proxy deployment guidance without deploying or
+  adding credentials.
+
 - Added the first safe vertical slice of the daily global AI news brief:
   explicit routine registry, configured sources, injectable JSON fetching,
   freshness filtering, duplicate handling, explainable ranking, diversity
@@ -35,6 +42,6 @@ the detailed reasoning and decisions behind each change.
 
 ### Not implemented
 
-- Live external integrations, credentials, scheduling, persistence, and report
-  delivery remain intentionally out of scope; the runtime is read-only and
-  uses fixture/mocked fetching in tests.
+- Live external integrations, credentials, and deployment remain intentionally
+  out of scope; the runtime is read-only and uses fixture/mocked fetching in
+  tests.

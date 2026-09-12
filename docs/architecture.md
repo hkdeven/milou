@@ -103,3 +103,28 @@ Success will be evaluated using evidence such as false positives, missed
 items, time saved, context-switches avoided, useful decisions enabled, routine
 failures detected, unnecessary orchestration, and the cost of the management
 layer itself.
+
+## Hosted private delivery pipeline
+
+The delivery slice is deliberately read-only:
+
+```text
+fixture/source input -> scheduled generation callable/CLI
+                    -> dated Markdown + JSON archive
+                    -> private host -> bearer-authenticated web index/archive
+```
+
+`ReportStore` writes reports under a year/month/day archive and the web layer
+only reads those files. The HTTP boundary requires the configured
+`MILOU_REPORT_TOKEN`; an absent token fails closed. A private host and
+operator-managed TLS/reverse proxy are required. Public hosting and GitHub
+Pages are explicitly excluded. The application never publishes reports,
+contacts sources, or changes source data.
+
+## Blockers and continuation
+
+Milou records blockers and continues independent related work rather than
+stopping the project. A true pause is reserved for a safety issue, a missing
+required user decision, or a correctness dependency that makes further work
+unsafe or misleading. Deployment-provider selection and credentials do not
+block local report persistence, UI, tests, or authentication-boundary work.

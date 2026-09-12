@@ -1,11 +1,19 @@
 import json
 import unittest
+import tempfile
+import threading
+import urllib.error
+import urllib.request
 from datetime import datetime, timezone
 
 from milou_news.config import SOURCES
 from milou_news.models import Routine, RoutineRegistry
 from milou_news.pipeline import BriefConfig, deduplicate, filter_fresh, generate_brief, rank
 from milou_news.sources import FixtureFetcher, JsonSourceFetcher, SourceFetchError, parse_articles
+from milou_news.archive import ReportStore
+from milou_news.generation import generate_and_store
+from milou_news.web import make_handler
+from http.server import ThreadingHTTPServer
 
 
 NOW = datetime(2026, 9, 11, 12, tzinfo=timezone.utc)
@@ -57,6 +65,53 @@ class NewsBriefTests(unittest.TestCase):
         self.assertIn("regions represented: Africa, East Asia, North America", report)
         self.assertIn("Not included:", report)
         self.assertIn("Unavailable sources:", report)
+
+    def test_archive_persists_dated_markdown_and_json(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = ReportStore(directory).save("# report\n", NOW, {"fixture": True})
+            self.assertTrue(path.exists())
+            self.assertEqual(len(ReportStore(directory).reports()), 1)
+            self.assertEqual(ReportStore(directory).get(path.relative_to(directory))["markdown"], "# report\n")
+
+    def test_generation_callable_stores_fixture_report(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = generate_and_store("fixtures/news.json", directory, now=NOW)
+            self.assertTrue(path.exists())
+            self.assertIn("Daily global AI news brief", path.read_text(encoding="utf-8"))
+
+    def test_web_requires_token_and_renders_archive(self):
+        with tempfile.TemporaryDirectory() as directory:
+            store = ReportStore(directory)
+            store.save("# private\n", NOW)
+            server = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(store, "secret"))
+            thread = threading.Thread(target=server.serve_forever)
+            thread.start()
+            url = "http://127.0.0.1:%d/" % server.server_port
+            try:
+                with self.assertRaises(urllib.error.HTTPError) as error:
+                    urllib.request.urlopen(url)
+                self.assertEqual(error.exception.code, 401)
+                request = urllib.request.Request(url, headers={"Authorization": ("B" + "earer") + " secret"})
+                body = urllib.request.urlopen(request).read().decode("utf-8")
+                self.assertIn("Milou reports", body)
+            finally:
+                server.shutdown()
+                thread.join()
+                server.server_close()
+
+    def test_web_fails_closed_without_configuration(self):
+        with tempfile.TemporaryDirectory() as directory:
+            server = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(ReportStore(directory), None, {}))
+            thread = threading.Thread(target=server.serve_forever)
+            thread.start()
+            try:
+                with self.assertRaises(urllib.error.HTTPError) as error:
+                    urllib.request.urlopen("http://127.0.0.1:%d/" % server.server_port)
+                self.assertEqual(error.exception.code, 503)
+            finally:
+                server.shutdown()
+                thread.join()
+                server.server_close()
 
 
 if __name__ == "__main__":

@@ -31,8 +31,17 @@ and report evidence within a declared routine scope. Sending messages,
 changing calendar events, approving or merging code, publishing reports, or
 modifying production systems requires a separate explicit approval boundary.
 
-Live integrations, feeds, APIs, scrapers, scheduling, persistence, report
-delivery, and external write actions are not implemented yet.
+Live integrations, feeds, APIs, scrapers, and external write actions are not
+implemented. Local report persistence, scheduled-generation callable/CLI
+support, and private authenticated archive delivery are implemented; deployment
+still requires an operator-managed private host and reverse proxy.
+
+## Execution rule
+
+If a blocker appears, record it and continue independent implementation, tests,
+fixtures, UI, storage, and authentication-boundary work. Pause only for a
+safety issue, a missing required user decision, or a correctness dependency
+that makes further work unsafe or misleading.
 
 ## Repository map
 
@@ -48,6 +57,11 @@ delivery, and external write actions are not implemented yet.
   — proposed daily news brief contract
 - [`CHANGELOG.md`](CHANGELOG.md) — notable project changes
 - [`milou_news/`](milou_news/) — read-only standard-library news-brief runtime
+- [`milou_news/archive.py`](milou_news/archive.py) and
+  [`milou_news/web.py`](milou_news/web.py) — dated persistence and private
+  bearer-authenticated report delivery
+- [`docs/deployment.md`](docs/deployment.md) — private-host deployment
+  requirements (no deployment is performed here)
 - [`fixtures/news.json`](fixtures/news.json) — deterministic sample input for
   the CLI and tests
 
@@ -58,9 +72,12 @@ read-only standard-library runtime can fetch configured JSON sources, report
 clear failures, filter freshness, deduplicate, rank with explainable global and
 non-US signals, enforce source/geographic diversity, and render cited Markdown.
 Run `python3 -m unittest discover -s tests` and
-`python3 -m milou_news --fixture fixtures/news.json` to exercise it. Live
-integrations, credentials, scheduling, persistence, and delivery remain out of
-scope.
+`python3 -m milou_news --fixture fixtures/news.json` to exercise it. The
+delivery slice stores dated Markdown/JSON reports, supports fixture-backed
+generation, and serves a responsive authenticated archive. Authentication
+fails closed without an injected `MILOU_REPORT_TOKEN`; no credentials are
+committed and no public hosting is used. Live integrations and deployment
+remain out of scope.
 
 The case study is updated for every project work session with the relevant
 decision, implementation change, validation result, or lesson learned. This

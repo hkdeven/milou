@@ -220,6 +220,44 @@ this document in it before implementation begins.
 - **Status:** Safe fixture-backed slice implemented; live collection and
   delivery remain deliberately unimplemented.
 
+### September 12, 2026 — Private device-independent web delivery
+
+- Chose private/authenticated web access so Milou reports can be viewed from
+  any device while remaining inaccessible to the public.
+- Identified hosted web delivery as the next layer after the news engine:
+  scheduled generation, dated report storage, and a hosted index/archive.
+- Kept public hosting and GitHub Pages out of scope because the reports are
+  private.
+- This phase will implement a local/testable authenticated web layer and
+  deployment documentation without cloud credentials or deployment secrets.
+
+### September 12, 2026 — Unblock and continue execution rule
+
+- Established a standing execution rule: when Milou encounters a blocker,
+  record it and continue independent related implementation, tests, fixtures,
+  UI, storage, and authentication-boundary work.
+- A true pause is warranted only for a safety issue, a missing required user
+  decision, or a correctness dependency that makes further work unsafe or
+  misleading.
+- Deployment-provider details and credentials are not prerequisites for the
+  current local/testable web-delivery slice, so that work should continue
+  while deployment remains documented as a separate user-action blocker.
+
+### September 12, 2026 — Private delivery implementation
+
+- Added `ReportStore` dated JSON/Markdown persistence and a
+  `generate_and_store` callable plus `--store` CLI path using the existing
+  fixture input.
+- Added a device-independent responsive HTML index/archive with an explicit
+  bearer-token boundary. The token is injected or read from
+  `MILOU_REPORT_TOKEN`; missing configuration returns a fail-closed error.
+- Added stdlib tests for persistence, rendering, authorization, and
+  generation, plus private-host deployment guidance. No deployment,
+  credentials, public hosting, source-data writes, or outbound contact were
+  added.
+- Validation: unittest, compileall, fixture generation/storage, and diff
+  checks were run for this slice.
+
 ## Why I started
 
 My work is distributed across multiple tools, and the main cost is often
