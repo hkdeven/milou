@@ -23,6 +23,9 @@ The documented initial capabilities are:
   non-US coverage,
   source and geographic diversity, freshness, deduplication, direct citations,
   and uncertainty handling; and
+- implemented fixture-backed Daily Wins and Morning Brief/Meeting Prep
+  routines that distinguish verified facts from inferred impact and preserve
+  meeting context, decisions, questions, commitments, and inaccessible links; and
 - a vetted initial global AI news source set.
 
 ## Safety boundary
@@ -56,6 +59,9 @@ that makes further work unsafe or misleading.
   contract template and activation checklist
 - [`routines/daily-global-ai-news-brief.md`](routines/daily-global-ai-news-brief.md)
   — proposed daily news brief contract
+- [`routines/daily-wins-recap.md`](routines/daily-wins-recap.md) and
+  [`routines/morning-brief-meeting-prep.md`](routines/morning-brief-meeting-prep.md)
+  — fixture-backed routine contracts
 - [`CHANGELOG.md`](CHANGELOG.md) — notable project changes
 - [`milou_news/`](milou_news/) — read-only standard-library news-brief runtime
 - [`milou_news/archive.py`](milou_news/archive.py) and
@@ -65,10 +71,12 @@ that makes further work unsafe or misleading.
   requirements (no deployment is performed here)
 - [`fixtures/news.json`](fixtures/news.json) — deterministic sample input for
   the CLI and tests
+- [`fixtures/activity.json`](fixtures/activity.json) and
+  [`fixtures/meetings.json`](fixtures/meetings.json) — deterministic routine fixtures
 
 ## Status and next steps
 
-The first safe vertical slice is implemented on `main`: a
+The safe vertical slices are implemented locally: a
 read-only standard-library runtime can fetch configured JSON sources, report
 clear failures, filter freshness, deduplicate, rank with explainable global and
 non-US signals, enforce source/geographic diversity, and render cited Markdown.
@@ -80,9 +88,9 @@ fails closed without an injected `MILOU_REPORT_TOKEN`; no credentials are
 committed and no public hosting is used. Live integrations and deployment
 remain out of scope.
 
-**Roadmap:** Morning Brief and Daily Wins are not implemented as of September
-12, 2026. They remain future routine candidates and are not part of the current
-runtime.
+**Status:** Daily Wins and Morning Brief/Meeting Prep are implemented as
+read-only fixture-backed routines. Live calendar/activity integrations and
+deployment remain out of scope.
 
 The case study is updated for every project work session with the relevant
 decision, implementation change, validation result, or lesson learned. This

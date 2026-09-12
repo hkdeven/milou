@@ -49,8 +49,10 @@ def make_handler(store, bearer_token=None, environ=None):
                 links = []
                 for report in reports:
                     relative = os.path.relpath(report["path"], store.root)
-                    links.append('<li><a href="/report/%s">%s</a></li>' %
-                                 (html.escape(relative), html.escape(report.get("generated_at", relative))))
+                    label = report.get("metadata", {}).get("routine", "report")
+                    links.append('<li><a href="/report/%s">%s</a> — %s</li>' %
+                                 (html.escape(relative), html.escape(report.get("generated_at", relative)),
+                                  html.escape(label)))
                 self._send(200, "<!doctype html><meta name=\"viewport\" content=\"width=device-width\">"
                                 "<title>Milou reports</title><h1>Milou reports</h1><ul>%s</ul>" %
                                 "".join(links))
@@ -60,9 +62,11 @@ def make_handler(store, bearer_token=None, environ=None):
                 if payload is None:
                     self._send(404, "Report not found.\n", "text/plain; charset=utf-8")
                 else:
+                    label = payload.get("metadata", {}).get("routine", "report")
                     self._send(200, "<!doctype html><meta name=\"viewport\" content=\"width=device-width\">"
-                                    "<title>Milou report</title><pre>%s</pre>" %
-                                    html.escape(payload.get("markdown", "")))
+                                    "<title>Milou %s</title><h1>%s</h1><pre>%s</pre>" %
+                                    (html.escape(label), html.escape(label),
+                                    html.escape(payload.get("markdown", ""))))
                 return
             self._send(404, "Not found.\n", "text/plain; charset=utf-8")
 

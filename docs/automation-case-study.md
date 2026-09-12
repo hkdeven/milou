@@ -253,6 +253,22 @@ this document in it before implementation begins.
 - Morning Brief and Daily Wins remain roadmap candidates only; this scope
   clarification does not add either routine.
 
+### September 12, 2026 — Next implementation phase: wins and meeting prep
+
+- Proceeded with the next safe, fixture-backed implementation phase:
+  **Daily Wins Recap** and **Morning Brief/Meeting Prep**.
+- Daily Wins Recap will generate an evidence-based accomplishment report from
+  structured activity fixtures, separating verified facts from inferred impact.
+- Morning Brief/Meeting Prep will generate per-meeting briefs from calendar and
+  meeting fixtures, including purpose, attendees, linked context, decisions,
+  open questions, commitments, and inaccessible links.
+- Both routines remain read-only: they must not contact attendees, change
+  events, publish externally, or add credentials. They will reuse the routine
+  registry, dated report storage, CLI, authenticated archive, and local tests.
+- External integrations and deployment details remain out of scope; unresolved
+  integration or hosting details should be recorded while independent local
+  interfaces, fixtures, tests, and behavior continue.
+
 ### September 12, 2026 — Private delivery implementation
 
 - Added `ReportStore` dated JSON/Markdown persistence and a
@@ -483,6 +499,24 @@ coordination is consuming my attention.
 - Defined routines as replaceable components with explicit contracts and
   approval boundaries.
 - Named the supervisor agent **Milou**.
+
+### September 12, 2026 — Daily Wins and Morning Brief implementation
+
+- Added two read-only, fixture-backed routines to the registry: Daily Wins
+  Recap and Morning Brief/Meeting Prep.
+- Daily Wins renders supplied activity as **Verified facts**, and keeps any
+  `inferred_impact` in a separate section so likely outcomes cannot be mistaken
+  for observed accomplishments.
+- Meeting Prep renders each meeting's purpose, attendees, linked context,
+  decisions, open questions, commitments, and inaccessible links. It performs
+  no contacting or calendar mutation.
+- Integrated both routines with the CLI, callable report generation, dated
+  `ReportStore` metadata, and the existing authenticated archive.
+- Added deterministic JSON fixtures, routine contracts, registry and output
+  tests. No credentials or external integrations were added.
+- Validation: targeted unit tests, `compileall`, both fixture CLI paths, and
+  a final diff check pass. Deployment/provider integration remains a blocker
+  for hosted operation, not for local implementation.
 
 ## Lessons learned
 

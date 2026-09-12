@@ -62,8 +62,22 @@ NEWS_ROUTINE = Routine(
     "Produce a concise, cited global AI news brief.",
 )
 
+DAILY_WINS_ROUTINE = Routine(
+    "daily-wins-recap",
+    "0.1.0",
+    "Summarize verified accomplishments from structured activity fixtures and separate inferred impact.",
+)
+
+MORNING_BRIEF_ROUTINE = Routine(
+    "morning-brief-meeting-prep",
+    "0.1.0",
+    "Prepare read-only, evidence-linked preparation notes for calendar meetings.",
+)
+
 
 def default_registry() -> RoutineRegistry:
     registry = RoutineRegistry()
     registry.register(NEWS_ROUTINE)
+    registry.register(DAILY_WINS_ROUTINE)
+    registry.register(MORNING_BRIEF_ROUTINE)
     return registry

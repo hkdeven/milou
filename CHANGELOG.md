@@ -7,6 +7,10 @@ the detailed reasoning and decisions behind each change.
 
 ### Added
 
+- Added fixture-backed `daily-wins-recap` and
+  `morning-brief-meeting-prep` routines, registry entries, CLI selection,
+  callable storage, deterministic fixtures, contracts, and report output.
+
 - Added a standard-library delivery slice with dated Markdown/JSON report
   persistence, fixture-backed generation callable/CLI storage, and a
   responsive bearer-authenticated index/archive that fails closed when its
@@ -45,5 +49,5 @@ the detailed reasoning and decisions behind each change.
 - Live external integrations, credentials, and deployment remain intentionally
   out of scope; the runtime is read-only and uses fixture/mocked fetching in
   tests.
-- Morning Brief and Daily Wins remain unimplemented roadmap candidates as of
-  September 12, 2026.
+- Live activity/calendar integrations and deployment remain intentionally out
+  of scope; these routines accept local fixtures only.

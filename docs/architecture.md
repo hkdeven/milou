@@ -99,9 +99,11 @@ coordinate read-only collection, ranking, deduplication, and citation, but it
 must not publish, contact sources, or change subscriptions without a separate
 approved capability.
 
-As of September 12, 2026, only the daily global AI news brief has an
-implemented runtime. Morning Brief and Daily Wins remain planned routine
-candidates; they are not implemented.
+As of September 12, 2026, the runtime also includes fixture-backed Daily Wins
+and Morning Brief/Meeting Prep routines. They use only local structured input:
+Daily Wins labels supplied activity as verified facts and keeps impact as
+explicit inference, while Meeting Prep preserves per-meeting context and
+unknowns. Neither routine contacts people or changes calendar data.
 
 Success will be evaluated using evidence such as false positives, missed
 items, time saved, context-switches avoided, useful decisions enabled, routine

@@ -1,0 +1,16 @@
+{
+  "generated_at": "2026-09-12T07:30:00+00:00",
+  "meetings": [
+    {
+      "title": "Accessibility launch review",
+      "start": "2026-09-12T09:00:00+00:00",
+      "purpose": "Confirm launch readiness and ownership of remaining checks.",
+      "attendees": ["A. Rivera", "M. Chen"],
+      "linked_context": ["https://example.test/docs/decision", "https://example.test/github/pull/42"],
+      "decisions": ["Launch checklist owner"],
+      "open_questions": ["Are translations ready?"],
+      "commitments": ["Bring the current test report"],
+      "inaccessible_links": ["https://example.test/private/roadmap"]
+    }
+  ]
+}

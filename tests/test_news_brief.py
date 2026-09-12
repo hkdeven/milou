@@ -7,12 +7,13 @@ import urllib.request
 from datetime import datetime, timezone
 
 from milou_news.config import SOURCES
-from milou_news.models import Routine, RoutineRegistry
+from milou_news.models import Routine, RoutineRegistry, default_registry
 from milou_news.pipeline import BriefConfig, deduplicate, filter_fresh, generate_brief, rank
 from milou_news.sources import FixtureFetcher, JsonSourceFetcher, SourceFetchError, parse_articles
 from milou_news.archive import ReportStore
 from milou_news.generation import generate_and_store
 from milou_news.web import make_handler
+from milou_news.routines import generate_daily_wins, generate_morning_brief
 from http.server import ThreadingHTTPServer
 
 
@@ -31,6 +32,28 @@ class NewsBriefTests(unittest.TestCase):
         self.assertEqual(registry.get("test").access, "read-only")
         with self.assertRaises(ValueError):
             registry.register(Routine("test", "2", "duplicate"))
+
+    def test_new_routines_are_registered_read_only(self):
+        registry = default_registry()
+        self.assertIn("daily-wins-recap", registry.names())
+        self.assertIn("morning-brief-meeting-prep", registry.names())
+        self.assertEqual(registry.get("daily-wins-recap").access, "read-only")
+
+    def test_daily_wins_separates_facts_and_inferred_impact(self):
+        with open("fixtures/activity.json", encoding="utf-8") as handle:
+            report = generate_daily_wins(json.load(handle))
+        self.assertLess(report.index("## Verified facts"), report.index("## Inferred impact"))
+        self.assertIn("Merged accessibility fixes", report)
+        self.assertIn("inferred impact:", report)
+        self.assertIn("evidence](https://example.test/github/pull/42)", report)
+
+    def test_morning_brief_contains_context_and_read_only_boundary(self):
+        with open("fixtures/meetings.json", encoding="utf-8") as handle:
+            report = generate_morning_brief(json.load(handle))
+        for expected in ("Purpose", "Attendees", "Linked context", "Decisions",
+                         "Open questions", "Commitments", "Inaccessible links",
+                         "No attendees were contacted"):
+            self.assertIn(expected, report)
 
     def test_source_parser_reports_invalid_payload(self):
         with self.assertRaises(SourceFetchError):
