@@ -99,6 +99,10 @@ coordinate read-only collection, ranking, deduplication, and citation, but it
 must not publish, contact sources, or change subscriptions without a separate
 approved capability.
 
+As of September 12, 2026, only the daily global AI news brief has an
+implemented runtime. Morning Brief and Daily Wins remain planned routine
+candidates; they are not implemented.
+
 Success will be evaluated using evidence such as false positives, missed
 items, time saved, context-switches avoided, useful decisions enabled, routine
 failures detected, unnecessary orchestration, and the cost of the management

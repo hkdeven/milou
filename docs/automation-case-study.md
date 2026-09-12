@@ -243,6 +243,16 @@ this document in it before implementation begins.
   current local/testable web-delivery slice, so that work should continue
   while deployment remains documented as a separate user-action blocker.
 
+### September 12, 2026 — Scope clarification for implemented routines
+
+- Confirmed that no Morning Brief or Daily Wins routine has been implemented
+  as of September 12, 2026.
+- The implemented routine is the fixture-backed, read-only daily global AI
+  news brief, alongside the Milou supervisor foundation and private report
+  delivery layer.
+- Morning Brief and Daily Wins remain roadmap candidates only; this scope
+  clarification does not add either routine.
+
 ### September 12, 2026 — Private delivery implementation
 
 - Added `ReportStore` dated JSON/Markdown persistence and a

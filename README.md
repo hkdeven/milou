@@ -19,7 +19,8 @@ The documented initial capabilities are:
 
 - a routine contract and activation checklist;
 - a read-only, GitHub-first rollout model;
-- a proposed daily global AI news brief that emphasizes non-US coverage,
+- an implemented fixture-backed daily global AI news brief that emphasizes
+  non-US coverage,
   source and geographic diversity, freshness, deduplication, direct citations,
   and uncertainty handling; and
 - a vetted initial global AI news source set.
@@ -78,6 +79,10 @@ generation, and serves a responsive authenticated archive. Authentication
 fails closed without an injected `MILOU_REPORT_TOKEN`; no credentials are
 committed and no public hosting is used. Live integrations and deployment
 remain out of scope.
+
+**Roadmap:** Morning Brief and Daily Wins are not implemented as of September
+12, 2026. They remain future routine candidates and are not part of the current
+runtime.
 
 The case study is updated for every project work session with the relevant
 decision, implementation change, validation result, or lesson learned. This

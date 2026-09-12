@@ -45,3 +45,5 @@ the detailed reasoning and decisions behind each change.
 - Live external integrations, credentials, and deployment remain intentionally
   out of scope; the runtime is read-only and uses fixture/mocked fetching in
   tests.
+- Morning Brief and Daily Wins remain unimplemented roadmap candidates as of
+  September 12, 2026.
