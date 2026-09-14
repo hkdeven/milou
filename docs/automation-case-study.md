@@ -305,6 +305,21 @@ this document in it before implementation begins.
   planner/dispatcher over registered routines, explicit read-only permissions,
   routing metadata, and visible failures. External integrations and
   credentials remain out of scope.
+
+### September 14, 2026 — Scheduler and operational health direction
+
+- Completed the Launch Decoder, Launch Radar, Travel Logistics Tracker, and
+  deterministic planner/dispatcher phase.
+- Chose durable scheduler configuration as the next foundational slice:
+  daily/weekly cadence, enabled/disabled state, timezone-aware due
+  calculation, deterministic run ledger/idempotency, and visible failures and
+  retries.
+- Operational health and scheduler status will be surfaced through the
+  authenticated archive without expanding routine permissions beyond
+  read-only.
+- The scheduler remains local and fixture-backed for now; external schedulers,
+  integrations, credentials, and deployment details are not prerequisites for
+  implementing or testing the interfaces.
 - Implementation/build log: added registry metadata and canonical aliases,
   callable and CLI storage paths, three deterministic JSON fixtures, three
   contracts, authenticated archive labels, and focused unit coverage. The
@@ -586,3 +601,16 @@ _To be written after collecting evidence from the first rollout._
 
 Prompt versions will be added here as they are tested, along with the reason
 for each significant change.
+
+### September 14, 2026 — Durable scheduler foundation
+
+- Added a local SQLite scheduler for registered routines. Daily and weekly
+  schedules use each routine's IANA timezone and deterministic local day/week
+  idempotency keys; disabled routines never become due.
+- Added a durable run ledger with bounded retries, attempt counts, timestamps,
+  and preserved failure text. Successful runs are not duplicated, and all
+  scheduler configuration is enforced as read-only.
+- Added `scheduler`, `status`, `run`, and `ledger` CLI commands plus fixture
+  configuration, and exposed authenticated `/status` and `/health` JSON for
+  operational reporting. No deployment or external integration was required;
+  local SQLite and fixtures remain the supported path.

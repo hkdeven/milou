@@ -1,5 +1,6 @@
 import argparse
 import json
+import sys
 from datetime import datetime, timezone
 
 from .config import SOURCES
@@ -10,9 +11,41 @@ from .routines import (generate_daily_wins, generate_morning_brief,
                        generate_commitments_tracker, generate_stale_work_finder,
                        generate_dependabot_pr_triage, generate_launch_decoder,
                        generate_launch_radar, generate_travel_logistics_tracker)
+from .scheduler import Scheduler
+from .models import default_registry
+from .supervisor import SupervisorDispatcher
+
+
+def scheduler_command(argv):
+    parser = argparse.ArgumentParser(description="Manage the local durable routine scheduler.")
+    parser.add_argument("command", choices=("scheduler", "status", "ledger", "run"))
+    parser.add_argument("--database", default="milou-scheduler.sqlite3")
+    parser.add_argument("--config", help="JSON scheduler configuration")
+    args = parser.parse_args(argv)
+    scheduler = Scheduler(args.database, default_registry())
+    if args.config:
+        scheduler.load_config(args.config)
+    if args.command == "run":
+        payloads = {}
+        for routine in scheduler.status()["routines"]:
+            fixture = routine.get("fixture")
+            if fixture:
+                with open(fixture, encoding="utf-8") as handle:
+                    payloads[routine["name"]] = json.load(handle)
+        results = scheduler.run_due(SupervisorDispatcher(default_registry()), payloads)
+        print(json.dumps([{"routine": r.routine, "error": r.error} for r in results], indent=2))
+    elif args.command == "ledger":
+        print(json.dumps(scheduler.ledger(), indent=2))
+    else:
+        print(json.dumps(scheduler.status(), indent=2))
+    return 0
 
 
 def main(argv=None) -> int:
+    if argv is None:
+        argv = sys.argv[1:]
+    if argv and argv[0] in ("scheduler", "status", "ledger", "run"):
+        return scheduler_command(argv)
     parser = argparse.ArgumentParser(description="Generate a read-only Milou routine report.")
     parser.add_argument(
         "--routine",

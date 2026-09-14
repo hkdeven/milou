@@ -3,6 +3,7 @@
 import hashlib
 import hmac
 import html
+import json
 import os
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import unquote, urlparse
@@ -21,7 +22,7 @@ def _authorized(handler, token):
     ), 401
 
 
-def make_handler(store, bearer_token=None, environ=None):
+def make_handler(store, bearer_token=None, environ=None, scheduler=None):
     token = bearer_token if bearer_token is not None else (environ or os.environ).get("MILOU_REPORT_TOKEN")
 
     class ReportHandler(BaseHTTPRequestHandler):
@@ -44,6 +45,10 @@ def make_handler(store, bearer_token=None, environ=None):
                     self._send(503, "Report delivery is not configured.\n", "text/plain; charset=utf-8")
                 return
             path = urlparse(self.path).path
+            if path in ("/status", "/health"):
+                payload = scheduler.status() if scheduler else {"archive": "healthy", "scheduler": "not configured"}
+                self._send(200, json.dumps(payload, indent=2) + "\n", "application/json; charset=utf-8")
+                return
             reports = store.reports()
             if path in ("/", "/archive"):
                 links = []
@@ -76,7 +81,7 @@ def make_handler(store, bearer_token=None, environ=None):
     return ReportHandler
 
 
-def serve(store, host="127.0.0.1", port=8080, bearer_token=None, environ=None):
+def serve(store, host="127.0.0.1", port=8080, bearer_token=None, environ=None, scheduler=None):
     """Run the private server; bind localhost by default and never publish."""
-    server = ThreadingHTTPServer((host, port), make_handler(store, bearer_token, environ))
+    server = ThreadingHTTPServer((host, port), make_handler(store, bearer_token, environ, scheduler))
     server.serve_forever()

@@ -151,3 +151,13 @@ stopping the project. A true pause is reserved for a safety issue, a missing
 required user decision, or a correctness dependency that makes further work
 unsafe or misleading. Deployment-provider selection and credentials do not
 block local report persistence, UI, tests, or authentication-boundary work.
+
+## Durable scheduling and health
+
+The local `Scheduler` persists configuration and an idempotent run ledger in
+SQLite. Daily and weekly due keys are calculated in each routine's IANA timezone
+(and only after its configured local time), while disabled routines are ignored.
+Every attempt records status, attempt count, timestamps, and any error; retries
+are bounded and visible. Scheduler configuration is read-only by construction.
+The authenticated archive exposes `/status` and `/health` when given a scheduler
+instance, so operational failures are not hidden behind report pages.

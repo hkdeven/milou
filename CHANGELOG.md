@@ -64,3 +64,10 @@ the detailed reasoning and decisions behind each change.
   contracts, fixtures, and read-only tests/documentation.
 - Made same-second archived routine reports distinct by including the routine
   name in stored filenames.
+
+- Added durable SQLite routine configuration and scheduler ledger with daily/
+  weekly timezone-aware due calculation, enabled state, bounded visible retries,
+  idempotency keys, read-only permission enforcement, and scheduler/status/run/
+  ledger CLI commands.
+- Added authenticated archive health/status JSON endpoints and scheduler
+  configuration documentation.

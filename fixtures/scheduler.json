@@ -1,0 +1,7 @@
+{
+  "routines": [
+    {"name": "launch-decoder", "cadence": "daily", "at": "09:00", "timezone": "Europe/Amsterdam", "enabled": true, "retry_limit": 1, "fixture": "fixtures/launch-decoder.json"},
+    {"name": "launch-radar", "cadence": "weekly", "weekday": 1, "at": "09:00", "timezone": "Europe/Amsterdam", "enabled": true, "retry_limit": 2, "fixture": "fixtures/launch-radar.json"},
+    {"name": "travel-logistics-tracker", "cadence": "on-demand", "enabled": false, "fixture": "fixtures/travel-logistics.json"}
+  ]
+}

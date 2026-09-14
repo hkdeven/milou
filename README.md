@@ -33,7 +33,10 @@ The documented initial capabilities are:
   information; and
 - a deterministic supervisor planner/dispatcher with read-only permissions,
   routing metadata, and visible failures; and
-- a vetted initial global AI news source set.
+- a vetted initial global AI news source set; and
+- a durable local scheduler with timezone-aware daily/weekly cadence,
+  idempotent run ledger, bounded visible retries, and authenticated health
+  reporting.
 
 ## Safety boundary
 
@@ -81,7 +84,10 @@ that makes further work unsafe or misleading.
 - [`milou_news/`](milou_news/) — read-only standard-library news-brief runtime
 - [`milou_news/archive.py`](milou_news/archive.py) and
   [`milou_news/web.py`](milou_news/web.py) — dated persistence and private
-  bearer-authenticated report delivery
+  bearer-authenticated report delivery and health/status endpoints
+- [`milou_news/scheduler.py`](milou_news/scheduler.py) and
+  [`routines/scheduler-configuration.md`](routines/scheduler-configuration.md)
+  — durable routine configuration, due calculation, and run ledger
 - [`docs/deployment.md`](docs/deployment.md) — private-host deployment
   requirements (no deployment is performed here)
 - [`fixtures/news.json`](fixtures/news.json) — deterministic sample input for
@@ -103,11 +109,18 @@ fails closed without an injected `MILOU_REPORT_TOKEN`; no credentials are
 committed and no public hosting is used. Live integrations and deployment
 remain out of scope.
 
+The scheduler is local-only and uses SQLite. Inspect it with
+`python3 -m milou_news status --config fixtures/scheduler.json`; use
+`scheduler`, `run`, and `ledger` for configuration, execution, and audit
+history. The authenticated archive's `/status` and `/health` endpoints expose
+operational counts and the latest failure rather than hiding errors.
+
 **Status:** Daily Wins, Morning Brief/Meeting Prep, Commitments/Follow-Up,
 Stale Work Finder, Dependabot PR Triage, Launch Decoder, Launch Radar, and
 Travel Logistics Tracker are implemented as read-only fixture-backed routines.
 The deterministic supervisor layer plans and dispatches registered routines.
-Live integrations and deployment remain out of scope.
+Live integrations and deployment remain out of scope; local scheduling and
+health reporting are implemented.
 
 The case study is updated for every project work session with the relevant
 decision, implementation change, validation result, or lesson learned. This
