@@ -108,6 +108,20 @@ It also includes commitment detection, stale-work grouping, and Dependabot
 triage. These routines cite fixture evidence, expose ambiguity and thresholds,
 and only recommend human follow-up; they never send, approve, merge, or edit.
 
+As of September 14, 2026, Launch Decoder reads only last-24-hour launch
+fixtures and separates plain-language summaries, direct sources, evidence, and
+uncertainty. Launch Radar renders a weekly view for explicitly configured
+areas with timing, source, confidence, and unknowns. Travel Logistics Tracker
+combines structured calendar and message fixtures into a dated itinerary brief.
+All three remain read-only and preserve missing information rather than filling
+gaps.
+
+The smallest supervisor layer is deterministic: `SupervisorPlanner` validates
+registered names and read-only permissions, while `SupervisorDispatcher`
+routes to a known handler and returns an explicit error instead of hiding a
+failure. It does not infer new routines, call external systems, or grant
+permissions.
+
 Success will be evaluated using evidence such as false positives, missed
 items, time saved, context-switches avoided, useful decisions enabled, routine
 failures detected, unnecessary orchestration, and the cost of the management

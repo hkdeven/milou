@@ -7,6 +7,14 @@ the detailed reasoning and decisions behind each change.
 
 ### Added
 
+- Added fixture-backed Launch Decoder, Launch Radar, and Travel Logistics
+  Tracker routines with canonical CLI aliases, registry metadata, contracts,
+  fixtures, cited uncertainty/unknowns, and read-only tests.
+- Added deterministic supervisor planning/dispatch with explicit read-only
+  permission checks, routing metadata, and failure visibility.
+- Made `ReportStore` filenames collision-safe for same-second reports and
+  normalized callable archive labels to canonical routine names.
+
 - Added fixture-backed `daily-wins-recap` and
   `morning-brief-meeting-prep` routines, registry entries, CLI selection,
   callable storage, deterministic fixtures, contracts, and report output.

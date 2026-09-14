@@ -38,6 +38,9 @@ class Routine:
     version: str
     purpose: str
     access: str = "read-only"
+    aliases: Tuple[str, ...] = ()
+    schedule: str = "on-demand"
+    input_kind: str = "fixture"
 
 
 class RoutineRegistry:
@@ -85,6 +88,21 @@ DEPENDABOT_ROUTINE = Routine(
     "dependabot-pr-triage", "0.1.0",
     "Classify dependency updates and recommend safe human review.",
 )
+LAUNCH_DECODER_ROUTINE = Routine(
+    "launch-decoder", "0.1.0",
+    "Decode last-24-hour AI and product launches using direct fixture sources, evidence, and uncertainty.",
+    aliases=("launch-decoder-24h",), schedule="daily",
+)
+LAUNCH_RADAR_ROUTINE = Routine(
+    "launch-radar", "0.1.0",
+    "Track relevant upcoming launches for configured team/user areas with timing, sources, confidence, and unknowns.",
+    aliases=("weekly-launch-radar",), schedule="weekly",
+)
+TRAVEL_LOGISTICS_ROUTINE = Routine(
+    "travel-logistics-tracker", "0.1.0",
+    "Turn structured conference and travel messages/calendar fixtures into a dated logistics brief.",
+    aliases=("travel-logistics",), schedule="on-demand",
+)
 
 
 def default_registry() -> RoutineRegistry:
@@ -95,4 +113,7 @@ def default_registry() -> RoutineRegistry:
     registry.register(COMMITMENTS_ROUTINE)
     registry.register(STALE_WORK_ROUTINE)
     registry.register(DEPENDABOT_ROUTINE)
+    registry.register(LAUNCH_DECODER_ROUTINE)
+    registry.register(LAUNCH_RADAR_ROUTINE)
+    registry.register(TRAVEL_LOGISTICS_ROUTINE)
     return registry

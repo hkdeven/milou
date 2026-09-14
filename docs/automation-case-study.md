@@ -287,6 +287,33 @@ this document in it before implementation begins.
   the registry, canonical CLI, dated storage, authenticated archive, tests,
   contracts, README, architecture, changelog, and case-study record.
 
+### September 14, 2026 — Launch, travel, and supervisor phase
+
+- Continued following the article roadmap with the next fixture-backed,
+  read-only routines in order: **Launch Decoder**, **Launch Radar**, and
+  **Travel Logistics Tracker**.
+- Launch Decoder will summarize AI/product launches from the previous 24 hours
+  in plain language with direct sources, evidence, uncertainty, and no
+  invented details.
+- Launch Radar will report weekly upcoming launches relevant to configured
+  team/user areas with timing, source, confidence, and unknowns.
+- Travel Logistics Tracker will consolidate structured travel and conference
+  message/calendar fixtures into a dated brief with itinerary, logistics, open
+  items, source links, and missing information, without booking or changing
+  anything.
+- Began the supervisor orchestration/scheduling layer with a deterministic
+  planner/dispatcher over registered routines, explicit read-only permissions,
+  routing metadata, and visible failures. External integrations and
+  credentials remain out of scope.
+- Implementation/build log: added registry metadata and canonical aliases,
+  callable and CLI storage paths, three deterministic JSON fixtures, three
+  contracts, authenticated archive labels, and focused unit coverage. The
+  archive now avoids same-second filename collisions and stores canonical
+  read-only labels.
+- Validation target for this phase is full unittest discovery, `compileall`,
+  canonical CLI generation/storage for each new routine, storage uniqueness,
+  and `git diff --check`.
+
 ### September 12, 2026 — Article roadmap implementation result
 
 - Added three standard-library routines and registry entries. The canonical CLI

@@ -208,3 +208,90 @@ generate_morning_brief_meeting_prep = generate_morning_brief
 generate_commitments_follow_up_tracker = generate_commitments_tracker
 generate_stale_work = generate_stale_work_finder
 generate_dependabot_triage = generate_dependabot_pr_triage
+
+
+def _source_line(item):
+    source = _link(item) or _text(item, "source")
+    return "[source](%s)" % source if source.startswith("http") else (source or "source link not provided")
+
+
+def generate_launch_decoder(payload: Mapping) -> str:
+    """Decode only launch records supplied by the last-24-hour fixture."""
+    launches = _items(payload, "launches")
+    lines = ["# Launch Decoder", "", "Generated %s; window: last 24 hours." % _date(payload), "",
+             "## Launches"]
+    for item in launches:
+        name = _text(item, "name") or _text(item, "title") or "Untitled launch"
+        summary = _text(item, "summary") or _text(item, "description") or "No plain-language description supplied."
+        evidence = _text(item, "evidence") or _text(item, "evidence_url") or _link(item)
+        uncertainty = _text(item, "uncertainty") or "None recorded; fixture evidence is limited."
+        lines.extend(["### %s" % name, "- **What happened:** %s" % summary,
+                      "- **Direct source:** %s" % (_source_line(item)),
+                      "- **Evidence:** %s" % (("[evidence](%s)" % evidence) if evidence.startswith("http") else (evidence or "Not provided")),
+                      "- **Uncertainty:** %s" % uncertainty, ""])
+    if not launches:
+        lines.append("- No launch records supplied.")
+    lines.extend(["## Safety boundary",
+                  "- Fixture-backed, read-only decoding; no launch details were inferred or invented.",
+                  "- Records outside the supplied 24-hour fixture are unknown."])
+    return "\n".join(lines) + "\n"
+
+
+def generate_launch_radar(payload: Mapping) -> str:
+    """Render upcoming launches relevant to explicitly configured areas."""
+    launches = _items(payload, "launches") or _items(payload, "upcoming_launches")
+    areas = payload.get("areas") or payload.get("configured_areas") or []
+    if isinstance(areas, str):
+        areas = [areas]
+    lines = ["# Launch Radar", "", "Generated %s; planning window: next seven days." % _date(payload),
+             "- **Configured areas:** %s" % (", ".join(str(area) for area in areas) or "Not configured"), "",
+             "## Upcoming launches"]
+    for item in launches:
+        name = _text(item, "name") or _text(item, "title") or "Untitled launch"
+        timing = _text(item, "timing") or _text(item, "date") or "Timing not provided"
+        relevance = _text(item, "relevance") or _text(item, "area") or "Relevance not provided"
+        confidence = _text(item, "confidence") or "unknown"
+        unknowns = _text(item, "unknowns") or "None recorded; verify timing and scope."
+        lines.append("- **%s:** timing: %s; relevance: %s; source: %s; confidence: %s; unknowns: %s." %
+                     (name, timing, relevance, _source_line(item), confidence, unknowns))
+    if not launches:
+        lines.append("- No upcoming launches supplied.")
+    lines.extend(["", "## Safety boundary",
+                  "- Read-only weekly radar from supplied records and configured areas.",
+                  "- Missing timing, relevance, source, or confidence is reported as unknown; no forecast is asserted."])
+    return "\n".join(lines) + "\n"
+
+
+def generate_travel_logistics_tracker(payload: Mapping) -> str:
+    """Create a dated travel brief from structured calendar and message fixtures."""
+    generated = _date(payload)
+    events = _items(payload, "events") or _items(payload, "calendar")
+    messages = _items(payload, "messages")
+    lines = ["# Travel Logistics Tracker", "", "Generated %s." % generated, "",
+             "## Itinerary"]
+    if events:
+        for event in events:
+            title = _text(event, "title") or _text(event, "name") or "Untitled event"
+            when = _text(event, "start") or _text(event, "date") or "Date/time not provided"
+            location = _text(event, "location") or "Location not provided"
+            lines.append("- **%s:** %s; location: %s; %s." % (when, title, location, _source_line(event)))
+    else:
+        lines.append("- No calendar events supplied.")
+    lines.extend(["", "## Logistics"])
+    logistics = payload.get("logistics") or []
+    if isinstance(logistics, str):
+        logistics = [logistics]
+    lines.extend("- %s" % entry for entry in logistics) or lines.append("- No logistics details supplied.")
+    lines.extend(["", "## Open items and missing information"])
+    open_items = payload.get("open_items") or payload.get("questions") or []
+    if isinstance(open_items, str):
+        open_items = [open_items]
+    lines.extend("- %s" % entry for entry in open_items) or lines.append("- No open items supplied.")
+    for message in messages:
+        text = _text(message, "text") or _text(message, "body") or "Message detail not provided"
+        lines.append("- Message note: %s (%s)." % (text, _source_line(message)))
+    lines.extend(["", "## Safety boundary",
+                  "- Read-only synthesis of supplied calendar and message fixtures; never book, change, or cancel travel.",
+                  "- No booking, changing, or cancelling occurred.",
+                  "- Missing information remains explicitly unknown."])
+    return "\n".join(lines) + "\n"

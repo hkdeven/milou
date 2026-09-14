@@ -28,6 +28,11 @@ The documented initial capabilities are:
   meeting context, decisions, questions, commitments, and inaccessible links; and
 - implemented fixture-backed Commitments/Follow-Up, Stale Work Finder, and
   Dependabot PR Triage routines with cited, read-only recommendations; and
+- implemented fixture-backed Launch Decoder, Launch Radar, and Travel Logistics
+  Tracker routines with explicit evidence, timing, uncertainty, and missing
+  information; and
+- a deterministic supervisor planner/dispatcher with read-only permissions,
+  routing metadata, and visible failures; and
 - a vetted initial global AI news source set.
 
 ## Safety boundary
@@ -68,6 +73,10 @@ that makes further work unsafe or misleading.
   [`routines/stale-work-finder.md`](routines/stale-work-finder.md), and
   [`routines/dependabot-pr-triage.md`](routines/dependabot-pr-triage.md)
   — read-only triage contracts
+- [`routines/launch-decoder.md`](routines/launch-decoder.md),
+  [`routines/launch-radar.md`](routines/launch-radar.md), and
+  [`routines/travel-logistics-tracker.md`](routines/travel-logistics-tracker.md)
+  — launch and travel contracts
 - [`CHANGELOG.md`](CHANGELOG.md) — notable project changes
 - [`milou_news/`](milou_news/) — read-only standard-library news-brief runtime
 - [`milou_news/archive.py`](milou_news/archive.py) and
@@ -95,8 +104,10 @@ committed and no public hosting is used. Live integrations and deployment
 remain out of scope.
 
 **Status:** Daily Wins, Morning Brief/Meeting Prep, Commitments/Follow-Up,
-Stale Work Finder, and Dependabot PR Triage are implemented as read-only
-fixture-backed routines. Live integrations and deployment remain out of scope.
+Stale Work Finder, Dependabot PR Triage, Launch Decoder, Launch Radar, and
+Travel Logistics Tracker are implemented as read-only fixture-backed routines.
+The deterministic supervisor layer plans and dispatches registered routines.
+Live integrations and deployment remain out of scope.
 
 The case study is updated for every project work session with the relevant
 decision, implementation change, validation result, or lesson learned. This

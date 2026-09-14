@@ -27,6 +27,11 @@ class ReportStore:
         stem = "report-" + generated_at.strftime("%H%M%S") + suffix
         json_path = directory / (stem + ".json")
         markdown_path = directory / (stem + ".md")
+        counter = 2
+        while json_path.exists() or markdown_path.exists():
+            json_path = directory / ("%s-%d.json" % (stem, counter))
+            markdown_path = directory / ("%s-%d.md" % (stem, counter))
+            counter += 1
         json_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
         markdown_path.write_text(markdown, encoding="utf-8")
         return json_path

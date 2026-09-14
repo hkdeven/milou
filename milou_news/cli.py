@@ -8,7 +8,8 @@ from .sources import FixtureFetcher
 from .archive import ReportStore
 from .routines import (generate_daily_wins, generate_morning_brief,
                        generate_commitments_tracker, generate_stale_work_finder,
-                       generate_dependabot_pr_triage)
+                       generate_dependabot_pr_triage, generate_launch_decoder,
+                       generate_launch_radar, generate_travel_logistics_tracker)
 
 
 def main(argv=None) -> int:
@@ -29,6 +30,12 @@ def main(argv=None) -> int:
             "stale-work-finder",
             "dependabot",
             "dependabot-pr-triage",
+            "launch-decoder",
+            "launch-decoder-24h",
+            "launch-radar",
+            "weekly-launch-radar",
+            "travel-logistics",
+            "travel-logistics-tracker",
         ),
         default="news",
     )
@@ -52,12 +59,31 @@ def main(argv=None) -> int:
         report = generate_commitments_tracker(payload)
     elif args.routine in ("stale-work", "stale-work-finder"):
         report = generate_stale_work_finder(payload)
-    else:
+    elif args.routine in ("dependabot", "dependabot-pr-triage"):
         report = generate_dependabot_pr_triage(payload)
+    elif args.routine in ("launch-decoder", "launch-decoder-24h"):
+        report = generate_launch_decoder(payload)
+    elif args.routine in ("launch-radar", "weekly-launch-radar"):
+        report = generate_launch_radar(payload)
+    else:
+        report = generate_travel_logistics_tracker(payload)
     if args.store:
+        canonical_labels = {
+            "news": "daily-global-ai-news-brief",
+            "daily-wins": "daily-wins-recap",
+            "morning-brief": "morning-brief-meeting-prep",
+            "commitments": "commitments-follow-up-tracker",
+            "commitments-follow-up": "commitments-follow-up-tracker",
+            "stale-work": "stale-work-finder",
+            "dependabot": "dependabot-pr-triage",
+            "launch-decoder-24h": "launch-decoder",
+            "weekly-launch-radar": "launch-radar",
+            "travel-logistics": "travel-logistics-tracker",
+        }
         ReportStore(args.store).save(
             report,
-            metadata={"routine": args.routine, "fixture": args.fixture},
+            metadata={"routine": canonical_labels.get(args.routine, args.routine),
+                      "fixture": args.fixture, "access": "read-only"},
         )
     print(report, end="")
     return 0

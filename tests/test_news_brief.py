@@ -15,7 +15,9 @@ from milou_news.generation import generate_and_store
 from milou_news.web import make_handler
 from milou_news.routines import (generate_daily_wins, generate_morning_brief,
                                  generate_commitments_tracker, generate_stale_work_finder,
-                                 generate_dependabot_pr_triage)
+                                 generate_dependabot_pr_triage, generate_launch_decoder,
+                                 generate_launch_radar, generate_travel_logistics_tracker)
+from milou_news.supervisor import SupervisorDispatcher
 from http.server import ThreadingHTTPServer
 
 
@@ -41,6 +43,9 @@ class NewsBriefTests(unittest.TestCase):
         self.assertIn("morning-brief-meeting-prep", registry.names())
         self.assertEqual(registry.get("daily-wins-recap").access, "read-only")
         self.assertEqual(registry.get("dependabot-pr-triage").access, "read-only")
+        self.assertIn("launch-decoder", registry.names())
+        self.assertIn("launch-radar", registry.names())
+        self.assertIn("travel-logistics-tracker", registry.names())
 
     def test_article_roadmap_routines_are_read_only_and_cited(self):
         with open("fixtures/commitments.json", encoding="utf-8") as handle:
@@ -114,6 +119,35 @@ class NewsBriefTests(unittest.TestCase):
             self.assertTrue(path.exists())
             self.assertEqual(len(ReportStore(directory).reports()), 1)
             self.assertEqual(ReportStore(directory).get(path.relative_to(directory))["markdown"], "# report\n")
+
+    def test_new_launch_and_travel_routines_are_cited_and_bounded(self):
+        for fixture, generator, expected in (
+            ("fixtures/launch-decoder.json", generate_launch_decoder, "Direct source"),
+            ("fixtures/launch-radar.json", generate_launch_radar, "confidence"),
+            ("fixtures/travel-logistics.json", generate_travel_logistics_tracker, "Itinerary"),
+        ):
+            with open(fixture, encoding="utf-8") as handle:
+                report = generator(json.load(handle))
+            self.assertIn(expected, report)
+            self.assertIn("read-only", report.lower())
+        with open("fixtures/travel-logistics.json", encoding="UTF-8") as handle:
+            report = generate_travel_logistics_tracker(json.load(handle))
+        self.assertIn("never", report.lower())
+
+    def test_report_store_keeps_same_second_reports_unique(self):
+        with tempfile.TemporaryDirectory() as directory:
+            store = ReportStore(directory)
+            first = store.save("# one\n", NOW, {"routine": "launch-radar"})
+            second = store.save("# two\n", NOW, {"routine": "launch-radar"})
+            self.assertNotEqual(first, second)
+            self.assertEqual(len(store.reports()), 2)
+
+    def test_supervisor_plan_dispatch_and_failure_visibility(self):
+        dispatcher = SupervisorDispatcher(default_registry())
+        result = dispatcher.dispatch("launch-decoder", {"launches": []})
+        self.assertIsNotNone(result.report)
+        failure = dispatcher.dispatch("launch-decoder", None)
+        self.assertIsNotNone(failure.error)
 
     def test_generation_callable_stores_fixture_report(self):
         with tempfile.TemporaryDirectory() as directory:
