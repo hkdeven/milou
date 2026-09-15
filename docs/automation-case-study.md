@@ -768,3 +768,33 @@ for each significant change.
   and added an operator shortcut using `open /tmp/milou-live-reports`.
 - Kept the path configurable and separate from token handling; no credentials
   or user files are exposed or changed.
+
+### September 15, 2026 — Report signal-to-noise refinement
+
+- Feedback identified that repeated no-activity headings reduce report
+  readability and obscure useful signals.
+- Decided to suppress empty activity sections and empty routine categories.
+- Reports with no substantive findings will use a concise **No activity to
+  report** state containing the window/scope and any coverage warnings,
+  without hiding API or permission failures.
+- Added a consistent KPI block near the top of every report for generated time,
+  window, scope/source count where applicable, total findings/items,
+  high-priority count, and warnings/failures. Change Radar additionally
+  reports repositories scanned, changes by type, contributors/authors, and
+  high-risk count.
+
+Implementation/build log:
+
+- Updated fixture routine renderers and the news pipeline to calculate KPI
+  totals and omit empty facts, impact, urgency, launch, itinerary, and
+  logistics categories. Empty inputs now render one concise no-activity state
+  with explicit fixture coverage warnings.
+- Updated Change Radar to omit empty scope sections, preserve its separate
+  coverage/API/permission section, and expose expanded KPI telemetry.
+- Added empty-report and populated KPI assertions; existing populated reports
+  retain citations and safety boundaries.
+- Validation: `python3 -m unittest discover -s tests` and
+  `python3 -m compileall milou_news` pass. Safe live Allied-Steel-Buildings
+  regeneration was run with the authenticated `gh` session using the bounded
+  fixture configuration; the generated Markdown/JSON archive was inspected
+  and removed after the check.

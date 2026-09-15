@@ -202,20 +202,35 @@ def _collect(api, config):
             if row:
                 row["scope"] = "primary" if repo.split("/")[0] in config.primary_organizations else "configured"
                 rows.append(row)
-    return login, rows, errors, telemetry
+    return login, rows, errors, telemetry, len(seen)
 
 
 def generate_github_radar(api, config, now=None):
     now = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
     cutoff = now - timedelta(hours=config.window_hours)
-    login, rows, errors, telemetry = _collect(api, config)
+    login, rows, errors, telemetry, repositories_scanned = _collect(api, config)
     unique = {}
     for row in rows:
         if (_time(row["timestamp"]) or now) >= cutoff:
             unique[row["id"] or (row["repository"], row["timestamp"], row["summary"])] = row
     selected = sorted(unique.values(), key=lambda r: r["timestamp"], reverse=True)
     scope = ", ".join(config.organizations + config.repositories)
-    lines = ["# GitHub Change Radar", "", "Generated %s; window: last %d hours." % (now.isoformat(), config.window_hours),
+    category_counts = Counter(r["category"] for r in selected)
+    authors = {r["author"] for r in selected if r["author"] != "unknown"}
+    high_risk = [r for r in selected if r["risk"] == "high"]
+    lines = ["# GitHub Change Radar", "",
+             "## Report KPIs",
+             "- **Generated:** %s" % now.isoformat(),
+             "- **Window:** last %d hours" % config.window_hours,
+             "- **Scope:** %s" % (scope or "none configured"),
+             "- **Repositories scanned:** %d" % repositories_scanned,
+             "- **Changes by type:** %s" % (", ".join("%s=%d" % x for x in sorted(category_counts.items())) or "none"),
+             "- **Contributors/authors:** %d" % len(authors),
+             "- **Total findings/items:** %d" % len(selected),
+             "- **High-priority:** %d" % len(high_risk),
+             "- **High-risk:** %d" % len(high_risk),
+             "- **Warnings/failures:** %d" % len(errors),
+             "",
              "- **Highest-priority organization:** Allied-Steel-Buildings (all scoped activity, including activity not involving the user)",
              "- **Secondary configured scope:** %s" % scope, "- **Authenticated user:** %s" % (login or "unknown"), ""]
     for heading, kinds in (("Priority: Allied-Steel-Buildings activity", ("primary",)),
@@ -223,24 +238,30 @@ def generate_github_radar(api, config, now=None):
                            ("Activity involving the authenticated user", ("user",))):
         lines.extend(["## " + heading])
         matches = [r for r in selected if r.get("scope") in kinds]
-        if not matches:
-            lines.append("- No changes found in the bounded window.")
-        for row in matches:
-            citation = "[direct citation](%s)" % row["url"] if row["url"].startswith("http") else "direct citation unavailable"
-            details = "; ".join(x for x in ("author: " + row["author"], "committer: " + row["committers"],
-                              "branch: " + row["branch"], "reviewers: " + row["reviewers"],
-                              "labels: " + row["labels"], "status: " + row["status"]) if x.split(": ", 1)[1])
-            lines.append("- **%s UTC** — `%s` — **%s** — %s%s (%s)." %
+        if matches:
+            for row in matches:
+                citation = "[direct citation](%s)" % row["url"] if row["url"].startswith("http") else "direct citation unavailable"
+                details = "; ".join(x for x in ("author: " + row["author"], "committer: " + row["committers"],
+                                  "branch: " + row["branch"], "reviewers: " + row["reviewers"],
+                                  "labels: " + row["labels"], "status: " + row["status"]) if x.split(": ", 1)[1])
+                lines.append("- **%s UTC** — `%s` — **%s** — %s%s (%s)." %
                          (row["timestamp"], row["repository"], row["summary"], citation,
                           ("; " + details) if details else "", row["category"]))
-        lines.append("")
+            lines.append("")
+        else:
+            lines.pop()
+    if not selected:
+        lines.extend(["No activity to report.", "",
+                      "## Coverage and warnings",
+                      "- No in-window activity was returned by the bounded feeds."])
     repo_counts = Counter(r["repository"] for r in selected)
     author_counts = Counter(r["author"] for r in selected)
-    lines.extend(["## Summaries and notable/high-risk changes",
-                  "- **Per repository counts:** %s" % (", ".join("%s=%d" % x for x in sorted(repo_counts.items())) or "none"),
-                  "- **Per author counts:** %s" % (", ".join("%s=%d" % x for x in sorted(author_counts.items())) or "none")])
     notable = [r for r in selected if r["risk"]]
-    lines.extend(["- **Notable/high-risk:** " + ("; ".join("%s: %s" % (r["risk"], r["summary"]) for r in notable) if notable else "none detected."), ""])
+    if selected:
+        lines.extend(["## Summaries and notable/high-risk changes",
+                      "- **Per repository counts:** %s" % (", ".join("%s=%d" % x for x in sorted(repo_counts.items())) or "none"),
+                      "- **Per author counts:** %s" % (", ".join("%s=%d" % x for x in sorted(author_counts.items())) or "none"),
+                      "- **Notable/high-risk:** " + ("; ".join("%s: %s" % (r["risk"], r["summary"]) for r in notable) if notable else "none detected."), ""])
     lines.extend(["## Coverage, pagination, rate limits, and API/permission failures",
                   "- Categories include commits (author/committer/branch/message/link), branch create/delete, PR lifecycle/reviewers/labels/status, issues, releases/tags, workflow/check changes/failures, Dependabot/security events, and repository lifecycle events where GitHub exposes them.",
                   "- No mention filtering is applied; activity is collected by scope and event feed.",

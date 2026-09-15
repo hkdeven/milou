@@ -7,6 +7,12 @@ the detailed reasoning and decisions behind each change.
 
 ### Added
 
+- Added report signal-to-noise refinement: consistent KPI blocks, omission of
+  empty activity sections/categories, concise no-activity reports, and
+  separately visible coverage/API/permission warnings. Change Radar KPIs now
+  include repositories scanned, change types, contributors, and high-risk
+  counts.
+
 - Added browser-friendly report authentication: a minimal root login form,
   constant-time token validation, short-lived server-side Secure/HttpOnly/
   SameSite session cookies, logout, and retained Bearer API/CLI support.

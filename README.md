@@ -174,3 +174,9 @@ README is the canonical current overview on `main` and must be refreshed when
 Milou's identity, architecture, capabilities, repository structure, status,
 or next steps materially change. Detailed rules belong in the linked
 documents, not duplicated here.
+
+All generated reports begin with a compact Report KPIs block. Empty activity
+sections and routine categories are omitted; a report with no substantive
+findings says “No activity to report” while retaining coverage, API, and
+permission warnings. The Change Radar KPI block also includes repositories
+scanned, change types, contributors, and high-risk changes.

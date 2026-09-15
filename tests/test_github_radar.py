@@ -30,6 +30,18 @@ class GithubRadarTests(unittest.TestCase):
         report = generate_github_radar(api, self.config)
         self.assertIn("user activity: HTTP 403: forbidden", report)
 
+    def test_kpis_and_empty_activity_are_distinct_from_coverage(self):
+        api = FixtureApi(
+            {"/user": {"login": "octocat"},
+             "/user/events?per_page=100": [],
+             "/orgs/Allied-Steel-Buildings/repos?per_page=100&sort=updated": []})
+        report = generate_github_radar(api, self.config,
+                                       datetime(2026, 9, 15, 9, tzinfo=timezone.utc))
+        self.assertIn("No activity to report.", report)
+        self.assertIn("Repositories scanned:**", report)
+        self.assertIn("Coverage, pagination", report)
+        self.assertNotIn("Priority: Allied-Steel-Buildings activity", report)
+
     def test_config_is_bounded(self):
         with self.assertRaises(ValueError):
             RadarConfig.from_mapping({"repositories": ["a/b"], "window_hours": 745})

@@ -24,11 +24,41 @@ def _date(payload):
     return value
 
 
+def _kpis(generated, window, scope, source_count, total, high_priority=0,
+          warnings=0, failures=0):
+    return [
+        "## Report KPIs",
+        "- **Generated:** %s" % generated,
+        "- **Window:** %s" % window,
+        "- **Scope:** %s" % scope,
+        "- **Sources:** %d" % source_count,
+        "- **Total findings/items:** %d" % total,
+        "- **High-priority:** %d" % high_priority,
+        "- **Warnings/failures:** %d" % (warnings + failures),
+        "",
+    ]
+
+
+def _empty_report(title, generated, window, scope, source_count, warning):
+    lines = ["# %s" % title, ""]
+    lines.extend(_kpis(generated, window, scope, source_count, 0, warnings=1))
+    lines.extend(["No activity to report.", "", "## Coverage and warnings",
+                  "- %s" % warning])
+    return "\n".join(lines) + "\n"
+
+
 def generate_daily_wins(payload: Mapping) -> str:
     """Render only supplied activity facts; impact is explicitly labeled inference."""
     activities = _items(payload, "activities")
-    lines = ["# Daily wins recap", "", "Generated %s." % _date(payload), "",
-             "## Verified facts"]
+    generated = _date(payload)
+    if not activities:
+        return _empty_report("Daily wins recap", generated, "fixture period",
+                             "structured activity fixture", 0,
+                             "Only the supplied fixture was inspected; missing activity is unknown.")
+    lines = ["# Daily wins recap", ""]
+    lines.extend(_kpis(generated, "fixture period", "structured activity fixture",
+                       len(activities), len(activities)))
+    lines.append("## Verified facts")
     facts = []
     inferences = []
     for item in activities:
@@ -52,9 +82,10 @@ def generate_daily_wins(payload: Mapping) -> str:
         impact = _text(item, "inferred_impact") or _text(item, "impact")
         if impact:
             inferences.append("- %s — inferred impact: %s" % (title, impact))
-    lines.extend(facts or ["- No completed activities were supplied."])
-    lines.extend(["", "## Inferred impact"])
-    lines.extend(inferences or ["- No impact inference supplied; no impact is asserted."])
+    lines.extend(facts)
+    if inferences:
+        lines.extend(["", "## Inferred impact"])
+        lines.extend(inferences)
     lines.extend(["", "## Coverage and limits",
                   "- Source: structured activity fixture only.",
                   "- No activity outside the fixture was inspected; missing evidence is not treated as completion."])
@@ -64,9 +95,14 @@ def generate_daily_wins(payload: Mapping) -> str:
 def generate_morning_brief(payload: Mapping) -> str:
     """Render meeting preparation without contacting attendees or changing events."""
     meetings = _items(payload, "meetings")
-    lines = ["# Morning brief / meeting prep", "", "Generated %s." % _date(payload), ""]
+    generated = _date(payload)
     if not meetings:
-        lines.append("No meetings were supplied by the calendar fixture.")
+        return _empty_report("Morning brief / meeting prep", generated, "calendar fixture period",
+                             "calendar/meeting fixture", 0,
+                             "Only the supplied calendar fixture was inspected; inaccessible calendars are unknown.")
+    lines = ["# Morning brief / meeting prep", ""]
+    lines.extend(_kpis(generated, "calendar fixture period", "calendar/meeting fixture",
+                       len(meetings), len(meetings)))
     for index, meeting in enumerate(meetings, 1):
         title = _text(meeting, "title") or _text(meeting, "name") or "Untitled meeting"
         lines.extend(["## %d. %s" % (index, title)])
@@ -133,14 +169,17 @@ def generate_commitments_tracker(payload: Mapping) -> str:
             "Clarify owner and due date, then follow up" if owner == "Unclear owner"
             else "Confirm progress and agree a due date")
         rows.append((owner, text, source, age, status, follow_up))
-    lines = ["# Commitments and follow-up tracker", "", "Generated %s." % _date(payload), "",
-             "## Explicit commitments"]
+    if not rows:
+        return _empty_report("Commitments and follow-up tracker", _date(payload), "fixture period",
+                             "messages and activities fixture", len(candidates),
+                             "Detection is limited to explicit promise language in the supplied fixture.")
+    lines = ["# Commitments and follow-up tracker", ""]
+    lines.extend(_kpis(_date(payload), "fixture period", "messages and activities fixture",
+                       len(candidates), len(rows)))
     if rows:
         for owner, commitment, source, age, status, follow_up in rows:
             lines.append("- **Owner:** %s; **Commitment:** %s; **Source:** [%s](%s); **Age:** %d days; **Status/ambiguity:** %s; **Suggested follow-up:** %s" %
                          (owner, commitment, source, source if source.startswith("http") else "#", age, status, follow_up))
-    else:
-        lines.append("- No explicit commitments detected.")
     lines.extend(["", "## Safety boundary",
                   "- Structured message/activity fixture only; detection is limited to explicit promise language.",
                   "- Read-only: no messages were sent and no commitment was edited."])
@@ -171,9 +210,18 @@ def generate_stale_work_finder(payload: Mapping) -> str:
             urgency = "Urgent" if age >= threshold * 3 else ("Soon" if age >= threshold * 2 else "Monitor")
             groups[urgency].append("- **%s:** %s — %d days inactive (threshold %d days); [source](%s)" %
                                   (label, title, age, threshold, url or "#"))
-    lines = ["# Stale work finder", "", "Generated %s." % _date(payload), ""]
+    total = sum(len(values) for values in groups.values())
+    if not total:
+        return _empty_report("Stale work finder", _date(payload), "fixture period",
+                             "GitHub work fixture", sum(len(_items(payload, key)) for key, _, _ in collections),
+                             "No records met the age thresholds; records outside the fixture were not inspected.")
+    lines = ["# Stale work finder", ""]
+    lines.extend(_kpis(_date(payload), "fixture period", "GitHub work fixture",
+                       sum(len(_items(payload, key)) for key, _, _ in collections), total,
+                       high_priority=len(groups["Urgent"])))
     for urgency in ("Urgent", "Soon", "Monitor"):
-        lines.extend(["## %s" % urgency, *(groups[urgency] or ["- None found."]), ""])
+        if groups[urgency]:
+            lines.extend(["## %s" % urgency, *groups[urgency], ""])
     lines.extend(["## Thresholds", "- Authored PR: 7 days; assigned review: 3 days; assigned issue: 14 days; draft: 30 days.",
                   "## Safety boundary", "- Fixture-backed, read-only triage. No reviews, issues, branches, or PRs were changed."])
     return "\n".join(lines) + "\n"
@@ -182,10 +230,15 @@ def generate_stale_work_finder(payload: Mapping) -> str:
 def generate_dependabot_pr_triage(payload: Mapping) -> str:
     """Classify Dependabot updates without approving or merging them."""
     generated = _parse_date(payload.get("generated_at"), datetime.now(timezone.utc))
-    lines = ["# Dependabot PR triage", "", "Generated %s." % _date(payload), ""]
     prs = _items(payload, "pull_requests") or _items(payload, "dependabot_prs")
     if not prs:
-        lines.append("No Dependabot pull requests supplied.")
+        return _empty_report("Dependabot PR triage", _date(payload), "fixture period",
+                             "Dependabot pull-request fixture", 0,
+                             "Only supplied dependency updates were inspected; repository access is unknown.")
+    urgent_count = sum(1 for item in prs if (_text(item, "security") or _text(item, "severity")).lower() in ("critical", "high"))
+    lines = ["# Dependabot PR triage", ""]
+    lines.extend(_kpis(_date(payload), "fixture period", "Dependabot pull-request fixture",
+                       len(prs), len(prs), high_priority=urgent_count))
     for item in prs:
         title = _text(item, "title") or "Untitled dependency update"
         url = _link(item) or "#"
@@ -218,8 +271,14 @@ def _source_line(item):
 def generate_launch_decoder(payload: Mapping) -> str:
     """Decode only launch records supplied by the last-24-hour fixture."""
     launches = _items(payload, "launches")
-    lines = ["# Launch Decoder", "", "Generated %s; window: last 24 hours." % _date(payload), "",
-             "## Launches"]
+    if not launches:
+        return _empty_report("Launch Decoder", _date(payload), "last 24 hours",
+                             "launch fixture", 0,
+                             "Only the supplied 24-hour fixture was inspected; other launch sources are unknown.")
+    lines = ["# Launch Decoder", ""]
+    lines.extend(_kpis(_date(payload), "last 24 hours", "launch fixture",
+                       len(launches), len(launches)))
+    lines.append("## Launches")
     for item in launches:
         name = _text(item, "name") or _text(item, "title") or "Untitled launch"
         summary = _text(item, "summary") or _text(item, "description") or "No plain-language description supplied."
@@ -229,8 +288,6 @@ def generate_launch_decoder(payload: Mapping) -> str:
                       "- **Direct source:** %s" % (_source_line(item)),
                       "- **Evidence:** %s" % (("[evidence](%s)" % evidence) if evidence.startswith("http") else (evidence or "Not provided")),
                       "- **Uncertainty:** %s" % uncertainty, ""])
-    if not launches:
-        lines.append("- No launch records supplied.")
     lines.extend(["## Safety boundary",
                   "- Fixture-backed, read-only decoding; no launch details were inferred or invented.",
                   "- Records outside the supplied 24-hour fixture are unknown."])
@@ -243,9 +300,16 @@ def generate_launch_radar(payload: Mapping) -> str:
     areas = payload.get("areas") or payload.get("configured_areas") or []
     if isinstance(areas, str):
         areas = [areas]
-    lines = ["# Launch Radar", "", "Generated %s; planning window: next seven days." % _date(payload),
-             "- **Configured areas:** %s" % (", ".join(str(area) for area in areas) or "Not configured"), "",
-             "## Upcoming launches"]
+    if not launches:
+        return _empty_report("Launch Radar", _date(payload), "next seven days",
+                             "configured areas: %s" % (", ".join(str(area) for area in areas) or "none"),
+                             0, "Only configured launch records were inspected; external calendars and feeds are unknown.")
+    lines = ["# Launch Radar", ""]
+    lines.extend(_kpis(_date(payload), "next seven days",
+                       "configured areas: %s" % (", ".join(str(area) for area in areas) or "none"),
+                       len(launches), len(launches)))
+    lines.extend(["- **Configured areas:** %s" % (", ".join(str(area) for area in areas) or "Not configured"), "",
+                  "## Upcoming launches"])
     for item in launches:
         name = _text(item, "name") or _text(item, "title") or "Untitled launch"
         timing = _text(item, "timing") or _text(item, "date") or "Timing not provided"
@@ -254,8 +318,6 @@ def generate_launch_radar(payload: Mapping) -> str:
         unknowns = _text(item, "unknowns") or "None recorded; verify timing and scope."
         lines.append("- **%s:** timing: %s; relevance: %s; source: %s; confidence: %s; unknowns: %s." %
                      (name, timing, relevance, _source_line(item), confidence, unknowns))
-    if not launches:
-        lines.append("- No upcoming launches supplied.")
     lines.extend(["", "## Safety boundary",
                   "- Read-only weekly radar from supplied records and configured areas.",
                   "- Missing timing, relevance, source, or confidence is reported as unknown; no forecast is asserted."])
@@ -267,26 +329,33 @@ def generate_travel_logistics_tracker(payload: Mapping) -> str:
     generated = _date(payload)
     events = _items(payload, "events") or _items(payload, "calendar")
     messages = _items(payload, "messages")
-    lines = ["# Travel Logistics Tracker", "", "Generated %s." % generated, "",
-             "## Itinerary"]
+    logistics = payload.get("logistics") or []
+    if isinstance(logistics, str):
+        logistics = [logistics]
+    open_items = payload.get("open_items") or payload.get("questions") or []
+    if isinstance(open_items, str):
+        open_items = [open_items]
+    substantive = events or messages or logistics or open_items
+    if not substantive:
+        return _empty_report("Travel Logistics Tracker", generated, "travel fixture period",
+                             "calendar and message fixtures", 0,
+                             "Only supplied travel fixtures were inspected; booking and itinerary systems are unknown.")
+    lines = ["# Travel Logistics Tracker", ""]
+    lines.extend(_kpis(generated, "travel fixture period", "calendar and message fixtures",
+                       len(events) + len(messages), len(events) + len(messages) + len(logistics) + len(open_items)))
     if events:
+        lines.append("## Itinerary")
         for event in events:
             title = _text(event, "title") or _text(event, "name") or "Untitled event"
             when = _text(event, "start") or _text(event, "date") or "Date/time not provided"
             location = _text(event, "location") or "Location not provided"
             lines.append("- **%s:** %s; location: %s; %s." % (when, title, location, _source_line(event)))
-    else:
-        lines.append("- No calendar events supplied.")
-    lines.extend(["", "## Logistics"])
-    logistics = payload.get("logistics") or []
-    if isinstance(logistics, str):
-        logistics = [logistics]
-    lines.extend("- %s" % entry for entry in logistics) or lines.append("- No logistics details supplied.")
-    lines.extend(["", "## Open items and missing information"])
-    open_items = payload.get("open_items") or payload.get("questions") or []
-    if isinstance(open_items, str):
-        open_items = [open_items]
-    lines.extend("- %s" % entry for entry in open_items) or lines.append("- No open items supplied.")
+    if logistics:
+        lines.extend(["", "## Logistics"])
+        lines.extend("- %s" % entry for entry in logistics)
+    if open_items or messages:
+        lines.extend(["", "## Open items and missing information"])
+        lines.extend("- %s" % entry for entry in open_items)
     for message in messages:
         text = _text(message, "text") or _text(message, "body") or "Message detail not provided"
         lines.append("- Message note: %s (%s)." % (text, _source_line(message)))

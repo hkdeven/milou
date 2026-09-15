@@ -97,9 +97,21 @@ def render_markdown(selected: Sequence[Article], results: Sequence[FetchResult],
     lines = [
         "# Daily global AI news brief",
         "",
-        "Generated %s; freshness window: previous %d hours." % (now.date().isoformat(), config.freshness_hours),
+        "## Report KPIs",
+        "- **Generated:** %s" % now.isoformat(),
+        "- **Window:** previous %d hours" % config.freshness_hours,
+        "- **Scope:** configured global AI news sources",
+        "- **Sources:** %d" % len(results),
+        "- **Total findings/items:** %d" % len(selected),
+        "- **High-priority:** 0",
+        "- **Warnings/failures:** %d" % len(failures),
         "",
     ]
+    if not selected:
+        lines.extend(["No activity to report.", "", "## Coverage and warnings",
+                      "- No fresh substantive articles were selected from the configured sources.",
+                      "- Unavailable sources: %s" % ("; ".join(failures) if failures else "none reported.")])
+        return "\n".join(lines) + "\n"
     for index, article in enumerate(selected, 1):
         signal_text = ", ".join("%s=%.2f" % (key, value) for key, value in article.score_signals.items())
         lines += [

@@ -71,6 +71,23 @@ class NewsBriefTests(unittest.TestCase):
         self.assertIn("Merged accessibility fixes", report)
         self.assertIn("inferred impact:", report)
         self.assertIn("evidence](https://example.test/github/pull/42)", report)
+        self.assertIn("Report KPIs", report)
+
+    def test_empty_routines_are_concise_and_do_not_repeat_empty_sections(self):
+        for generator, title in (
+            (generate_daily_wins, "Daily wins recap"),
+            (generate_morning_brief, "Morning brief / meeting prep"),
+            (generate_commitments_tracker, "Commitments and follow-up tracker"),
+            (generate_stale_work_finder, "Stale work finder"),
+            (generate_dependabot_pr_triage, "Dependabot PR triage"),
+            (generate_launch_decoder, "Launch Decoder"),
+            (generate_launch_radar, "Launch Radar"),
+            (generate_travel_logistics_tracker, "Travel Logistics Tracker"),
+        ):
+            report = generator({})
+            self.assertIn("# " + title, report)
+            self.assertIn("No activity to report.", report)
+            self.assertIn("Report KPIs", report)
 
     def test_morning_brief_contains_context_and_read_only_boundary(self):
         with open("fixtures/meetings.json", encoding="utf-8") as handle:

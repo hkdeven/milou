@@ -178,3 +178,11 @@ per-author counts, notable/high-risk changes, direct citations, pagination and
 rate-limit visibility, and API/permission/coverage gaps. No mention filtering
 is applied. Nothing is written to GitHub, and events outside scope/window
 remain unknown.
+
+All report families start with a consistent KPI block covering generation time,
+bounded window, scope/source count, total findings/items, high-priority items,
+and warnings/failures. Empty activity sections and routine categories are
+omitted. When no substantive findings exist, the report uses a concise
+“No activity to report” state. Coverage, API, and permission failures remain
+separate and visible; Change Radar additionally reports repositories scanned,
+changes by type, contributors/authors, and high-risk count.
