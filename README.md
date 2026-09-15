@@ -143,9 +143,21 @@ real local report with
 and optionally persist it with `--store reports`. No server is started by this
 command and no credentials are committed.
 
-For a local authenticated archive, set `MILOU_REPORT_TOKEN` outside the
-repository and run:
-`python3 -c 'from milou_news.archive import ReportStore; from milou_news.web import serve; serve(ReportStore("reports"), host="127.0.0.1", port=8768)'`.
+For a local authenticated archive, keep the token outside the repository in a
+permission-restricted file such as `$HOME/.config/milou/report-token` (or use
+an existing operator-managed secret). Read it without printing it, then start
+or restart the server from a terminal:
+
+```sh
+TOKEN_FILE="$HOME/.config/milou/report-token"
+read -r MILOU_REPORT_TOKEN < "$TOKEN_FILE"
+export MILOU_REPORT_TOKEN
+python3 -c 'from milou_news.archive import ReportStore; from milou_news.web import serve; serve(ReportStore("reports"), host="127.0.0.1", port=8768)'
+```
+
+If no token file exists, create one with a local secret generator and restrict
+its permissions; do not paste or echo the token:
+`mkdir -p "$HOME/.config/milou" && umask 077 && python3 -c 'import secrets; print(secrets.token_urlsafe(32))' > "$HOME/.config/milou/report-token"`.
 The archive is intentionally localhost-only unless an operator explicitly
 places it behind a private authenticated network boundary.
 

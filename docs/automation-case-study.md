@@ -716,3 +716,14 @@ for each significant change.
   archive access returned HTTP 401.
 - The demo token is held outside the repository in a local temporary file;
   no credential or report artifact was committed.
+
+### September 15, 2026 — Local token support
+
+- Supported the user after they could not locate the local archive
+  authentication token.
+- Kept token handling secret and operator-friendly: the token file is read
+  without output, never displayed or committed, and the local server can be
+  restarted from a terminal with the token supplied through an environment
+  variable or an explicit file read.
+- Added clearer startup guidance so operators can locate or create a
+  permission-restricted local token file without exposing its contents.

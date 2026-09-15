@@ -8,9 +8,19 @@ must not be deployed to GitHub Pages or another public static host.
 2. Run the fixture or production-safe generation callable from a scheduler,
    passing a dated archive directory (for example,
    `python3 -m milou_news --fixture fixtures/news.json --store reports`).
-3. Set `MILOU_REPORT_TOKEN` in the service environment. The value must be
-   injected by the host's secret manager; it is never stored in this
-   repository or in a URL.
+3. Store the token outside the repository, for example in
+   `$HOME/.config/milou/report-token`, with owner-only permissions. To load it
+   without displaying it and restart the local server:
+
+   ```sh
+   TOKEN_FILE="$HOME/.config/milou/report-token"
+   read -r MILOU_REPORT_TOKEN < "$TOKEN_FILE"
+   export MILOU_REPORT_TOKEN
+   python3 -c 'from milou_news.archive import ReportStore; from milou_news.web import serve; serve(ReportStore("reports"), host="127.0.0.1", port=8768)'
+   ```
+
+   If the file is missing, create it with a local secret generator and
+   `umask 077`; never echo, paste, log, commit, or place the token in a URL.
 4. Run `milou_news.web.serve(ReportStore("reports"))` on localhost or a
    private interface and put the host's TLS/authenticated reverse proxy in
    front of it. If the token is absent, the application fails closed.
