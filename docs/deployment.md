@@ -23,9 +23,15 @@ must not be deployed to GitHub Pages or another public static host.
    `umask 077`; never echo, paste, log, commit, or place the token in a URL.
 4. Run `milou_news.web.serve(ReportStore("reports"))` on localhost or a
    private interface and put the host's TLS/authenticated reverse proxy in
-   front of it. If the token is absent, the application fails closed.
+   front of it. Open the root URL in a browser for the minimal login form;
+   successful login creates a short-lived Secure, HttpOnly, SameSite=Strict
+   session cookie. API and CLI clients retain `Authorization: Bearer ...`.
+   The archive's Sign out button (or `POST /logout`) clears the session. If
+   the token is absent, the application fails closed.
 5. The operator must configure the scheduler, secret, TLS, firewall, backups,
    and private DNS; this repository does not deploy or provision them.
 
 The web layer only reads the archive. It does not publish, contact, or change
-source data.
+source data. Tokens are accepted only in the login body or Authorization
+header; they are never put in URLs, HTML, or logs. Keep TLS in front of any
+non-localhost deployment because the session cookie is marked Secure.

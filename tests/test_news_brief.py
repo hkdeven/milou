@@ -4,6 +4,7 @@ import tempfile
 import threading
 import urllib.error
 import urllib.request
+from http.client import HTTPConnection
 from datetime import datetime, timezone
 
 from milou_news.config import SOURCES
@@ -164,13 +165,54 @@ class NewsBriefTests(unittest.TestCase):
             thread.start()
             url = "http://127.0.0.1:%d/" % server.server_port
             try:
-                with self.assertRaises(urllib.error.HTTPError) as error:
-                    urllib.request.urlopen(url)
-                self.assertEqual(error.exception.code, 401)
+                self.assertIn("form", urllib.request.urlopen(url).read().decode("utf-8"))
                 request = urllib.request.Request(url, headers={"Authorization": ("B" + "earer") + " secret"})
                 body = urllib.request.urlopen(request).read().decode("utf-8")
                 self.assertIn("Milou reports", body)
+                api = urllib.request.Request(url + "status", headers={"Authorization": ("B" + "earer") + " wrong"})
+                with self.assertRaises(urllib.error.HTTPError) as error:
+                    urllib.request.urlopen(api)
+                self.assertEqual(error.exception.code, 401)
             finally:
+                server.shutdown()
+                thread.join()
+                server.server_close()
+
+    def test_web_login_cookie_and_logout(self):
+        with tempfile.TemporaryDirectory() as directory:
+            server = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(ReportStore(directory), "secret"))
+            thread = threading.Thread(target=server.serve_forever)
+            thread.start()
+            connection = HTTPConnection("127.0.0.1", server.server_port)
+            try:
+                body = "token=wrong".encode("ascii")
+                connection.request("POST", "/login", body=body,
+                                   headers={"Content-Type": "application/x-www-form-urlencoded",
+                                            "Content-Length": str(len(body))})
+                response = connection.getresponse()
+                self.assertEqual(response.status, 401)
+                self.assertIn("Invalid token", response.read().decode("utf-8"))
+
+                body = "token=secret".encode("ascii")
+                connection.request("POST", "/login", body=body,
+                                   headers={"Content-Type": "application/x-www-form-urlencoded",
+                                            "Content-Length": str(len(body))})
+                response = connection.getresponse()
+                self.assertEqual(response.status, 303)
+                cookie = response.getheader("Set-Cookie")
+                self.assertIn("HttpOnly", cookie)
+                self.assertIn("Secure", cookie)
+                self.assertIn("SameSite=Strict", cookie)
+                session_cookie = cookie.split(";", 1)[0]
+                connection.request("GET", "/", headers={"Cookie": session_cookie})
+                self.assertEqual(connection.getresponse().status, 200)
+                connection.request("POST", "/logout", headers={"Cookie": session_cookie})
+                response = connection.getresponse()
+                self.assertEqual(response.status, 303)
+                connection.request("GET", "/", headers={"Cookie": session_cookie})
+                self.assertIn("form", connection.getresponse().read().decode("utf-8"))
+            finally:
+                connection.close()
                 server.shutdown()
                 thread.join()
                 server.server_close()
@@ -183,6 +225,14 @@ class NewsBriefTests(unittest.TestCase):
             try:
                 with self.assertRaises(urllib.error.HTTPError) as error:
                     urllib.request.urlopen("http://127.0.0.1:%d/" % server.server_port)
+                self.assertEqual(error.exception.code, 503)
+                request = urllib.request.Request(
+                    "http://127.0.0.1:%d/login" % server.server_port,
+                    data=b"token=anything",
+                    headers={"Content-Type": "application/x-www-form-urlencoded"},
+                )
+                with self.assertRaises(urllib.error.HTTPError) as error:
+                    urllib.request.urlopen(request)
                 self.assertEqual(error.exception.code, 503)
             finally:
                 server.shutdown()

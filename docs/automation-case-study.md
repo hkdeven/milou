@@ -378,6 +378,26 @@ this document in it before implementation begins.
   canonical CLI generation/storage for each new routine, storage uniqueness,
   and `git diff --check`.
 
+### September 15, 2026 — Browser authentication implementation/build log
+
+- Implemented the browser-friendly decision above in `milou_news/web.py`:
+  configured `GET /` now renders a minimal login form instead of an opaque
+  401, while protected archive/API paths retain 401 plus the Bearer challenge.
+- `POST /login` validates the submitted token with constant-time comparison,
+  stores only a short-lived random server-side session identifier, and sets a
+  Secure, HttpOnly, SameSite=Strict cookie. Both GET and POST `/logout` clear
+  that cookie; Bearer authentication remains available for API and CLI clients.
+- Missing `MILOU_REPORT_TOKEN` still returns 503 for every entry point. Tokens
+  are not placed in URLs, generated HTML, or request logs, and the server
+  continues to bind to localhost by default.
+- Added focused tests for login failure/success, cookie authorization, logout,
+  absent-token fail-closed behavior, and unchanged API 401 behavior. Updated
+  README, deployment, architecture, and changelog guidance without changing
+  the existing README image markup.
+- Validation: full unittest discovery, Python bytecode compilation, local HTTP
+  login/cookie/logout checks, and `git diff --check` are the completion gates
+  for this change.
+
 ### September 12, 2026 — Article roadmap implementation result
 
 - Added three standard-library routines and registry entries. The canonical CLI
@@ -727,3 +747,15 @@ for each significant change.
   variable or an explicit file read.
 - Added clearer startup guidance so operators can locate or create a
   permission-restricted local token file without exposing its contents.
+
+### September 15, 2026 — Browser login UX correction
+
+- Observed that opening the localhost archive directly in a browser returned
+  HTTP 401 because browsers do not automatically send the Bearer header used by
+  API/CLI clients.
+- Decided to add a browser-friendly login form at `GET /` and a `POST /login`
+  flow that validates the token without exposing it, then uses a short-lived,
+  HttpOnly, SameSite cookie for browser navigation.
+- Bearer authorization remains supported for API/CLI requests; logout,
+  absent-token fail-closed behavior, localhost binding, and no-token-in-URL or
+  HTML rules remain mandatory.

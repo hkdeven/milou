@@ -91,7 +91,7 @@ that makes further work unsafe or misleading.
 - [`milou_news/`](milou_news/) — read-only standard-library news-brief runtime
 - [`milou_news/archive.py`](milou_news/archive.py) and
   [`milou_news/web.py`](milou_news/web.py) — dated persistence and private
-  bearer-authenticated report delivery and health/status endpoints
+  browser/API-authenticated report delivery and health/status endpoints
 - [`milou_news/scheduler.py`](milou_news/scheduler.py) and
   [`routines/scheduler-configuration.md`](routines/scheduler-configuration.md)
   — durable routine configuration, due calculation, and run ledger
@@ -117,7 +117,9 @@ delivery slice stores dated Markdown/JSON reports, supports fixture-backed
 generation, and serves a responsive authenticated archive. Authentication
 fails closed without an injected `MILOU_REPORT_TOKEN`; no credentials are
 committed and no public hosting is used. Live integrations and deployment
-remain out of scope.
+remain out of scope. Browser users authenticate at `/login` and receive a
+short-lived Secure, HttpOnly, SameSite session cookie; API and CLI clients
+continue to send `Authorization: Bearer ...`.
 
 The scheduler is local-only and uses SQLite. Inspect it with
 `python3 -m milou_news status --config fixtures/scheduler.json`; use
@@ -158,8 +160,9 @@ python3 -c 'from milou_news.archive import ReportStore; from milou_news.web impo
 If no token file exists, create one with a local secret generator and restrict
 its permissions; do not paste or echo the token:
 `mkdir -p "$HOME/.config/milou" && umask 077 && python3 -c 'import secrets; print(secrets.token_urlsafe(32))' > "$HOME/.config/milou/report-token"`.
-The archive is intentionally localhost-only unless an operator explicitly
-places it behind a private authenticated network boundary.
+Open `http://127.0.0.1:8768/` in a browser and use the **Sign out** control
+when finished. The archive is intentionally localhost-only unless an operator
+explicitly places it behind a private authenticated network boundary.
 
 The case study is updated for every project work session with the relevant
 decision, implementation change, validation result, or lesson learned. This

@@ -134,14 +134,17 @@ The delivery slice is deliberately read-only:
 ```text
 fixture/source input -> scheduled generation callable/CLI
                     -> dated Markdown + JSON archive
-                    -> private host -> bearer-authenticated web index/archive
+                    -> private host -> browser-session/API-bearer web index/archive
 ```
 
 `ReportStore` writes reports under a year/month/day archive and the web layer
 only reads those files. The HTTP boundary requires the configured
-`MILOU_REPORT_TOKEN`; an absent token fails closed. A private host and
-operator-managed TLS/reverse proxy are required. Public hosting and GitHub
-Pages are explicitly excluded. The application never publishes reports,
+`MILOU_REPORT_TOKEN`; an absent token fails closed. Browser users authenticate
+at `/login` and receive a short-lived server-side Secure, HttpOnly,
+SameSite=Strict cookie; API and CLI clients retain Bearer authentication.
+`/logout` clears the session. A private host and operator-managed TLS/reverse
+proxy are required. Public hosting and GitHub Pages are explicitly excluded.
+The application never publishes reports,
 contacts sources, or changes source data.
 
 ## Blockers and continuation

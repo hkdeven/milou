@@ -7,6 +7,11 @@ the detailed reasoning and decisions behind each change.
 
 ### Added
 
+- Added browser-friendly report authentication: a minimal root login form,
+  constant-time token validation, short-lived server-side Secure/HttpOnly/
+  SameSite session cookies, logout, and retained Bearer API/CLI support.
+  Unconfigured tokens still fail closed and credentials are not emitted in
+  URLs, HTML, or logs.
 - Added the read-only, bounded GitHub Change Radar with authenticated `gh`
   CLI/API collection, explicit repository/organization scope, direct
   citations, categories, timestamps, visible failures, deterministic fixtures,
