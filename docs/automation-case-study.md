@@ -759,3 +759,12 @@ for each significant change.
 - Bearer authorization remains supported for API/CLI requests; logout,
   absent-token fail-closed behavior, localhost binding, and no-token-in-URL or
   HTML rules remain mandatory.
+
+### September 15, 2026 — Local report folder shortcut
+
+- Supported the user after they asked to open the locally generated report
+  folder.
+- Documented `/tmp/milou-live-reports` as the current demo archive directory
+  and added an operator shortcut using `open /tmp/milou-live-reports`.
+- Kept the path configurable and separate from token handling; no credentials
+  or user files are exposed or changed.

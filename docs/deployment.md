@@ -35,3 +35,8 @@ The web layer only reads the archive. It does not publish, contact, or change
 source data. Tokens are accepted only in the login body or Authorization
 header; they are never put in URLs, HTML, or logs. Keep TLS in front of any
 non-localhost deployment because the session cookie is marked Secure.
+
+For the current local demo, reports are stored in
+`/tmp/milou-live-reports`. On macOS, open that directory with
+`open /tmp/milou-live-reports`; substitute the configured archive directory
+when using another local path. This shortcut does not read or expose tokens.

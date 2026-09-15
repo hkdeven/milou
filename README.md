@@ -164,6 +164,10 @@ Open `http://127.0.0.1:8768/` in a browser and use the **Sign out** control
 when finished. The archive is intentionally localhost-only unless an operator
 explicitly places it behind a private authenticated network boundary.
 
+The current local demo report directory is `/tmp/milou-live-reports`; open it
+in Finder with `open /tmp/milou-live-reports`. If a different report directory
+is configured, replace that path in the command.
+
 The case study is updated for every project work session with the relevant
 decision, implementation change, validation result, or lesson learned. This
 README is the canonical current overview on `main` and must be refreshed when
