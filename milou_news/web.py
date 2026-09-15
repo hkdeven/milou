@@ -55,9 +55,10 @@ def make_handler(store, bearer_token=None, environ=None, scheduler=None):
                 for report in reports:
                     relative = os.path.relpath(report["path"], store.root)
                     label = report.get("metadata", {}).get("routine", "report")
+                    status = report.get("metadata", {}).get("status", "stored")
                     links.append('<li><a href="/report/%s">%s</a> — %s</li>' %
                                  (html.escape(relative), html.escape(report.get("generated_at", relative)),
-                                  html.escape(label)))
+                                  html.escape("%s [%s]" % (label, status))))
                 self._send(200, "<!doctype html><meta name=\"viewport\" content=\"width=device-width\">"
                                 "<title>Milou reports</title><h1>Milou reports</h1><ul>%s</ul>" %
                                 "".join(links))
@@ -68,9 +69,10 @@ def make_handler(store, bearer_token=None, environ=None, scheduler=None):
                     self._send(404, "Report not found.\n", "text/plain; charset=utf-8")
                 else:
                     label = payload.get("metadata", {}).get("routine", "report")
+                    status = payload.get("metadata", {}).get("status", "stored")
                     self._send(200, "<!doctype html><meta name=\"viewport\" content=\"width=device-width\">"
-                                    "<title>Milou %s</title><h1>%s</h1><pre>%s</pre>" %
-                                    (html.escape(label), html.escape(label),
+                                    "<title>Milou %s</title><h1>%s</h1><p>Status: %s</p><pre>%s</pre>" %
+                                    (html.escape(label), html.escape(label), html.escape(status),
                                     html.escape(payload.get("markdown", ""))))
                 return
             self._send(404, "Not found.\n", "text/plain; charset=utf-8")

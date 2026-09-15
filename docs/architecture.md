@@ -161,3 +161,17 @@ Every attempt records status, attempt count, timestamps, and any error; retries
 are bounded and visible. Scheduler configuration is read-only by construction.
 The authenticated archive exposes `/status` and `/health` when given a scheduler
 instance, so operational failures are not hidden behind report pages.
+
+## GitHub Change Radar
+
+`github-change-radar` defaults to highest-priority, organization-wide
+monitoring of `Allied-Steel-Buildings`, including activity not involving the
+user. Personal repositories and other organizations are secondary explicit
+configuration. It renders bounded commits (author, committer, branch, message,
+link), branch lifecycle, PR lifecycle/reviewers/labels/status, issues,
+releases/tags, workflow/check failures, Dependabot/security, and repository
+lifecycle events where permitted. Reports include per-repository and
+per-author counts, notable/high-risk changes, direct citations, pagination and
+rate-limit visibility, and API/permission/coverage gaps. No mention filtering
+is applied. Nothing is written to GitHub, and events outside scope/window
+remain unknown.

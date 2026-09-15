@@ -9,6 +9,14 @@ from .routines import (generate_commitments_tracker, generate_daily_wins,
                        generate_launch_radar, generate_morning_brief,
                        generate_stale_work_finder,
                        generate_travel_logistics_tracker)
+from .github_radar import FixtureApi, RadarConfig, generate_github_radar
+
+
+def _generate_github_radar_fixture(payload):
+    config = RadarConfig.from_mapping(payload.get("config", {}))
+    return generate_github_radar(
+        FixtureApi(payload.get("responses", {}), payload.get("errors", {})), config
+    )
 
 
 @dataclass(frozen=True)
@@ -34,6 +42,7 @@ _HANDLERS = {
     "launch-decoder": generate_launch_decoder,
     "launch-radar": generate_launch_radar,
     "travel-logistics-tracker": generate_travel_logistics_tracker,
+    "github-change-radar": _generate_github_radar_fixture,
 }
 
 

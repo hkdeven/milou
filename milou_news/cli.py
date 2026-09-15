@@ -14,6 +14,7 @@ from .routines import (generate_daily_wins, generate_morning_brief,
 from .scheduler import Scheduler
 from .models import default_registry
 from .supervisor import SupervisorDispatcher
+from .github_radar import FixtureApi, GhApi, RadarConfig, generate_github_radar
 
 
 def scheduler_command(argv):
@@ -69,15 +70,36 @@ def main(argv=None) -> int:
             "weekly-launch-radar",
             "travel-logistics",
             "travel-logistics-tracker",
+            "github-change-radar",
+            "github-radar",
+            "change-radar",
         ),
         default="news",
     )
-    parser.add_argument("--fixture", required=True, help="JSON fixture mapping source name to article arrays")
+    parser.add_argument("--fixture", help="JSON fixture mapping source name to article arrays or radar API responses")
+    parser.add_argument("--config", help="JSON radar scope (repositories, organizations, window_hours)")
     parser.add_argument("--limit", type=int, default=5)
     parser.add_argument("--store", help="dated archive directory; persist the generated report")
     args = parser.parse_args(argv)
-    with open(args.fixture, encoding="utf-8") as handle:
-        payload = json.load(handle)
+    radar_names = ("github-change-radar", "github-radar", "change-radar")
+    if args.routine in radar_names:
+        if not args.config:
+            parser.error("--config is required for the GitHub Change Radar")
+        with open(args.config, encoding="utf-8") as handle:
+            config = RadarConfig.from_mapping(json.load(handle))
+        if args.fixture:
+            with open(args.fixture, encoding="utf-8") as handle:
+                fixture = json.load(handle)
+            api = FixtureApi(fixture.get("responses", fixture), fixture.get("errors", {}))
+        else:
+            api = GhApi()
+        report = generate_github_radar(api, config)
+        canonical_label = "github-change-radar"
+    else:
+        if not args.fixture:
+            parser.error("--fixture is required for fixture-backed routines")
+        with open(args.fixture, encoding="utf-8") as handle:
+            payload = json.load(handle)
     if args.routine in ("news", "daily-global-ai-news-brief"):
         report = generate_brief(SOURCES, FixtureFetcher(payload), config=BriefConfig(limit=args.limit))
     elif args.routine in ("daily-wins", "daily-wins-recap"):
@@ -98,7 +120,7 @@ def main(argv=None) -> int:
         report = generate_launch_decoder(payload)
     elif args.routine in ("launch-radar", "weekly-launch-radar"):
         report = generate_launch_radar(payload)
-    else:
+    elif args.routine in ("travel-logistics", "travel-logistics-tracker"):
         report = generate_travel_logistics_tracker(payload)
     if args.store:
         canonical_labels = {
@@ -112,11 +134,15 @@ def main(argv=None) -> int:
             "launch-decoder-24h": "launch-decoder",
             "weekly-launch-radar": "launch-radar",
             "travel-logistics": "travel-logistics-tracker",
+            "github-radar": "github-change-radar",
+            "change-radar": "github-change-radar",
         }
         ReportStore(args.store).save(
             report,
             metadata={"routine": canonical_labels.get(args.routine, args.routine),
-                      "fixture": args.fixture, "access": "read-only"},
+                      "fixture": args.fixture, "config": args.config,
+                      "access": "read-only", "auth": "gh CLI" if args.routine in radar_names else "none",
+                      "status": "authenticated-read-only" if args.routine in radar_names else "fixture"},
         )
     print(report, end="")
     return 0

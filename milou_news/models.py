@@ -103,6 +103,11 @@ TRAVEL_LOGISTICS_ROUTINE = Routine(
     "Turn structured conference and travel messages/calendar fixtures into a dated logistics brief.",
     aliases=("travel-logistics",), schedule="on-demand",
 )
+GITHUB_RADAR_ROUTINE = Routine(
+    "github-change-radar", "0.1.0",
+    "Report bounded recent GitHub changes involving the user and configured repositories with direct citations.",
+    aliases=("github-radar", "change-radar"), schedule="daily", input_kind="authenticated-gh-api",
+)
 
 
 def default_registry() -> RoutineRegistry:
@@ -116,4 +121,5 @@ def default_registry() -> RoutineRegistry:
     registry.register(LAUNCH_DECODER_ROUTINE)
     registry.register(LAUNCH_RADAR_ROUTINE)
     registry.register(TRAVEL_LOGISTICS_ROUTINE)
+    registry.register(GITHUB_RADAR_ROUTINE)
     return registry

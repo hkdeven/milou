@@ -1,0 +1,8 @@
+{
+  "repositories": ["hkdeven/milou"],
+  "organizations": ["Allied-Steel-Buildings"],
+  "primary_organizations": ["Allied-Steel-Buildings"],
+  "window_hours": 168,
+  "max_repositories_per_org": 100,
+  "max_pages": 2
+}

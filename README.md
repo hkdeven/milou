@@ -31,6 +31,11 @@ The documented initial capabilities are:
 - implemented fixture-backed Launch Decoder, Launch Radar, and Travel Logistics
   Tracker routines with explicit evidence, timing, uncertainty, and missing
   information; and
+- an implemented fixture-backed, authenticated `github-change-radar` that
+  prioritizes organization-wide Allied-Steel-Buildings activity (especially
+  changes not involving the user), then secondary configured repositories,
+  with bounded event coverage, citations, summaries, risk signals, and visible
+  API/permission failures; and
 - a deterministic supervisor planner/dispatcher with read-only permissions,
   routing metadata, and visible failures; and
 - a vetted initial global AI news source set; and
@@ -80,6 +85,8 @@ that makes further work unsafe or misleading.
   [`routines/launch-radar.md`](routines/launch-radar.md), and
   [`routines/travel-logistics-tracker.md`](routines/travel-logistics-tracker.md)
   — launch and travel contracts
+- [`routines/github-change-radar.md`](routines/github-change-radar.md) —
+  bounded authenticated repository-change contract
 - [`CHANGELOG.md`](CHANGELOG.md) — notable project changes
 - [`milou_news/`](milou_news/) — read-only standard-library news-brief runtime
 - [`milou_news/archive.py`](milou_news/archive.py) and
@@ -94,6 +101,9 @@ that makes further work unsafe or misleading.
   the CLI and tests
 - [`fixtures/activity.json`](fixtures/activity.json) and
   [`fixtures/meetings.json`](fixtures/meetings.json) — deterministic routine fixtures
+- [`fixtures/github-radar.json`](fixtures/github-radar.json) and
+  [`fixtures/github-radar-config.json`](fixtures/github-radar-config.json) —
+  deterministic radar demo inputs
 
 ## Status and next steps
 
@@ -121,6 +131,23 @@ Travel Logistics Tracker are implemented as read-only fixture-backed routines.
 The deterministic supervisor layer plans and dispatches registered routines.
 Live integrations and deployment remain out of scope; local scheduling and
 health reporting are implemented.
+
+The GitHub Change Radar defaults to organization-wide
+`Allied-Steel-Buildings` monitoring and tracks secondary repositories and
+organizations only when configured, all within a bounded recent window. It
+uses authenticated `gh api` GET calls (or deterministic fixtures), never
+exposes the token, performs no mention filtering or unbounded scan, and reports
+pagination, rate-limit, coverage, and permission/API failures visibly. Generate a
+real local report with
+`python3 -m milou_news --routine github-change-radar --config path/to/radar.json`
+and optionally persist it with `--store reports`. No server is started by this
+command and no credentials are committed.
+
+For a local authenticated archive, set `MILOU_REPORT_TOKEN` outside the
+repository and run:
+`python3 -c 'from milou_news.archive import ReportStore; from milou_news.web import serve; serve(ReportStore("reports"), host="127.0.0.1", port=8768)'`.
+The archive is intentionally localhost-only unless an operator explicitly
+places it behind a private authenticated network boundary.
 
 The case study is updated for every project work session with the relevant
 decision, implementation change, validation result, or lesson learned. This

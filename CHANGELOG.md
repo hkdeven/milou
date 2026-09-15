@@ -7,6 +7,15 @@ the detailed reasoning and decisions behind each change.
 
 ### Added
 
+- Added the read-only, bounded GitHub Change Radar with authenticated `gh`
+  CLI/API collection, explicit repository/organization scope, direct
+  citations, categories, timestamps, visible failures, deterministic fixtures,
+  tests, and a real-report CLI path. No token is exposed or stored.
+- Clarified Allied-Steel-Buildings as the default/highest-priority organization
+  scope, added non-user activity priority, bounded pagination/rate-limit
+  visibility, expanded event fields and lifecycle categories, per-repository
+  and per-author summaries, risk signals, and explicit coverage gaps without
+  mention filtering.
 - Added fixture-backed Launch Decoder, Launch Radar, and Travel Logistics
   Tracker routines with canonical CLI aliases, registry metadata, contracts,
   fixtures, cited uncertainty/unknowns, and read-only tests.
@@ -71,3 +80,6 @@ the detailed reasoning and decisions behind each change.
   ledger CLI commands.
 - Added authenticated archive health/status JSON endpoints and scheduler
   configuration documentation.
+- Clarified that live repository-change tracking across personal and
+  organization repositories is not implemented; a separately scoped
+  read-only tracker remains the next repository-focused slice.

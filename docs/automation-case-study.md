@@ -320,6 +320,55 @@ this document in it before implementation begins.
 - The scheduler remains local and fixture-backed for now; external schedulers,
   integrations, credentials, and deployment details are not prerequisites for
   implementing or testing the interfaces.
+
+### September 15, 2026 — Repository-change tracking scope assessment
+
+- Assessed whether Milou currently tracks repository changes across the user's
+  own repositories and associated organizations.
+- Current implementation does **not** inspect live Git repositories, GitHub
+  organizations, issues, pull requests, commits, releases, or activity feeds.
+  The existing routines use local fixtures only, and the scheduler does not
+  collect repository events.
+- Therefore Milou currently has no repository-change tracking coverage across
+  personal or organization-owned repositories.
+- The next implementation needed is a separately scoped, read-only
+  repository-change tracker with explicit repository/organization inputs,
+  event freshness and deduplication rules, citations, permission handling,
+  and fixture-backed evaluation before any live integration.
+
+### September 15, 2026 — Local GitHub Change Radar requirement
+
+- Added the requirement to make a read-only GitHub Change Radar runnable
+  locally so recent repository activity can be viewed from the authenticated
+  development environment.
+- The radar must use the authenticated `gh` CLI/API without exposing tokens,
+  support a bounded recent window and configured personal/organization
+  repository scope, and report recent changes involving the user and
+  associated organizations with categories, timestamps, and direct citations.
+- API and permission failures must remain visible. The implementation must
+  not perform an unbounded organization scan, add credentials, or publish
+  reports publicly.
+- The local demo will generate a real report, serve it through the existing
+  localhost-only authenticated archive, and document the exact command and
+  token setup needed for viewing.
+
+### September 15, 2026 — Allied-Steel-Buildings organization-wide radar scope
+
+- Clarified that the primary need is visibility across **all
+  Allied-Steel-Buildings repositories**, especially activity that does not
+  mention or involve the user directly.
+- Made the Allied-Steel-Buildings organization-wide scope the default and
+  highest-priority radar scope; configured personal repositories and other
+  organizations remain secondary, opt-in scopes.
+- Expanded the bounded event inventory to include commits and attribution,
+  branches, pull requests and review metadata, issues, releases/tags,
+  workflow/check changes and failures, Dependabot/security changes, and
+  repository additions or archival where APIs permit.
+- Required per-repository and per-author summaries, activity counts,
+  notable/high-risk changes, explicit coverage gaps and permission failures,
+  pagination/rate-limit visibility, and no mention-based filtering.
+- Kept the radar read-only, bounded, credential-free in the repository, and
+  local-only for the demo.
 - Implementation/build log: added registry metadata and canonical aliases,
   callable and CLI storage paths, three deterministic JSON fixtures, three
   contracts, authenticated archive labels, and focused unit coverage. The
@@ -614,3 +663,56 @@ for each significant change.
   configuration, and exposed authenticated `/status` and `/health` JSON for
   operational reporting. No deployment or external integration was required;
   local SQLite and fixtures remain the supported path.
+
+### September 15, 2026 — GitHub Change Radar implementation
+
+- Added the `github-change-radar` routine and canonical aliases
+  `github-radar`/`change-radar` to the registry and CLI. It reports recent
+  authenticated-user activity and changes across explicitly configured
+  repositories and organizations, grouped by category with UTC timestamps and
+  direct GitHub citations.
+- Chose a bounded local design: a 1–744 hour window, a 1–100 repository cap per
+  configured organization, and one recent event page per endpoint. Overlapping
+  user and repository events are deduplicated; unsupported or incomplete events
+  are omitted and described as unknown.
+- The live path calls `gh api` through a safe subprocess argument list, so the
+  GitHub CLI owns credentials and no token is exposed. Fixture-backed API
+  responses provide deterministic demos and tests, while API, authentication,
+  timeout, and permission failures remain visible in the report.
+- Added a routine contract, scope/response fixtures, ReportStore metadata
+  labels, and the command path for local authenticated generation. The command
+  does not start a server or publish reports.
+- Validation: `python3 -m unittest discover -s tests`, `python3 -m compileall
+  milou_news`, fixture CLI generation, and a final diff/status check pass.
+
+### September 15, 2026 — Allied-Steel-Buildings monitoring clarification
+
+- Made `Allied-Steel-Buildings` the default and highest-priority organization
+  scope, with activity not involving the authenticated user explicitly shown
+  before secondary personal repositories or organizations.
+- Expanded the bounded event model to preserve commit author/committer,
+  branch/message/link, branch lifecycle, PR lifecycle/reviewers/labels/status,
+  issues, releases/tags, workflows/check failures, Dependabot/security, and
+  repository lifecycle changes where the API permits.
+- Added per-repository and per-author counts, notable/high-risk signals,
+  pagination/rate-limit visibility, coverage gaps, and an explicit statement
+  that no mention filtering is applied. Updated deterministic config and
+  fixtures to demonstrate the priority path.
+
+### September 15, 2026 — Local Change Radar demo
+
+- Ran the real authenticated radar locally with `gh auth status` confirming
+  the existing GitHub CLI session and a bounded 168-hour,
+  Allied-Steel-Buildings-only configuration with a 100-repository cap.
+- The organization currently exposes 48 repositories to the authenticated
+  session; the generated report scanned the organization scope and recorded
+  per-repository/per-author activity, citations, and coverage telemetry.
+- The GitHub `/user/events` endpoint returned a visible HTTP 404 through `gh`;
+  this is recorded as an API coverage gap rather than hidden or treated as
+  empty activity.
+- Stored the real report under a local dated archive and started the
+  authenticated archive on `http://127.0.0.1:8768/`. Authenticated archive,
+  `/status`, and stored report-page checks returned HTTP 200; unauthenticated
+  archive access returned HTTP 401.
+- The demo token is held outside the repository in a local temporary file;
+  no credential or report artifact was committed.
