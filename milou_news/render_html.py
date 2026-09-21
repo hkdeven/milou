@@ -124,12 +124,13 @@ border-radius:999px;flex:0 0 auto}
 .row{display:flex;align-items:stretch;border-bottom:1px solid var(--hair-2)}
 .row:last-child{border-bottom:0}
 .rail{width:3px;flex:0 0 auto}
-.cells{flex:1 1 auto;min-width:0;padding:13px 18px;display:grid;align-items:center;gap:16px;
-grid-template-columns:88px 200px 118px minmax(0,1fr) 180px 30px}
-@media(max-width:1100px){.cells{grid-template-columns:78px minmax(0,1fr) 150px 30px;gap:12px}
-.c-type{display:none}.c-sig{grid-column:3}}
-@media(max-width:720px){.cells{grid-template-columns:minmax(0,1fr) 30px;gap:6px 12px;padding:14px 16px}
-.c-time,.c-repo,.c-chg,.c-sig{grid-column:1}.c-link{grid-column:2;grid-row:1}
+.cells{flex:1 1 auto;min-width:0;padding:13px 18px;display:flex;align-items:center;gap:16px}
+.c-time{flex:0 0 88px}.c-repo{flex:0 0 200px}.c-type{flex:0 0 118px}
+.c-chg{flex:1 1 auto}.c-sig{flex:0 0 180px}
+@media(max-width:1100px){.cells{gap:12px}.c-type{display:none}
+.c-repo{flex:0 0 160px}.c-sig{flex:0 0 150px}}
+@media(max-width:720px){.cells{flex-wrap:wrap;gap:6px 12px;padding:14px 16px}
+.c-time,.c-repo,.c-chg,.c-sig{flex:1 1 100%}
 .c-time{flex-direction:row;gap:8px;align-items:baseline}}
 .c-time{display:flex;flex-direction:column;gap:2px}
 .t-rel{font-size:13px;font-weight:600;font-variant-numeric:tabular-nums}
@@ -140,6 +141,7 @@ grid-template-columns:88px 200px 118px minmax(0,1fr) 180px 30px}
 .chip-type{display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:7px;
 background:rgba(0,0,0,.045);font-size:11.5px;font-weight:500;color:var(--ink-2);white-space:nowrap}
 .c-chg{min-width:0;display:flex;flex-direction:column;gap:3px}
+.c-link{flex:0 0 30px}
 .chg-title{font-size:13.5px;font-weight:600;letter-spacing:-.005em}
 .chg-by{font-size:11.5px;color:var(--ink-3)}
 .c-sig{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
@@ -319,22 +321,24 @@ def _event_row(row: Row) -> str:
         source = ('<div class="c-repo">%s%s</div>'
                   % ('<span class="r-own">%s/</span>' % _e(row.owner) if row.owner else "",
                      '<span class="r-nm">%s</span>' % _e(row.source) if row.source else ""))
-    else:
-        source = '<div class="c-repo"></div>'
     flags = _flags(row.flags)
     return ('<div class="row%s"><div class="rail" style="background:%s"></div>'
             '<div style="flex:1 1 auto;min-width:0"><div class="cells">'
-            '<div class="c-time"><span class="t-rel">%s</span>%s</div>%s'
-            '<div class="c-type">%s</div>'
+            '%s%s%s'
             '<div class="c-chg"><span class="chg-title">%s</span>%s</div>'
-            '<div class="c-sig">%s</div>%s</div>%s</div></div>'
-            % (quiet, rail or "transparent", _e(row.ago),
-               '<span class="t-abs">%s</span>' % _e(row.when) if row.when else "",
+            '%s%s</div>%s</div></div>'
+            % (quiet, rail or "transparent",
+               ('<div class="c-time"><span class="t-rel">%s</span>%s</div>'
+                % (_e(row.ago),
+                   '<span class="t-abs">%s</span>' % _e(row.when) if row.when else "")
+                ) if (row.ago or row.when) else "",
                source,
-               '<span class="chip-type">%s</span>' % _e(row.category) if row.category else "",
+               ('<div class="c-type"><span class="chip-type">%s</span></div>'
+                % _e(row.category)) if row.category else "",
                _e(row.title),
                '<span class="chg-by">%s</span>' % _e(row.byline) if row.byline else "",
-               _chips(row.signals), _link(row.url),
+               '<div class="c-sig">%s</div>' % _chips(row.signals) if row.signals else "",
+               _link(row.url),
                '<div style="padding:0 18px 12px">%s</div>' % flags if flags else ""))
 
 

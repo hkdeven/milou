@@ -869,3 +869,46 @@ Implementation/build log:
 - Validation: `python3 -m unittest discover -s tests` passes with 55 tests
   (27 added), `python3 -m compileall milou_news` passes, and both routines were
   generated and rendered from their committed fixtures and inspected.
+
+### September 21, 2026 — De-duplication order, and the rest of the routines
+
+- Took up the correctness question recorded in the previous entry. The daily
+  brief de-duplicated before ranking, and de-duplication keeps the first member
+  of each group, so the surviving account of a corroborated event was decided by
+  the order sources happen to appear in `SOURCES` rather than by quality. On the
+  committed fixture this kept a regional summary of the EU evaluation guidance
+  and discarded the originating outlet's account, which led on both evidence
+  (0.95 vs 0.70) and significance (0.90 vs 0.70).
+- Decided to rank first and de-duplicate the ranked list, which makes the
+  highest-scoring account the survivor. Ranking is the routine's own definition
+  of value, so using it here keeps one source of truth rather than inventing a
+  second rule for duplicates.
+- The result improves every axis the routine claims to optimise: the
+  better-evidenced original is kept, Europe enters the region mix, and a weak
+  single-source item drops out of the top three. Two tests that pinned the old
+  outcome were updated, and the behaviour they covered — diversity promotion,
+  and a dropped account that still leads on one signal — was rebuilt on
+  constructed data so neither path lost coverage.
+- Extended structured reports to the remaining eight routines. Each already
+  performed a classification that the Markdown renderer left implicit, so the
+  work was mostly recovering it: urgency for stale work, severity for Dependabot
+  (ahead of age, which is the point), age for commitments, stated confidence for
+  launches, and resolved versus outstanding for travel. Daily Wins keeps
+  verified facts and inferred impact in separate tiers, which is the routine's
+  safety claim and should never be a heading halfway down a page.
+- Missing evidence, inaccessible links, and failing checks now surface as their
+  own flags rather than as inline text, so a gap reads as a gap.
+- Changed the record row from a fixed grid to a flex row after seeing routines
+  without a source or category render with dead columns. Cells that carry
+  nothing are no longer emitted at all.
+- Tidied the changelog: four entries describing shipped work had drifted under
+  "Not implemented", and one entry still described the GitHub Change Radar as a
+  future slice after it had shipped.
+- Lesson: the classification was already there in every routine. Displaying it
+  was mostly a matter of not throwing it away, and the one place the code truly
+  disagreed with its own stated goals — de-duplication order — only became
+  visible once the report had to explain itself.
+- Validation: `python3 -m unittest discover -s tests` passes with 66 tests
+  (10 added this session), `python3 -m compileall milou_news` passes, and all
+  eight routines were generated as HTML from their committed fixtures and
+  inspected.

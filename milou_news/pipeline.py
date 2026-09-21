@@ -49,6 +49,11 @@ def filter_fresh(articles: Iterable[Article], now: datetime, hours: int) -> List
 def partition_duplicates(articles: Iterable[Article]) -> Tuple[List[Article], List[Tuple[Article, Article]]]:
     """Split into kept articles and ``(dropped, kept_match)`` pairs.
 
+    The first member of each duplicate group survives, so callers must order
+    ``articles`` by whatever should win. :func:`prepare` ranks first, which
+    makes the highest-scoring account the survivor; de-duplicating an unranked
+    list instead keeps whichever source happened to be configured earliest.
+
     Two outlets filing the same event is corroboration, so which account
     survived — and what was given up to keep it — is worth reporting rather
     than reducing to a count.
@@ -174,9 +179,14 @@ def prepare(sources, fetcher, now=None, config=None):
     results = [fetcher.fetch(source) for source in sources]
     all_articles = [article for result in results for article in result.articles]
     fresh = filter_fresh(all_articles, now, config.freshness_hours)
-    unique, dropped = partition_duplicates(fresh)
+    # Rank before de-duplicating so the strongest account of a corroborated
+    # event survives. De-duplicating first kept whichever outlet appeared
+    # earliest in the configured source list, which discarded better-evidenced
+    # reporting purely because of source ordering.
+    ranked = rank(fresh, now)
+    unique, dropped = partition_duplicates(ranked)
     stale = [article for article in all_articles if article not in fresh]
-    selected = select_diverse(rank(unique, now), config)
+    selected = select_diverse(unique, config)
     return results, selected, dropped, stale
 
 
@@ -262,16 +272,19 @@ def build_brief_report(sources: Sequence[SourceDefinition], fetcher, now: dateti
                 "Scored %.2f — above the item before it; its region was already represented"
                 % article.score))
 
-    # Each dropped duplicate names the account that survived, and what it cost.
+    # Each dropped duplicate names the account that survived and why.
     considered = []
     for article, kept in dropped:
-        detail = ("%s · matched the %s account on event key" % (article.outlet, kept.outlet))
+        detail = ("%s · corroborates the %s account, which ranked higher (%.2f vs %.2f)"
+                  % (article.outlet, kept.outlet, kept.score, article.score))
+        # Ranking decides the survivor, so a dropped account can still lead on a
+        # single signal. Say so rather than letting the trade disappear.
         stronger = []
         if article.evidence > kept.evidence:
             stronger.append("evidence %.2f vs %.2f" % (article.evidence, kept.evidence))
         if article.significance > kept.significance:
             stronger.append("significance %.2f vs %.2f" % (article.significance, kept.significance))
-        flags = [Signal("Dropped account scored higher on " + ", ".join(stronger), "notable")] if stronger else []
+        flags = [Signal("Dropped account still leads on " + ", ".join(stronger), "notable")] if stronger else []
         considered.append(Row(title=article.title, category="duplicate", source=article.outlet,
                               byline=detail, url=article.url, tone="quiet",
                               when=article.published_at.strftime("%b %d, %H:%M"), flags=flags))

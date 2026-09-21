@@ -7,6 +7,32 @@ the detailed reasoning and decisions behind each change.
 
 ### Added
 
+- Added structured reports for the remaining eight fixture-backed routines, so
+  every routine renders as both Markdown and the HTML layout from one parse.
+  Classification the routines already performed is now carried as tiers: stale
+  work by urgency, Dependabot updates by severity ahead of age, commitments by
+  how long they have gone unanswered, launches by stated confidence, travel by
+  what is still unresolved, and Daily Wins keeps verified facts and inferred
+  impact in separate tiers.
+- Added `build_routine_report` and a canonical routine-to-builder registry, and
+  wired structured reports through scheduled generation so a stored report keeps
+  its structure however it was produced.
+- Moved four entries that describe shipped work out of "Not implemented", where
+  they had drifted, and dropped a stale note describing the GitHub Change Radar
+  as a future slice after it shipped.
+
+- Added fixture-backed Commitments and Follow-Up Tracker, Stale Work Finder,
+  and Dependabot PR Triage routines, registry entries, canonical CLI paths,
+  contracts, fixtures, and read-only tests/documentation.
+- Added durable SQLite routine configuration and scheduler ledger with daily/
+  weekly timezone-aware due calculation, enabled state, bounded visible retries,
+  idempotency keys, read-only permission enforcement, and scheduler/status/run/
+  ledger CLI commands.
+- Added authenticated archive health/status JSON endpoints and scheduler
+  configuration documentation.
+- Made same-second archived routine reports distinct by including the routine
+  name in stored filenames.
+
 - Added a structured report model (`milou_news/report.py`) and an HTML renderer
   (`milou_news/render_html.py`) shared by every output format. Reports now order
   rows by consequence before recency, give each record field its own column,
@@ -27,6 +53,17 @@ the detailed reasoning and decisions behind each change.
   than only how many.
 - Added a repository `.gitignore` so Python bytecode caches, local report
   archives, and scheduler database files stay out of version control.
+
+### Changed
+
+- Ranked the daily brief before de-duplicating it, so the highest-scoring
+  account of a corroborated event survives. De-duplicating first kept whichever
+  outlet appeared earliest in the configured source list, which discarded
+  better-evidenced reporting purely because of source ordering: the EU
+  evaluation guidance kept a regional summary over the originating outlet's
+  account, which led on both evidence (0.95 vs 0.70) and significance (0.90 vs
+  0.70). A dropped duplicate now names the account that survived, the scores
+  behind that choice, and any signal the dropped account still leads on.
 
 ### Fixed
 
@@ -106,18 +143,3 @@ the detailed reasoning and decisions behind each change.
   tests.
 - Live activity/calendar integrations and deployment remain intentionally out
   of scope; these routines accept local fixtures only.
-- Added fixture-backed Commitments and Follow-Up Tracker, Stale Work Finder,
-  and Dependabot PR Triage routines, registry entries, canonical CLI paths,
-  contracts, fixtures, and read-only tests/documentation.
-- Made same-second archived routine reports distinct by including the routine
-  name in stored filenames.
-
-- Added durable SQLite routine configuration and scheduler ledger with daily/
-  weekly timezone-aware due calculation, enabled state, bounded visible retries,
-  idempotency keys, read-only permission enforcement, and scheduler/status/run/
-  ledger CLI commands.
-- Added authenticated archive health/status JSON endpoints and scheduler
-  configuration documentation.
-- Clarified that live repository-change tracking across personal and
-  organization repositories is not implemented; a separately scoped
-  read-only tracker remains the next repository-focused slice.

@@ -15,10 +15,12 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from milou_news import render_html
 from milou_news.archive import ReportStore
 from milou_news.config import SOURCES
+from milou_news.models import Article
 from milou_news.github_radar import FixtureApi, RadarConfig, build_radar_report, generate_github_radar
 from milou_news.pipeline import MAX_SCORE, WEIGHTS, BriefConfig, build_brief_report
 from milou_news.report import Bar, Report, Row, Segment, Signal, Tier, humanize_age
-from milou_news.sources import FixtureFetcher
+from milou_news.routines import build_routine_report
+from milou_news.sources import FetchResult, FixtureFetcher
 from milou_news.web import make_handler
 
 NOW = datetime(2026, 9, 11, 12, 0, 0, tzinfo=timezone.utc)
@@ -29,6 +31,32 @@ def _news_report(now=NOW):
     with open(os.path.join(FIXTURES, "news.json"), encoding="utf-8") as handle:
         payload = json.load(handle)
     return build_brief_report(SOURCES, FixtureFetcher(payload), now=now, config=BriefConfig())
+
+
+def _article(title, slug, region, significance, evidence, discussion, key=None, hours=1):
+    return Article(title=title, url="https://example.test/%s" % slug, outlet="",
+                   published_at=NOW - timedelta(hours=hours), summary="s",
+                   regions=(region,), topics=("ai",), significance=significance,
+                   evidence=evidence, discussion=discussion, non_us=True, event_key=key)
+
+
+class _StubFetcher:
+    """Serves hand-built articles per source name, for cases the fixture cannot show."""
+
+    def __init__(self, by_outlet):
+        self.by_outlet = by_outlet
+
+    def fetch(self, source):
+        articles = []
+        for article in self.by_outlet.get(source.name, ()):
+            article.outlet = source.name
+            articles.append(article)
+        return FetchResult(source, articles, "")
+
+
+def _built_report(by_outlet, limit=5, now=NOW):
+    return build_brief_report(SOURCES, _StubFetcher(by_outlet), now=now,
+                              config=BriefConfig(limit=limit))
 
 
 def _radar_api(now=NOW):
@@ -172,7 +200,13 @@ class BriefReportTest(unittest.TestCase):
         self.assertTrue(all(segment.texture for segment in bonus))
 
     def test_diversity_promotion_is_visible(self):
-        report = _news_report()
+        # Two strong items share a region, so a weaker third region gets promoted
+        # ahead of the second — correct, and invisible unless it is marked.
+        report = _built_report({
+            "Rest of World": [_article("Lead", "row", "Africa", 0.95, 0.95, 0.95)],
+            "Nikkei Asia": [_article("Same region", "nikkei", "Africa", 0.9, 0.9, 0.9)],
+            "Euractiv": [_article("New region", "eur", "Europe", 0.3, 0.3, 0.3)],
+        }, limit=3)
         rows = report.tiers[0].rows
         promoted = [row for row in rows if row.marker == "up"]
         demoted = [row for row in rows if row.marker == "down"]
@@ -182,12 +216,32 @@ class BriefReportTest(unittest.TestCase):
         self.assertLess(float(promoted[0].score), float(demoted[0].score))
         self.assertTrue(any("region" in flag.label for flag in promoted[0].flags))
 
-    def test_dropped_duplicate_names_what_was_given_up(self):
+    def test_ranking_decides_which_duplicate_survives(self):
         report = _news_report()
         considered = [tier for tier in report.tiers if tier.label.startswith("Considered")][0]
         duplicate = [row for row in considered.rows if row.category == "duplicate"][0]
+        # The weaker regional account is dropped; the better-evidenced original
+        # is kept, whatever order the sources happen to be configured in.
+        self.assertEqual(duplicate.source, "South China Morning Post")
+        self.assertIn("Euractiv", duplicate.byline)
+        self.assertIn("corroborates", duplicate.byline)
+        kept = [row for row in report.tiers[0].rows if "evaluation guidance" in row.title][0]
+        self.assertEqual(kept.source, "Euractiv")
+
+    def test_dropped_duplicate_still_reports_a_signal_it_led_on(self):
+        # Ranking picks the survivor overall, so a dropped account can still lead
+        # on one signal. That trade must stay visible.
+        report = _built_report({
+            "Rest of World": [_article("Widely covered", "row", "Africa", 1.0, 0.5, 1.0,
+                                       key="shared")],
+            "Euractiv": [_article("Widely covered", "eur", "Europe", 0.1, 1.0, 0.1,
+                                  key="shared")],
+        })
+        considered = [tier for tier in report.tiers if tier.label.startswith("Considered")][0]
+        duplicate = [row for row in considered.rows if row.category == "duplicate"][0]
+        self.assertEqual(duplicate.source, "Euractiv")
         self.assertTrue(any("evidence" in flag.label for flag in duplicate.flags),
-                        "the surviving account scored lower on evidence; say so")
+                        "the dropped account led on evidence; say so")
 
     def test_partition_duplicates_reports_pairs(self):
         report = _news_report()
@@ -202,6 +256,107 @@ class BriefReportTest(unittest.TestCase):
         report = _news_report()
         self.assertIn("incomplete", report.alert)
         self.assertIn("IEEE Spectrum", report.alert_detail)
+
+
+class RoutineReportTest(unittest.TestCase):
+    """The eight fixture-backed routines, built from their committed fixtures."""
+
+    def _fixture(self, name):
+        with open(os.path.join(FIXTURES, name), encoding="utf-8") as handle:
+            return json.load(handle)
+
+    def _build(self, routine, fixture):
+        return build_routine_report(routine, self._fixture(fixture))
+
+    def test_every_routine_has_a_builder_and_renders(self):
+        for routine, fixture in (("daily-wins-recap", "activity.json"),
+                                 ("morning-brief-meeting-prep", "meetings.json"),
+                                 ("commitments-follow-up-tracker", "commitments.json"),
+                                 ("stale-work-finder", "stale-work.json"),
+                                 ("dependabot-pr-triage", "dependabot.json"),
+                                 ("launch-decoder", "launch-decoder.json"),
+                                 ("launch-radar", "launch-radar.json"),
+                                 ("travel-logistics-tracker", "travel-logistics.json")):
+            with self.subTest(routine=routine):
+                report = self._build(routine, fixture)
+                self.assertIsNotNone(report, "%s has no builder" % routine)
+                self.assertEqual(report.routine, routine)
+                self.assertTrue(report.kpis)
+                self.assertTrue(report.boundary, "every routine states its boundary")
+                page = render_html.report_page(report)
+                self.assertIn(report.title, page)
+
+    def test_unknown_routine_has_no_builder(self):
+        self.assertIsNone(build_routine_report("not-a-routine", {}))
+
+    def test_daily_wins_keeps_facts_and_inference_apart(self):
+        report = self._build("daily-wins-recap", "activity.json")
+        labels = [tier.label for tier in report.tiers]
+        self.assertEqual(labels[0], "Verified facts")
+        self.assertIn("Inferred impact", labels)
+        inferred = [tier for tier in report.tiers if tier.label == "Inferred impact"][0]
+        self.assertEqual(inferred.tone, "notable")
+        self.assertTrue(all(any("Inferred" in flag.label for flag in row.flags)
+                            for row in inferred.rows),
+                        "an inference must never read as a measured fact")
+
+    def test_daily_wins_flags_a_win_with_no_evidence(self):
+        report = build_routine_report("daily-wins-recap", {
+            "activities": [{"title": "Unverifiable", "status": "completed"}]})
+        row = report.tiers[0].rows[0]
+        self.assertTrue(any(flag.tone == "coverage" for flag in row.flags))
+
+    def test_stale_work_tiers_by_urgency(self):
+        report = self._build("stale-work-finder", "stale-work.json")
+        tones = [tier.tone for tier in report.tiers]
+        self.assertEqual(tones, sorted(tones, key=["critical", "notable", "quiet"].index),
+                         "urgent work sorts above work that merely needs watching")
+
+    def test_dependabot_marks_failing_checks_critical(self):
+        report = build_routine_report("dependabot-pr-triage", {
+            "pull_requests": [{"title": "Bump lib", "severity": "low",
+                               "checks": "failing", "conflicts": "yes"}]})
+        row = [r for tier in report.tiers for r in tier.rows][0]
+        self.assertTrue(any(signal.tone == "critical" and "checks" in signal.label
+                            for signal in row.signals))
+        self.assertTrue(any("human investigation" in flag.label for flag in row.flags))
+
+    def test_dependabot_security_outranks_age(self):
+        report = build_routine_report("dependabot-pr-triage", {
+            "pull_requests": [{"title": "Old routine bump", "severity": "low",
+                               "created_at": "2000-01-01T00:00:00Z", "checks": "passing"},
+                              {"title": "Fresh security fix", "severity": "critical",
+                               "checks": "passing"}]})
+        self.assertEqual(report.tiers[0].label, "Security")
+        self.assertIn("security", report.tiers[0].rows[0].title.lower())
+
+    def test_morning_brief_preserves_what_must_not_be_lost(self):
+        report = self._build("morning-brief-meeting-prep", "meetings.json")
+        flags = [flag.label for row in report.tiers[0].rows for flag in row.flags]
+        self.assertTrue(any(label.startswith("Commitment") for label in flags))
+        self.assertTrue(any(label.startswith("Open question") for label in flags))
+        self.assertTrue(any("Inaccessible link" in label for label in flags))
+        kpis = {kpi.label: kpi.tone for kpi in report.kpis}
+        self.assertEqual(kpis["Inaccessible"], "coverage")
+
+    def test_travel_keeps_open_items_separate_from_itinerary(self):
+        report = self._build("travel-logistics-tracker", "travel-logistics.json")
+        labels = [tier.label for tier in report.tiers]
+        self.assertIn("Itinerary", labels)
+        outstanding = [tier for tier in report.tiers if tier.label.startswith("Open items")]
+        self.assertTrue(outstanding)
+        self.assertEqual(outstanding[0].tone, "notable")
+
+    def test_empty_payload_reports_nothing_without_inventing_rows(self):
+        for routine in ("daily-wins-recap", "morning-brief-meeting-prep",
+                        "commitments-follow-up-tracker", "stale-work-finder",
+                        "dependabot-pr-triage", "launch-decoder", "launch-radar",
+                        "travel-logistics-tracker"):
+            with self.subTest(routine=routine):
+                report = build_routine_report(routine, {})
+                self.assertTrue(report.is_empty)
+                self.assertTrue(report.empty_note)
+                self.assertIn("No activity to report", render_html.report_page(report))
 
 
 class HtmlRenderTest(unittest.TestCase):

@@ -131,9 +131,16 @@ decides ordering by consequence before recency, gives every field its own
 column, promotes coverage and permission failures above the findings, and lets
 boilerplate recede to a footer. Generate one with
 `python3 -m milou_news --routine github-change-radar --config path/to/radar.json --format html`,
-or `--fixture fixtures/news.json --format html` for the daily brief. The GitHub
-Change Radar and the daily global AI news brief build structured reports today;
-the other routines still render as Markdown and display from it unchanged.
+or `--fixture fixtures/news.json --format html` for the daily brief. Every
+routine builds a structured report, so `--format html` works for all of them.
+
+Each routine's own classification becomes the tiering: the Change Radar by
+risk, stale work by urgency, Dependabot updates by severity ahead of age,
+commitments by how long they have gone unanswered, launches by stated
+confidence, and Daily Wins keeps verified facts and inferred impact apart. The
+daily brief additionally shows the weighted contributions behind each score,
+marks items promoted for region coverage, and names what a de-duplicated
+account was traded for.
 
 When a report is stored with `--store`, its structure is saved alongside the
 Markdown so the authenticated archive can render the full layout later without

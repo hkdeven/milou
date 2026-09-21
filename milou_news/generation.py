@@ -4,9 +4,9 @@ import json
 
 from .archive import ReportStore
 from .config import SOURCES
-from .pipeline import BriefConfig, generate_brief
+from .pipeline import BriefConfig, build_brief_report, generate_brief, prepare
 from .sources import FixtureFetcher
-from .routines import (generate_daily_wins, generate_morning_brief,
+from .routines import (build_routine_report, generate_daily_wins, generate_morning_brief,
                        generate_commitments_tracker, generate_stale_work_finder,
                        generate_dependabot_pr_triage, generate_launch_decoder,
                        generate_launch_radar, generate_travel_logistics_tracker)
@@ -16,9 +16,13 @@ def generate_and_store(fixture_path, store_path, limit=5, now=None):
     """Generate a fixture-backed report and persist it for a scheduler to call."""
     with open(fixture_path, encoding="utf-8") as handle:
         payload = json.load(handle)
-    report = generate_brief(SOURCES, FixtureFetcher(payload), now=now,
-                            config=BriefConfig(limit=limit))
-    return ReportStore(store_path).save(report, generated_at=now)
+    config = BriefConfig(limit=limit)
+    fetcher = FixtureFetcher(payload)
+    # One fetch feeds both the stored Markdown and the structured report.
+    prepared = prepare(SOURCES, fetcher, now, config)
+    report = generate_brief(SOURCES, fetcher, now, config, prepared=prepared)
+    structured = build_brief_report(SOURCES, fetcher, now, config, prepared=prepared)
+    return ReportStore(store_path).save(report, generated_at=now, report=structured)
 
 
 def generate_routine_and_store(routine, fixture_path, store_path, now=None):
@@ -55,4 +59,5 @@ def generate_routine_and_store(routine, fixture_path, store_path, now=None):
         raise ValueError("unsupported routine: %s" % routine)
     return ReportStore(store_path).save(report, generated_at=now,
                                         metadata={"routine": canonical, "fixture": fixture_path,
-                                                  "access": "read-only"})
+                                                  "access": "read-only"},
+                                        report=build_routine_report(canonical, payload))

@@ -9,7 +9,7 @@ from .pipeline import (BriefConfig, build_brief_report, generate_brief,
                        prepare as prepare_brief)
 from .sources import FixtureFetcher
 from .archive import ReportStore
-from .routines import (generate_daily_wins, generate_morning_brief,
+from .routines import (build_routine_report, generate_daily_wins, generate_morning_brief,
                        generate_commitments_tracker, generate_stale_work_finder,
                        generate_dependabot_pr_triage, generate_launch_decoder,
                        generate_launch_radar, generate_travel_logistics_tracker)
@@ -18,6 +18,23 @@ from .models import default_registry
 from .supervisor import SupervisorDispatcher
 from .github_radar import (FixtureApi, GhApi, RadarConfig, build_radar_report,
                            generate_github_radar, prepare as prepare_radar)
+
+
+#: CLI alias -> canonical routine name, used for storage labels and builders.
+CANONICAL_LABELS = {
+    "news": "daily-global-ai-news-brief",
+    "daily-wins": "daily-wins-recap",
+    "morning-brief": "morning-brief-meeting-prep",
+    "commitments": "commitments-follow-up-tracker",
+    "commitments-follow-up": "commitments-follow-up-tracker",
+    "stale-work": "stale-work-finder",
+    "dependabot": "dependabot-pr-triage",
+    "launch-decoder-24h": "launch-decoder",
+    "weekly-launch-radar": "launch-radar",
+    "travel-logistics": "travel-logistics-tracker",
+    "github-radar": "github-change-radar",
+    "change-radar": "github-change-radar",
+}
 
 
 def scheduler_command(argv):
@@ -136,25 +153,15 @@ def main(argv=None) -> int:
         report = generate_launch_radar(payload)
     elif args.routine in ("travel-logistics", "travel-logistics-tracker"):
         report = generate_travel_logistics_tracker(payload)
+    canonical = CANONICAL_LABELS.get(args.routine, args.routine)
+    if structured is None and args.routine not in radar_names:
+        # Every fixture-backed routine builds its report from the same payload.
+        structured = build_routine_report(canonical, payload)
     if args.store:
-        canonical_labels = {
-            "news": "daily-global-ai-news-brief",
-            "daily-wins": "daily-wins-recap",
-            "morning-brief": "morning-brief-meeting-prep",
-            "commitments": "commitments-follow-up-tracker",
-            "commitments-follow-up": "commitments-follow-up-tracker",
-            "stale-work": "stale-work-finder",
-            "dependabot": "dependabot-pr-triage",
-            "launch-decoder-24h": "launch-decoder",
-            "weekly-launch-radar": "launch-radar",
-            "travel-logistics": "travel-logistics-tracker",
-            "github-radar": "github-change-radar",
-            "change-radar": "github-change-radar",
-        }
         ReportStore(args.store).save(
             report,
             generated_at=now,
-            metadata={"routine": canonical_labels.get(args.routine, args.routine),
+            metadata={"routine": canonical,
                       "fixture": args.fixture, "config": args.config,
                       "access": "read-only", "auth": "gh CLI" if args.routine in radar_names else "none",
                       "status": "authenticated-read-only" if args.routine in radar_names else "fixture"},

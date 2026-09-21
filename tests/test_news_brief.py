@@ -127,7 +127,9 @@ class NewsBriefTests(unittest.TestCase):
             config=BriefConfig(limit=3),
         )
         self.assertIn("https://example.test/row/clinics", report)
-        self.assertIn("regions represented: Africa, East Asia, North America", report)
+        # Ranking now decides which duplicate survives, so the better-evidenced
+        # Euractiv account is kept and Europe enters the region mix.
+        self.assertIn("regions represented: Africa, East Asia, Europe", report)
         self.assertIn("Not included:", report)
         self.assertIn("Unavailable sources:", report)
 
