@@ -7,8 +7,32 @@ the detailed reasoning and decisions behind each change.
 
 ### Added
 
+- Added a structured report model (`milou_news/report.py`) and an HTML renderer
+  (`milou_news/render_html.py`) shared by every output format. Reports now order
+  rows by consequence before recency, give each record field its own column,
+  promote coverage/API/permission failures above the findings, and demote
+  boilerplate to a footer. The GitHub Change Radar and the daily global AI news
+  brief build structured reports; Markdown output is unchanged.
+- Added `--format html` to the report CLI, structured storage in `ReportStore`,
+  and the redesigned authenticated archive index, report, and sign-in pages. A
+  report stored without structure still renders from its Markdown.
+- Added the ranking breakdown, the region-diversity adjustment, and the
+  de-duplication outcome to the daily brief as visible structure: each item
+  shows the weighted contributions behind its score, items promoted for region
+  coverage are marked as such, and a dropped duplicate names the account that
+  survived and what it scored lower on.
+- Declared the brief's ranking weights once (`WEIGHTS`, `NON_US_BONUS`,
+  `MAX_SCORE`) so the ranker and the rendered score breakdown cannot drift, and
+  added `partition_duplicates` to report which duplicate was dropped rather
+  than only how many.
 - Added a repository `.gitignore` so Python bytecode caches, local report
   archives, and scheduler database files stay out of version control.
+
+### Fixed
+
+- Stopped a commit with no committer block from printing a literal
+  `committer: None` as though it were a contributor name; the field is now
+  omitted from both Markdown and HTML.
 
 - Added report signal-to-noise refinement: consistent KPI blocks, omission of
   empty activity sections/categories, concise no-activity reports, and

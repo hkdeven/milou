@@ -12,6 +12,8 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Mapping, Optional, Tuple
 
+from .report import Bar, Kpi, Report, Row, Segment, Signal, Tier, humanize_age
+
 RADAR_NAME = "github-change-radar"
 
 
@@ -146,8 +148,13 @@ def _event_row(event, fallback_repo=""):
             subject += " [" + action + "]"
     labels = [str(x.get("name")) for x in item.get("labels", []) if isinstance(x, Mapping)]
     reviewers = [str(x.get("login") or x.get("name")) for x in item.get("requested_reviewers", []) if isinstance(x, Mapping)]
-    committers = [str(x.get("committer", {}).get("name") or x.get("committer", {}).get("email"))
-                  for x in payload.get("commits", []) if isinstance(x, Mapping)]
+    # A commit with no committer block must contribute nothing: stringifying the
+    # missing value printed a literal "None" as though it were a name.
+    committers = [name for name in
+                  (str(x.get("committer", {}).get("name")
+                       or x.get("committer", {}).get("email") or "")
+                   for x in payload.get("commits", []) if isinstance(x, Mapping))
+                  if name]
     status = str(item.get("state") or item.get("status") or payload.get("conclusion") or "")
     url = event.get("html_url") or item.get("html_url") or ""
     risk = ("high" if category in ("branch delete", "workflow/check") and
@@ -205,7 +212,12 @@ def _collect(api, config):
     return login, rows, errors, telemetry, len(seen)
 
 
-def generate_github_radar(api, config, now=None):
+def prepare(api, config, now=None):
+    """Collect, window, and de-duplicate. Shared by every renderer.
+
+    Callers that need more than one output format pass the result back in as
+    ``prepared`` so a real run never collects from the API twice.
+    """
     now = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
     cutoff = now - timedelta(hours=config.window_hours)
     login, rows, errors, telemetry, repositories_scanned = _collect(api, config)
@@ -214,6 +226,12 @@ def generate_github_radar(api, config, now=None):
         if (_time(row["timestamp"]) or now) >= cutoff:
             unique[row["id"] or (row["repository"], row["timestamp"], row["summary"])] = row
     selected = sorted(unique.values(), key=lambda r: r["timestamp"], reverse=True)
+    return login, selected, errors, telemetry, repositories_scanned
+
+
+def generate_github_radar(api, config, now=None, prepared=None):
+    now = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
+    login, selected, errors, telemetry, repositories_scanned = prepared or prepare(api, config, now)
     scope = ", ".join(config.organizations + config.repositories)
     category_counts = Counter(r["category"] for r in selected)
     authors = {r["author"] for r in selected if r["author"] != "unknown"}
@@ -273,3 +291,113 @@ def generate_github_radar(api, config, now=None):
     lines.extend(["", "## Safety boundary", "- Read-only authenticated `gh api` GET calls only; no writes, labels, comments, merges, or notifications.",
                   "- Results outside configured scope/window are unknown."])
     return "\n".join(lines) + "\n"
+
+
+_FAILED = ("failure", "failed", "error", "timed_out", "cancelled")
+
+#: Risk value -> (tier key, label, note). The ``risk`` field already exists on
+#: every row; here it finally decides ordering and weight instead of being
+#: reduced to one summary line.
+_TIERS = (
+    ("high", "critical", "Needs attention", "Failed checks and deleted branches"),
+    ("notable", "notable", "Notable", "Merged pull requests, closures and releases"),
+    ("", "quiet", "Routine activity", "Commits, branches, comments — no action implied"),
+)
+
+
+def _radar_row(raw: Mapping, now: datetime, tone: str) -> Row:
+    """Map one collected event onto the structured row. Empty fields are dropped."""
+    owner, _, name = str(raw.get("repository") or "").partition("/")
+    when = _time(raw.get("timestamp"))
+    signals: List[Signal] = []
+    status = str(raw.get("status") or "")
+    if status:
+        signals.append(Signal(status, "critical" if status.lower() in _FAILED else ""))
+    if raw.get("branch"):
+        signals.append(Signal(str(raw["branch"])))
+    for label in str(raw.get("labels") or "").split(","):
+        if label.strip():
+            signals.append(Signal(label.strip()))
+    def present(value) -> str:
+        """Placeholders are not data: they never reach the rendered row."""
+        text = str(value or "").strip()
+        return "" if text.lower() in ("", "none", "unknown") else text
+
+    byline = []
+    for prefix, value in (("", raw.get("author")), ("reviewed by ", raw.get("reviewers")),
+                          ("committed by ", raw.get("committers"))):
+        text = present(value)
+        if text:
+            byline.append(prefix + text)
+    return Row(
+        title=str(raw.get("summary") or ""),
+        ago=humanize_age(when, now) if when else "",
+        when=when.strftime("%b %d, %H:%M") if when else "",
+        owner=owner if name else "",
+        source=name or owner,
+        category=str(raw.get("category") or ""),
+        byline=" · ".join(byline),
+        url=str(raw.get("url") or ""),
+        tone=tone,
+        signals=signals,
+    )
+
+
+def build_radar_report(api, config, now=None, prepared=None) -> Report:
+    """Build the structured Change Radar report.
+
+    Same collection as :func:`generate_github_radar`; the difference is that the
+    structure survives to the renderer instead of being flattened into prose.
+    """
+    now = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
+    login, selected, errors, telemetry, repositories_scanned = prepared or prepare(api, config, now)
+    counts = Counter(row["category"] for row in selected)
+    authors = {row["author"] for row in selected if row["author"] != "unknown"}
+    high_risk = [row for row in selected if row["risk"] == "high"]
+    notable = [row for row in selected if row["risk"] == "notable"]
+
+    tiers = []
+    for risk, tone, label, note in _TIERS:
+        rows = [_radar_row(row, now, tone) for row in selected if row["risk"] == risk]
+        if rows:
+            tiers.append(Tier(label=label, rows=rows, note=note, tone=tone))
+
+    # Magnitude, not identity: one hue stepped light to dark, ordered by count.
+    ordered = sorted(counts.items(), key=lambda item: (-item[1], item[0]))
+    bars = []
+    if ordered:
+        bars.append(Bar(
+            label="Changes by type",
+            kind="sequential",
+            segments=[Segment(name, float(count), str(count), index)
+                      for index, (name, count) in enumerate(ordered)],
+        ))
+
+    scope = ", ".join(config.organizations + config.repositories)
+    kpis = [
+        Kpi("Changes", str(len(selected)), "in window"),
+        Kpi("Repositories", str(repositories_scanned), "scanned"),
+        Kpi("Contributors", str(len(authors)), "distinct authors"),
+        Kpi("High risk", str(len(high_risk)), "needs attention", "critical"),
+        Kpi("Notable", str(len(notable)), "merges & releases", "notable"),
+        Kpi("Warnings", str(len(errors)), "API or permission", "coverage" if errors else ""),
+    ]
+    return Report(
+        title="GitHub Change Radar",
+        routine=RADAR_NAME,
+        generated=now.strftime("%b %d, %H:%M UTC"),
+        window="Last %d hours" % config.window_hours,
+        scopes=list(config.organizations) + list(config.repositories),
+        kpis=kpis,
+        bars=bars,
+        tiers=tiers,
+        alert=("%d API or permission failure%s — this report is incomplete"
+               % (len(errors), "" if len(errors) == 1 else "s")) if errors else "",
+        alert_detail="; ".join(errors),
+        boundary=("Read-only authenticated `gh api` GET calls only · no mention filtering · "
+                  "%s · results outside the configured scope and window are unknown."
+                  % ("; ".join(telemetry) if telemetry else "no successful pages")),
+        empty_note=("Scanned %d repositor%s across %s."
+                    % (repositories_scanned, "y" if repositories_scanned == 1 else "ies",
+                       scope or "no configured scope")),
+    )

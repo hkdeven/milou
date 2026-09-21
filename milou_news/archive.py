@@ -14,11 +14,20 @@ class ReportStore:
         self.root = Path(root)
 
     def save(self, markdown: str, generated_at: Optional[datetime] = None,
-             metadata: Optional[Dict] = None) -> Path:
+             metadata: Optional[Dict] = None, report=None) -> Path:
+        """Persist a report.
+
+        ``report`` is the optional structured :class:`~milou_news.report.Report`.
+        Storing it alongside the Markdown lets the archive re-render the report
+        later without re-running the routine; reports saved without one still
+        display, from their Markdown.
+        """
         generated_at = (generated_at or datetime.now(timezone.utc)).astimezone(timezone.utc)
         directory = self.root / generated_at.strftime("%Y") / generated_at.strftime("%m") / generated_at.strftime("%d")
         directory.mkdir(parents=True, exist_ok=True)
         payload = {"generated_at": generated_at.isoformat(), "markdown": markdown, "metadata": metadata or {}}
+        if report is not None:
+            payload["report"] = report.to_dict() if hasattr(report, "to_dict") else report
         routine = (metadata or {}).get("routine")
         suffix = ""
         if routine:

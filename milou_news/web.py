@@ -6,14 +6,16 @@ authentication remains available for API and CLI clients.
 
 import hashlib
 import hmac
-import html
 import json
 import os
 import secrets
 import time
 from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import parse_qs, unquote, urlparse
+from urllib.parse import parse_qs, quote, unquote, urlparse
+
+from . import render_html
+from .report import Report
 
 AUTH_SCHEME = "B" + "earer"
 SESSION_COOKIE = "milou_session"
@@ -71,13 +73,7 @@ def make_handler(store, bearer_token=None, environ=None, scheduler=None,
             self.wfile.write(data)
 
         def _login_form(self, status=200, message=""):
-            notice = "<p>%s</p>" % html.escape(message) if message else ""
-            self._send(status, "<!doctype html><meta name=\"viewport\" content=\"width=device-width\">"
-                       "<title>Milou login</title><h1>Milou reports</h1>%s"
-                       "<form method=\"post\" action=\"/login\">"
-                       "<label for=\"token\">Report token</label>"
-                       "<input id=\"token\" name=\"token\" type=\"password\" autocomplete=\"current-password\" required>"
-                       "<button type=\"submit\">Sign in</button></form>" % notice)
+            self._send(status, render_html.login_page(message))
 
         def _redirect(self, location, cookie=None):
             self.send_response(303)
@@ -147,30 +143,33 @@ def make_handler(store, bearer_token=None, environ=None, scheduler=None,
                 return
             reports = store.reports()
             if path in ("/", "/archive"):
-                links = []
+                entries = []
                 for report in reports:
                     relative = os.path.relpath(report["path"], store.root)
-                    label = report.get("metadata", {}).get("routine", "report")
-                    status = report.get("metadata", {}).get("status", "stored")
-                    links.append('<li><a href="/report/%s">%s</a> — %s</li>' %
-                                 (html.escape(relative), html.escape(report.get("generated_at", relative)),
-                                  html.escape("%s [%s]" % (label, status))))
-                self._send(200, "<!doctype html><meta name=\"viewport\" content=\"width=device-width\">"
-                                "<title>Milou reports</title><h1>Milou reports</h1><ul>%s</ul>" %
-                                "".join(links) + '<form method="post" action="/logout">'
-                                '<button type="submit">Sign out</button></form>')
+                    metadata = report.get("metadata", {})
+                    entries.append({
+                        "href": "/report/" + quote(relative),
+                        "generated_at": report.get("generated_at", relative),
+                        "routine": metadata.get("routine", "report"),
+                        "status": metadata.get("status", "stored"),
+                    })
+                self._send(200, render_html.index_page(entries))
                 return
             if path.startswith("/report/"):
                 payload = store.get(unquote(path[len("/report/"):]))
                 if payload is None:
                     self._send(404, "Report not found.\n", "text/plain; charset=utf-8")
-                else:
-                    label = payload.get("metadata", {}).get("routine", "report")
-                    status = payload.get("metadata", {}).get("status", "stored")
-                    self._send(200, "<!doctype html><meta name=\"viewport\" content=\"width=device-width\">"
-                                    "<title>Milou %s</title><h1>%s</h1><p>Status: %s</p><pre>%s</pre>" %
-                                    (html.escape(label), html.escape(label), html.escape(status),
-                                    html.escape(payload.get("markdown", ""))))
+                    return
+                label = payload.get("metadata", {}).get("routine", "report")
+                status = payload.get("metadata", {}).get("status", "stored")
+                structured = payload.get("report")
+                if structured:
+                    try:
+                        self._send(200, render_html.report_page(Report.from_dict(structured)))
+                        return
+                    except (ValueError, TypeError, KeyError):
+                        pass  # fall back to the stored Markdown rather than 500
+                self._send(200, render_html.markdown_page(label, status, payload.get("markdown", "")))
                 return
             self._send(404, "Not found.\n", "text/plain; charset=utf-8")
 

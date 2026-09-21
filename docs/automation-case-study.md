@@ -816,3 +816,56 @@ Implementation/build log:
   ignore rules belong alongside the runtime they support.
 - Validation: `python3 -m unittest discover -s tests` passes and
   `git status --untracked-files=all` is clean after the change.
+
+### September 21, 2026 — Reports keep their structure
+
+- Reviewed how routine output is displayed and found the problem was not the
+  writing but the last step. A Change Radar row already carries fourteen typed
+  fields — timestamp, category, repository, summary, url, author, branch,
+  labels, reviewers, committers, status, risk, scope, id — and the renderer
+  concatenated all of them into one prose sentence. The structure existed right
+  up until render, then was discarded.
+- The sharpest instance: `risk` was already computed as `high` / `notable` /
+  empty, never affected ordering, and reappeared only as one summary line near
+  the bottom. Rows were sorted by timestamp alone, so a failed CI check and a
+  whitespace commit ranked only by which happened later.
+- The daily brief had the opposite problem. Its ranking, its region-diversity
+  rule, and its de-duplication are the product, and all three were footnotes: a
+  `global_discussion=0.70, significance=0.80, ...` debug string, a trailing
+  diversity sentence, and `Not included: 1 duplicate(s).`
+- Decided on an intermediate rather than a second renderer: generators build a
+  structured `Report`, and each format decides how much of it to keep. Markdown
+  keeps the text and is unchanged; HTML keeps the ordering, tiers, and signals
+  too. Collection is shared through a `prepare` step so producing both formats
+  never collects from the API or the sources twice.
+- Four display rules now hold: every field gets a column rather than a clause;
+  consequence outranks recency; boilerplate recedes while failures are promoted
+  to a banner above the findings; and colour is reserved — neutral glass carries
+  structure, reserved tones carry state.
+- Colour was validated rather than chosen by eye, and three candidate palettes
+  failed: several system hues fall below 3:1 on a light surface, green and pink
+  collide under deuteranopia at dE 4.3, and blue and indigo fail even for normal
+  vision at 9.8. The shipped categorical set passes across all pairs at dE 8.7
+  worst case under simulated colour-vision deficiency and 21.2 for normal
+  vision. Six slots did not fit the hue space, so the set was cut to four and
+  the fifth meter segment carries texture instead of hue — which is also truer,
+  since the non-US bonus is added on top rather than weighted in. Magnitude
+  breakdowns use one hue stepped light to dark with labels chosen per step to
+  clear 4.5:1.
+- Two findings came out of building it. Position in the brief is not rank:
+  `select_diverse` promotes a lower-scoring item so another region appears,
+  which is correct and was invisible; promoted and demoted items are now marked
+  with the score that explains them. And de-duplication keeps the first match in
+  source order rather than the best-evidenced one, so the EU evaluation guidance
+  kept the SCMP account and dropped Euractiv's, which scored higher on both
+  evidence (0.95 vs 0.70) and significance (0.90 vs 0.70). The routine now
+  reports that trade rather than a count. The ordering itself is left unchanged
+  and is recorded here as the next correctness question for this routine.
+- Fixed a related data defect: a commit with no committer block stringified the
+  missing value into a literal `committer: None`, which both formats printed as
+  though it were a contributor name.
+- Lesson: a rendering problem is worth reading as a data-flow problem first.
+  Every display fix here was recovering something the routine already knew.
+- Validation: `python3 -m unittest discover -s tests` passes with 55 tests
+  (27 added), `python3 -m compileall milou_news` passes, and both routines were
+  generated and rendered from their committed fixtures and inspected.

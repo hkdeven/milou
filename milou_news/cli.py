@@ -3,8 +3,10 @@ import json
 import sys
 from datetime import datetime, timezone
 
+from . import render_html
 from .config import SOURCES
-from .pipeline import BriefConfig, generate_brief
+from .pipeline import (BriefConfig, build_brief_report, generate_brief,
+                       prepare as prepare_brief)
 from .sources import FixtureFetcher
 from .archive import ReportStore
 from .routines import (generate_daily_wins, generate_morning_brief,
@@ -14,7 +16,8 @@ from .routines import (generate_daily_wins, generate_morning_brief,
 from .scheduler import Scheduler
 from .models import default_registry
 from .supervisor import SupervisorDispatcher
-from .github_radar import FixtureApi, GhApi, RadarConfig, generate_github_radar
+from .github_radar import (FixtureApi, GhApi, RadarConfig, build_radar_report,
+                           generate_github_radar, prepare as prepare_radar)
 
 
 def scheduler_command(argv):
@@ -80,7 +83,11 @@ def main(argv=None) -> int:
     parser.add_argument("--config", help="JSON radar scope (repositories, organizations, window_hours)")
     parser.add_argument("--limit", type=int, default=5)
     parser.add_argument("--store", help="dated archive directory; persist the generated report")
+    parser.add_argument("--format", choices=("markdown", "html"), default="markdown",
+                        help="markdown keeps the plain report; html renders the structured layout")
     args = parser.parse_args(argv)
+    now = datetime.now(timezone.utc)
+    structured = None
     radar_names = ("github-change-radar", "github-radar", "change-radar")
     if args.routine in radar_names:
         if not args.config:
@@ -93,7 +100,10 @@ def main(argv=None) -> int:
             api = FixtureApi(fixture.get("responses", fixture), fixture.get("errors", {}))
         else:
             api = GhApi()
-        report = generate_github_radar(api, config)
+        # Collect once; render both formats from the same bounded result set.
+        prepared = prepare_radar(api, config, now)
+        report = generate_github_radar(api, config, now, prepared=prepared)
+        structured = build_radar_report(api, config, now, prepared=prepared)
         canonical_label = "github-change-radar"
     else:
         if not args.fixture:
@@ -101,7 +111,11 @@ def main(argv=None) -> int:
         with open(args.fixture, encoding="utf-8") as handle:
             payload = json.load(handle)
     if args.routine in ("news", "daily-global-ai-news-brief"):
-        report = generate_brief(SOURCES, FixtureFetcher(payload), config=BriefConfig(limit=args.limit))
+        brief_config = BriefConfig(limit=args.limit)
+        fetcher = FixtureFetcher(payload)
+        prepared = prepare_brief(SOURCES, fetcher, now, brief_config)
+        report = generate_brief(SOURCES, fetcher, now, brief_config, prepared=prepared)
+        structured = build_brief_report(SOURCES, fetcher, now, brief_config, prepared=prepared)
     elif args.routine in ("daily-wins", "daily-wins-recap"):
         report = generate_daily_wins(payload)
     elif args.routine in ("morning-brief", "morning-brief-meeting-prep"):
@@ -139,11 +153,19 @@ def main(argv=None) -> int:
         }
         ReportStore(args.store).save(
             report,
+            generated_at=now,
             metadata={"routine": canonical_labels.get(args.routine, args.routine),
                       "fixture": args.fixture, "config": args.config,
                       "access": "read-only", "auth": "gh CLI" if args.routine in radar_names else "none",
                       "status": "authenticated-read-only" if args.routine in radar_names else "fixture"},
+            report=structured,
         )
+    if args.format == "html":
+        if structured is None:
+            parser.error("--format html is not available for %s yet; it still renders as Markdown"
+                         % args.routine)
+        print(render_html.report_page(structured))
+        return 0
     print(report, end="")
     return 0
 

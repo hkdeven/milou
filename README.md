@@ -89,6 +89,10 @@ that makes further work unsafe or misleading.
   bounded authenticated repository-change contract
 - [`CHANGELOG.md`](CHANGELOG.md) — notable project changes
 - [`milou_news/`](milou_news/) — read-only standard-library news-brief runtime
+- [`milou_news/report.py`](milou_news/report.py) and
+  [`milou_news/render_html.py`](milou_news/render_html.py) — the structured
+  report model every renderer shares, and the HTML layout that keeps ordering,
+  tiers, and signals instead of flattening them into prose
 - [`milou_news/archive.py`](milou_news/archive.py) and
   [`milou_news/web.py`](milou_news/web.py) — dated persistence and private
   browser/API-authenticated report delivery and health/status endpoints
@@ -120,6 +124,21 @@ committed and no public hosting is used. Live integrations and deployment
 remain out of scope. Browser users authenticate at `/login` and receive a
 short-lived Secure, HttpOnly, SameSite session cookie; API and CLI clients
 continue to send `Authorization: Bearer ...`.
+
+Reports render in two formats from one structured model. Markdown remains the
+stored, quotable record; HTML is the reading surface. The structured report
+decides ordering by consequence before recency, gives every field its own
+column, promotes coverage and permission failures above the findings, and lets
+boilerplate recede to a footer. Generate one with
+`python3 -m milou_news --routine github-change-radar --config path/to/radar.json --format html`,
+or `--fixture fixtures/news.json --format html` for the daily brief. The GitHub
+Change Radar and the daily global AI news brief build structured reports today;
+the other routines still render as Markdown and display from it unchanged.
+
+When a report is stored with `--store`, its structure is saved alongside the
+Markdown so the authenticated archive can render the full layout later without
+re-running the routine. Reports captured before this existed still display,
+from their stored Markdown.
 
 The scheduler is local-only and uses SQLite. Inspect it with
 `python3 -m milou_news status --config fixtures/scheduler.json`; use
