@@ -798,3 +798,21 @@ Implementation/build log:
   regeneration was run with the authenticated `gh` session using the bounded
   fixture configuration; the generated Markdown/JSON archive was inspected
   and removed after the check.
+
+### September 21, 2026 — Project status review and repository hygiene
+
+- Reviewed project state on request: the working tree matched `main`, all 28
+  tests passed via `python3 -m unittest discover -s tests`, and no pull
+  requests or issues were open. The last substantive work was the
+  September 15 report signal-to-noise refinement.
+- Observed that running the test suite left untracked `__pycache__` bytecode in
+  the working tree because the repository had no `.gitignore`.
+- Decided to add one covering Python bytecode caches, the local `reports/`
+  archive directory, and SQLite scheduler database files. These are
+  operator-managed local artifacts and must never be committed, which also
+  keeps generated reports and scheduler state out of version control by
+  default.
+- Lesson: validation commands should not be able to dirty the repository;
+  ignore rules belong alongside the runtime they support.
+- Validation: `python3 -m unittest discover -s tests` passes and
+  `git status --untracked-files=all` is clean after the change.

@@ -7,6 +7,9 @@ the detailed reasoning and decisions behind each change.
 
 ### Added
 
+- Added a repository `.gitignore` so Python bytecode caches, local report
+  archives, and scheduler database files stay out of version control.
+
 - Added report signal-to-noise refinement: consistent KPI blocks, omission of
   empty activity sections/categories, concise no-activity reports, and
   separately visible coverage/API/permission warnings. Change Radar KPIs now

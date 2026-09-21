@@ -1,0 +1,11 @@
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+
+# Local test and tooling caches
+.pytest_cache/
+
+# Local report archives and scheduler state are operator-managed, never committed
+reports/
+*.sqlite3
+*.db
