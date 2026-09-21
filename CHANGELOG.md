@@ -61,24 +61,6 @@ the detailed reasoning and decisions behind each change.
   than only how many.
 - Added a repository `.gitignore` so Python bytecode caches, local report
   archives, and scheduler database files stay out of version control.
-
-### Changed
-
-- Ranked the daily brief before de-duplicating it, so the highest-scoring
-  account of a corroborated event survives. De-duplicating first kept whichever
-  outlet appeared earliest in the configured source list, which discarded
-  better-evidenced reporting purely because of source ordering: the EU
-  evaluation guidance kept a regional summary over the originating outlet's
-  account, which led on both evidence (0.95 vs 0.70) and significance (0.90 vs
-  0.70). A dropped duplicate now names the account that survived, the scores
-  behind that choice, and any signal the dropped account still leads on.
-
-### Fixed
-
-- Stopped a commit with no committer block from printing a literal
-  `committer: None` as though it were a contributor name; the field is now
-  omitted from both Markdown and HTML.
-
 - Added report signal-to-noise refinement: consistent KPI blocks, omission of
   empty activity sections/categories, concise no-activity reports, and
   separately visible coverage/API/permission warnings. Change Radar KPIs now
@@ -143,6 +125,31 @@ the detailed reasoning and decisions behind each change.
   left-float markup so the opening text wraps around it.
 - Recorded the accepted manual README layout correction and the lesson to
   validate GitHub-rendered layout visually.
+
+### Changed
+
+- Ranked the daily brief before de-duplicating it, so the highest-scoring
+  account of a corroborated event survives. De-duplicating first kept whichever
+  outlet appeared earliest in the configured source list, which discarded
+  better-evidenced reporting purely because of source ordering: the EU
+  evaluation guidance kept a regional summary over the originating outlet's
+  account, which led on both evidence (0.95 vs 0.70) and significance (0.90 vs
+  0.70). A dropped duplicate now names the account that survived, the scores
+  behind that choice, and any signal the dropped account still leads on.
+
+### Fixed
+
+- Requested the authenticated user's activity from `/users/{username}/events`
+  instead of `/user/events`. GitHub does not serve the latter, so every run
+  recorded an HTTP 404 for that call and silently dropped the whole
+  user-activity scope while reporting the gap only as a coverage warning. The
+  radar already resolves the login from `/user`, so it now builds the documented
+  path; when the login cannot be resolved the report says the feed was not
+  requested rather than appearing to have checked it.
+
+- Stopped a commit with no committer block from printing a literal
+  `committer: None` as though it were a contributor name; the field is now
+  omitted from both Markdown and HTML.
 
 ### Not implemented
 

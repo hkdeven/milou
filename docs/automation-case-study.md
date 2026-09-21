@@ -937,3 +937,34 @@ Implementation/build log:
 - Validation: `python3 -m unittest discover -s tests` passes with 71 tests
   (5 added), covering a stored scheduled run, the ledger path it records, a run
   without a store, and a storage failure surfacing as a failed run.
+
+### September 21, 2026 — The coverage gap was ours
+
+- Returned to the HTTP 404 recorded on September 15 against the GitHub user
+  activity feed, which had been carried since as a visible coverage gap on every
+  Change Radar report.
+- It was never a permission problem. `_collect` requested `/user/events`, and
+  GitHub has no such endpoint: the authenticated user's activity is served from
+  `/users/{username}/events`. A 404 is exactly what a path that does not exist
+  returns, which is why the failure was perfectly reproducible and why no amount
+  of re-authenticating would have cleared it.
+- The radar already resolves the login from `/user` before making the call, so
+  the fix was to build the documented path from it. When the login cannot be
+  resolved the report now states that the feed was not requested, rather than
+  reporting a request failure for a call it never sensibly made.
+- This restored an entire scope. Every report since the radar shipped had been
+  covering organization and configured repositories only, while presenting the
+  omission as an external limitation.
+- The endpoint is now asserted by a test that records the requested paths, so a
+  regression would fail rather than reappear as a coverage warning.
+- Honest limitation: `gh` is not available in the environment where this fix was
+  made, so it is verified against the documented GitHub REST API and the
+  fixtures, not against a live authenticated session. The next live run should
+  confirm the user-activity section is populated and the warning count drops.
+- Lesson: a failure the system reports clearly can still be a failure the system
+  caused. "Visible" is not the same as "external", and a coverage warning that
+  never changes deserves to be read as a bug report rather than a fact about
+  the world.
+- Validation: `python3 -m unittest discover -s tests` passes with 73 tests
+  (2 added), and the fixture-backed radar again renders the authenticated user's
+  activity with zero warnings.

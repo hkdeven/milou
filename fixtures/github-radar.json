@@ -1,7 +1,7 @@
 {
   "responses": {
     "/user": {"login": "octocat"},
-    "/user/events?per_page=100": [
+    "/users/octocat/events?per_page=100": [
       {"id": "u1", "type": "PushEvent", "repo": {"name": "hkdeven/milou"},
        "created_at": "2026-09-15T07:30:00Z", "html_url": "https://github.com/hkdeven/milou/commit/u1",
        "payload": {"commits": [{"sha": "u1"}]}}

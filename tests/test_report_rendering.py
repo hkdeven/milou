@@ -67,7 +67,7 @@ def _radar_api(now=NOW):
     newer = (now - timedelta(hours=2)).isoformat()
     return FixtureApi({
         "/user": {"login": "octocat"},
-        "/user/events?per_page=100": [],
+        "/users/octocat/events?per_page=100": [],
         "/repos/acme/app/events?per_page=100": [
             {"id": "1", "type": "DeleteEvent", "created_at": older,
              "repo": {"name": "acme/app"}, "payload": {"ref": "release/2.14"},
@@ -153,7 +153,7 @@ class RadarReportTest(unittest.TestCase):
     def test_missing_committer_never_prints_as_none(self):
         api = FixtureApi({
             "/user": {"login": "octocat"},
-            "/user/events?per_page=100": [],
+            "/users/octocat/events?per_page=100": [],
             "/repos/acme/app/events?per_page=100": [
                 {"id": "9", "type": "PushEvent", "created_at": NOW.isoformat(),
                  "repo": {"name": "acme/app"},
@@ -177,7 +177,7 @@ class RadarReportTest(unittest.TestCase):
 
     def test_api_failures_become_a_promoted_alert(self):
         api = FixtureApi({"/user": {"login": "octocat"}},
-                         errors={"/user/events?per_page=100": "HTTP 404"})
+                         errors={"/users/octocat/events?per_page=100": "HTTP 404"})
         report = build_radar_report(api, RADAR_CONFIG, now=NOW)
         self.assertIn("incomplete", report.alert)
         self.assertIn("404", report.alert_detail)

@@ -7,6 +7,7 @@ organizations are opt-in. Authentication remains entirely inside ``gh``.
 
 import json
 import subprocess
+from urllib.parse import quote
 from collections import Counter, defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
@@ -173,16 +174,23 @@ def _collect(api, config):
     login = identity.data.get("login", "") if isinstance(identity.data, Mapping) else ""
     if identity.error:
         errors.append("authenticated user: " + identity.error)
-    user_events = api.get("/user/events?per_page=100")
-    if user_events.error:
-        errors.append("user activity: " + user_events.error)
+    if login:
+        # GitHub serves the authenticated user's activity from
+        # /users/{username}/events. There is no /user/events endpoint, so
+        # requesting one returns HTTP 404 and loses this whole scope.
+        user_events = api.get("/users/%s/events?per_page=100" % quote(login, safe=""))
+        if user_events.error:
+            errors.append("user activity: " + user_events.error)
+        else:
+            for event in user_events.data if isinstance(user_events.data, list) else []:
+                row = _event_row(event)
+                if row:
+                    row["scope"] = "user"
+                    rows.append(row)
+            telemetry.append("user activity pages fetched: %d" % user_events.pages)
     else:
-        for event in user_events.data if isinstance(user_events.data, list) else []:
-            row = _event_row(event)
-            if row:
-                row["scope"] = "user"
-                rows.append(row)
-        telemetry.append("user activity pages fetched: %d" % user_events.pages)
+        errors.append("user activity: the authenticated login is unknown, so the user "
+                      "event feed was not requested")
     repos = list(config.repositories)
     for org in config.organizations:
         endpoint = "/orgs/%s/repos?per_page=%d&sort=updated" % (org, config.max_repositories_per_org)
