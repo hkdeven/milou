@@ -93,7 +93,15 @@ class Scheduler:
                     result.append((row["name"], key))
             return tuple(result)
 
-    def run_due(self, dispatcher, payloads, now=None):
+    def run_due(self, dispatcher, payloads, now=None, store=None):
+        """Run every due routine.
+
+        ``store`` is an optional :class:`~milou_news.archive.ReportStore`. Without
+        it a scheduled run produced a report and discarded it; with it the report
+        is persisted, its structure kept, and its path recorded in the ledger so
+        a run can be traced to what it produced. A storage failure is recorded as
+        a run failure rather than passing silently.
+        """
         now = now or datetime.now(timezone.utc)
         results = []
         for name, key in self.due(now):
@@ -105,9 +113,21 @@ class Scheduler:
                 else:
                     db.execute("INSERT INTO run_ledger(routine,due_key,status,attempts,started_at) VALUES(?,?,?,?,?)", (name, key, "running", attempts, now.isoformat()))
             result = dispatcher.dispatch(name, payloads.get(name, {}))
+            report_path, store_error = None, None
+            if store is not None and result.report is not None:
+                try:
+                    report_path = str(store.save(
+                        result.report, generated_at=now,
+                        metadata={"routine": name, "access": "read-only",
+                                  "status": "scheduled"},
+                        report=getattr(result, "structured", None)))
+                except OSError as exc:
+                    store_error = "report not stored: %s: %s" % (type(exc).__name__, exc)
             with self._connect() as db:
-                status = "success" if result.error is None else "failed"
-                db.execute("UPDATE run_ledger SET status=?, error=?, completed_at=? WHERE routine=? AND due_key=?", (status, result.error, now.isoformat(), name, key))
+                error = result.error or store_error
+                status = "success" if error is None else "failed"
+                db.execute("UPDATE run_ledger SET status=?, error=?, completed_at=?, report_path=? WHERE routine=? AND due_key=?",
+                           (status, error, now.isoformat(), report_path, name, key))
             results.append(result)
         return tuple(results)
 

@@ -7,6 +7,14 @@ the detailed reasoning and decisions behind each change.
 
 ### Added
 
+- Added report persistence to scheduled runs. `Scheduler.run_due` now accepts a
+  report store and `run` accepts `--store`; the report is saved with its
+  structure and its path recorded in the ledger's previously unused
+  `report_path` column, so a run can be traced to what it produced. A storage
+  failure is recorded as a run failure rather than passing silently.
+- Added the structured report to `DispatchResult`, so a routine dispatched
+  through the supervisor carries both formats rather than Markdown alone.
+
 - Added structured reports for the remaining eight fixture-backed routines, so
   every routine renders as both Markdown and the HTML layout from one parse.
   Classification the routines already performed is now carried as tiers: stale

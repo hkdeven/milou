@@ -15,11 +15,13 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from milou_news import render_html
 from milou_news.archive import ReportStore
 from milou_news.config import SOURCES
-from milou_news.models import Article
 from milou_news.github_radar import FixtureApi, RadarConfig, build_radar_report, generate_github_radar
 from milou_news.pipeline import MAX_SCORE, WEIGHTS, BriefConfig, build_brief_report
 from milou_news.report import Bar, Report, Row, Segment, Signal, Tier, humanize_age
+from milou_news.models import Article, default_registry
 from milou_news.routines import build_routine_report
+from milou_news.scheduler import Scheduler
+from milou_news.supervisor import SupervisorDispatcher
 from milou_news.sources import FetchResult, FixtureFetcher
 from milou_news.web import make_handler
 
@@ -414,6 +416,71 @@ class HtmlRenderTest(unittest.TestCase):
         self.assertIn("Invalid token.", page)
         self.assertIn('type="password"', page)
         self.assertIn("<form", page)
+
+
+class ScheduledRunTest(unittest.TestCase):
+    """A scheduled run must keep what it produced, not just record that it ran."""
+
+    CONFIG = {"routines": [{"name": "daily-wins-recap", "cadence": "daily", "at": "00:00",
+                            "timezone": "UTC", "enabled": True, "access": "read-only"}]}
+    PAYLOAD = {"daily-wins-recap": {"activities": [
+        {"title": "Shipped the thing", "status": "completed",
+         "url": "https://example.test/1", "inferred_impact": "Probably helps"}]}}
+
+    def _scheduler(self, directory):
+        scheduler = Scheduler(os.path.join(directory, "s.sqlite3"), default_registry())
+        scheduler.configure(self.CONFIG)
+        return scheduler
+
+    def test_dispatch_carries_the_structured_report(self):
+        result = SupervisorDispatcher(default_registry()).dispatch(
+            "daily-wins-recap", self.PAYLOAD["daily-wins-recap"])
+        self.assertIsNone(result.error)
+        self.assertIsNotNone(result.structured)
+        self.assertEqual(result.structured.routine, "daily-wins-recap")
+        self.assertIn("Daily wins", result.report)
+
+    def test_dispatch_failure_still_reports_no_structure(self):
+        result = SupervisorDispatcher(default_registry()).dispatch("daily-wins-recap", "not a mapping")
+        self.assertIsNotNone(result.error)
+        self.assertIsNone(result.structured)
+
+    def test_scheduled_run_stores_the_report_and_records_its_path(self):
+        with tempfile.TemporaryDirectory() as directory:
+            store = ReportStore(os.path.join(directory, "reports"))
+            scheduler = self._scheduler(directory)
+            results = scheduler.run_due(SupervisorDispatcher(default_registry()),
+                                        self.PAYLOAD, now=NOW, store=store)
+            self.assertEqual(len(results), 1)
+            self.assertIsNotNone(results[0].structured)
+            entry = scheduler.ledger()[0]
+            self.assertEqual(entry["status"], "success")
+            self.assertTrue(entry["report_path"], "the ledger must point at what the run produced")
+            stored = store.reports()[0]
+            self.assertIn("report", stored, "the structure is kept, not just the Markdown")
+            self.assertEqual(stored["metadata"]["status"], "scheduled")
+
+    def test_scheduled_run_without_a_store_still_succeeds(self):
+        with tempfile.TemporaryDirectory() as directory:
+            scheduler = self._scheduler(directory)
+            results = scheduler.run_due(SupervisorDispatcher(default_registry()),
+                                        self.PAYLOAD, now=NOW)
+            self.assertEqual(len(results), 1)
+            entry = scheduler.ledger()[0]
+            self.assertEqual(entry["status"], "success")
+            self.assertIsNone(entry["report_path"])
+
+    def test_storage_failure_fails_the_run_rather_than_passing_silently(self):
+        with tempfile.TemporaryDirectory() as directory:
+            blocker = os.path.join(directory, "reports")
+            with open(blocker, "w", encoding="utf-8") as handle:
+                handle.write("not a directory")
+            scheduler = self._scheduler(directory)
+            scheduler.run_due(SupervisorDispatcher(default_registry()), self.PAYLOAD,
+                              now=NOW, store=ReportStore(blocker))
+            entry = scheduler.ledger()[0]
+            self.assertEqual(entry["status"], "failed")
+            self.assertIn("report not stored", entry["error"])
 
 
 class ArchiveIntegrationTest(unittest.TestCase):

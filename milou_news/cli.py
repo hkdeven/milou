@@ -42,6 +42,7 @@ def scheduler_command(argv):
     parser.add_argument("command", choices=("scheduler", "status", "ledger", "run"))
     parser.add_argument("--database", default="milou-scheduler.sqlite3")
     parser.add_argument("--config", help="JSON scheduler configuration")
+    parser.add_argument("--store", help="dated archive directory; persist each scheduled report")
     args = parser.parse_args(argv)
     scheduler = Scheduler(args.database, default_registry())
     if args.config:
@@ -53,8 +54,10 @@ def scheduler_command(argv):
             if fixture:
                 with open(fixture, encoding="utf-8") as handle:
                     payloads[routine["name"]] = json.load(handle)
-        results = scheduler.run_due(SupervisorDispatcher(default_registry()), payloads)
-        print(json.dumps([{"routine": r.routine, "error": r.error} for r in results], indent=2))
+        store = ReportStore(args.store) if args.store else None
+        results = scheduler.run_due(SupervisorDispatcher(default_registry()), payloads, store=store)
+        print(json.dumps([{"routine": r.routine, "error": r.error,
+                           "structured": r.structured is not None} for r in results], indent=2))
     elif args.command == "ledger":
         print(json.dumps(scheduler.ledger(), indent=2))
     else:

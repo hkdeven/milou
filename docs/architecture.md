@@ -127,13 +127,38 @@ items, time saved, context-switches avoided, useful decisions enabled, routine
 failures detected, unnecessary orchestration, and the cost of the management
 layer itself.
 
+## Report rendering
+
+Routines do not render. They build a structured `Report` — KPIs, distribution
+bars, and rows grouped into tiers — and each renderer decides how much of that
+structure to keep:
+
+```text
+routine parse -> structured Report -> Markdown renderer (stored record)
+                                   -> HTML renderer (reading surface)
+```
+
+The intermediate exists because the previous renderers discarded it. Every
+routine already classified what it found — a change's risk, a stale item's
+urgency, a dependency update's severity — and then flattened each record into
+one prose line ordered only by timestamp. Keeping the classification lets the
+HTML renderer order rows by consequence before recency, give each field its own
+column, promote coverage and permission failures above the findings, and let
+boilerplate recede.
+
+Collection is shared: a routine exposes a `prepare` step so producing both
+formats never fetches or collects twice. Colour in the HTML renderer is
+reserved — neutral surfaces carry structure, and the four reserved tones
+(critical, notable, coverage, positive) carry state and always pair an icon and
+a word so hue is never the only carrier.
+
 ## Hosted private delivery pipeline
 
 The delivery slice is deliberately read-only:
 
 ```text
 fixture/source input -> scheduled generation callable/CLI
-                    -> dated Markdown + JSON archive
+                    -> dated Markdown + JSON archive (structure preserved)
                     -> private host -> browser-session/API-bearer web index/archive
 ```
 
@@ -164,6 +189,11 @@ Every attempt records status, attempt count, timestamps, and any error; retries
 are bounded and visible. Scheduler configuration is read-only by construction.
 The authenticated archive exposes `/status` and `/health` when given a scheduler
 instance, so operational failures are not hidden behind report pages.
+
+Given a report store, a scheduled run persists what it produced and records the
+stored path in the ledger, so a run can be traced to its output rather than only
+to the fact that it happened. Failing to store a report is recorded as a run
+failure: a run whose report nobody can find has not succeeded.
 
 ## GitHub Change Radar
 

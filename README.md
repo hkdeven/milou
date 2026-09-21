@@ -153,6 +153,13 @@ The scheduler is local-only and uses SQLite. Inspect it with
 history. The authenticated archive's `/status` and `/health` endpoints expose
 operational counts and the latest failure rather than hiding errors.
 
+Pass `--store` to `run` to persist what each scheduled run produced:
+`python3 -m milou_news run --config fixtures/scheduler.json --store reports`.
+The report is saved with its structure, and its path is recorded in the ledger
+so a run can be traced to its output. Without `--store` a scheduled run reports
+only that it happened. A storage failure is recorded as a run failure rather
+than passing silently.
+
 **Status:** Daily Wins, Morning Brief/Meeting Prep, Commitments/Follow-Up,
 Stale Work Finder, Dependabot PR Triage, Launch Decoder, Launch Radar, and
 Travel Logistics Tracker are implemented as read-only fixture-backed routines.
