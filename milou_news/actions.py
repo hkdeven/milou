@@ -168,7 +168,7 @@ class ActionPlan:
             names.extend(action.missing())
         return sorted(set(names))
 
-    def with_inputs(self, **values) -> "ActionPlan":
+    def with_inputs(self, recompose=None, **values) -> "ActionPlan":
         """Return a copy with supplied inputs filled in. Approval is reset.
 
         Any field the action already carries can be corrected, not only the
@@ -176,15 +176,26 @@ class ActionPlan:
         editable. Correcting a narrative field re-composes the description, so
         a description that says "Reported by: (not stated)" cannot survive the
         moment you supply the name.
+
+        Re-composition triggers on a narrative value that **actually changed**,
+        not merely on one being supplied. A caller that resubmits every field
+        unchanged — which is what a form does — would otherwise have its
+        hand-edited description silently overwritten, so the text someone
+        approved would not be the text that was written. ``recompose`` forces
+        the decision either way when the caller already knows.
         """
         actions = []
-        touched_intake = any(name in INTAKE_FIELDS for name in values)
         for action in self.actions:
             fields = dict(action.fields)
+            changed_intake = False
             for name, value in values.items():
                 if name in action.requires or name in fields:
+                    supplied = "" if value is None else str(value)
+                    if name in INTAKE_FIELDS and supplied != str(fields.get(name, "")):
+                        changed_intake = True
                     if value or name not in action.requires:
-                        fields[name] = "" if value is None else str(value)
+                        fields[name] = supplied
+            touched_intake = changed_intake if recompose is None else bool(recompose)
             if touched_intake and "description" in fields:
                 fields["description"] = compose_description(
                     intake_from_mapping({**fields, "links": _split_links(fields.get("links", ""))}),
@@ -365,14 +376,16 @@ def draft_context_reply(config: TicketConfig, subject: str = "", sender: str = "
                         sender_address: str = "", to: Sequence[str] = (),
                         cc: Sequence[str] = (), mailbox: str = "", message_id: str = "",
                         body: str = "", received_date: date = None,
-                        intake: Intake = None, url: str = "") -> ActionPlan:
+                        intake: Intake = None, url: str = "", questions=None) -> ActionPlan:
     """Prepare a reply-all asking the thread for what a ticket needs.
 
     The questions are the gaps, not a template. Asking someone for a name they
     already gave you is how a standard reply teaches everyone to skim it.
     """
     intake = intake or read_email(subject, body, sender_name=sender, received=received_date)
-    questions = context_questions(intake)
+    # The caller may have already decided what to ask — a reviewer can tick a
+    # question back on, or off — so their list wins over a freshly derived one.
+    questions = list(questions) if questions is not None else context_questions(intake)
     outstanding = [question for question in questions if question.outstanding]
     primary, copied = reply_all_recipients(sender_address, to, cc, mailbox)
     reply = ProposedAction(
@@ -505,6 +518,13 @@ class OutlookReplyWriter:
                 "wider Mail.ReadWrite grant; send it unchanged, or enable recipient edits "
                 "deliberately")
         try:
+            if edited:
+                # replyAll would send to Outlook's own list and quietly discard
+                # the edit, so an edited list must go through a draft whose
+                # recipients are actually set. Never fall back to replyAll here:
+                # showing one recipient list and mailing another is worse than
+                # refusing outright.
+                return self._send_edited(message_id, fields, recipients)
             self._post("/me/messages/%s/replyAll" % urllib.parse.quote(message_id, safe=""),
                        {"comment": str(fields.get("body") or "")})
         except urllib.error.HTTPError as exc:
@@ -517,6 +537,31 @@ class OutlookReplyWriter:
                                    "the reply failed to send: %s" % type(exc).__name__)
         return ExecutionResult("outlook.reply_all", True,
                                "replied to %d recipient%s"
+                               % (len(recipients), "" if len(recipients) == 1 else "s"),
+                               {"replied_to": ", ".join(recipients)})
+
+    def _send_edited(self, message_id: str, fields: Mapping,
+                     recipients: Sequence[str]) -> ExecutionResult:
+        """Send a reply whose recipient list differs from the thread's.
+
+        Built as a draft so the recipients can actually be set, then sent. This
+        is the path that needs ``Mail.ReadWrite`` on top of ``Mail.Send``.
+        """
+        quoted = urllib.parse.quote(message_id, safe="")
+        created = self._post("/me/messages/%s/createReplyAll" % quoted, {})
+        draft_id = str((created or {}).get("id") or "")
+        if not draft_id:
+            return ExecutionResult("outlook.reply_all", False,
+                                   "Graph created no draft to put the edited recipients on")
+        self._patch("/me/messages/%s" % urllib.parse.quote(draft_id, safe=""), {
+            "body": {"contentType": "text", "content": str(fields.get("body") or "")},
+            "toRecipients": [{"emailAddress": {"address": address}} for address in recipients],
+            "ccRecipients": [{"emailAddress": {"address": address}}
+                             for address in _split_links(fields.get("cc", ""))],
+        })
+        self._post("/me/messages/%s/send" % urllib.parse.quote(draft_id, safe=""), {})
+        return ExecutionResult("outlook.reply_all", True,
+                               "replied to %d edited recipient%s"
                                % (len(recipients), "" if len(recipients) == 1 else "s"),
                                {"replied_to": ", ".join(recipients)})
 

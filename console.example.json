@@ -1,0 +1,54 @@
+{
+  "host": "127.0.0.1",
+  "port": 8080,
+  "store": "reports",
+  "approver": "Your Name",
+  "owners": ["A. Rivera", "D. Nguyen", "S. Okafor"],
+  "allow_recipient_edits": false,
+
+  "inbox": {
+    "follow_up_days": 2,
+    "max_items": 8,
+    "lookback_days": 14,
+    "include_other": false,
+    "mute_senders": []
+  },
+
+  "zoho": {
+    "portal": "yourportal",
+    "me": "you@example.test",
+    "projects": [],
+    "window_hours": 72,
+    "max_items": 10
+  },
+
+  "ticket": {
+    "portal": "yourportal",
+    "project": "5001",
+    "project_name": "Bldg 4 Fabrication",
+    "ready_status": "Ready for Development",
+    "statuses": ["Open", "Ready for Development", "In Progress", "Released"],
+    "default_owner": "",
+    "document": "Sprint Ticket Tracker",
+    "document_url": "",
+    "document_heading": "{sprint}",
+    "signature": "Your Name",
+    "acknowledge": true
+  },
+
+  "payloads": {
+    "daily-wins-recap": "fixtures/activity.json",
+    "morning-brief-meeting-prep": "fixtures/meetings.json",
+    "commitments-follow-up-tracker": "fixtures/commitments.json",
+    "stale-work-finder": "fixtures/stale-work.json",
+    "dependabot-pr-triage": "fixtures/dependabot.json",
+    "launch-decoder": "fixtures/launch-decoder.json",
+    "launch-radar": "fixtures/launch-radar.json",
+    "travel-logistics-tracker": "fixtures/travel-logistics.json"
+  },
+
+  "fixtures": {
+    "outlook": "fixtures/outlook.json",
+    "zoho": "fixtures/zoho.json"
+  }
+}

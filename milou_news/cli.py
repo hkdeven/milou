@@ -13,7 +13,9 @@ from .routines import (build_routine_report, generate_daily_wins, generate_morni
                        generate_commitments_tracker, generate_stale_work_finder,
                        generate_dependabot_pr_triage, generate_launch_decoder,
                        generate_launch_radar, generate_travel_logistics_tracker)
+from .console import Console, ConsoleConfig
 from .scheduler import Scheduler
+from .web import serve
 from .models import default_registry
 from .supervisor import SupervisorDispatcher
 from .github_radar import (FixtureApi, GhApi, RadarConfig, build_radar_report,
@@ -90,6 +92,63 @@ def _locate(parser, api, inbox_config, identifier):
     if message is None:
         parser.error("no message %r in the mailbox window" % identifier)
     return mailbox, message
+
+
+def serve_command(argv) -> int:
+    """Run the console: the navigable application, bound to localhost.
+
+    The server is never published. It binds 127.0.0.1 unless told otherwise,
+    requires ``MILOU_REPORT_TOKEN`` to let anyone in at all, and the write
+    credentials stay in the environment — a console started without them is a
+    fully working rehearsal that changes nothing.
+    """
+    parser = argparse.ArgumentParser(prog="milou serve",
+                                     description="Run the Milou console.")
+    parser.add_argument("--config", required=True,
+                        help="JSON console configuration; see console.example.json")
+    parser.add_argument("--host", default=None)
+    parser.add_argument("--port", type=int, default=None)
+    parser.add_argument("--fixtures", action="store_true",
+                        help="read the committed fixtures instead of live systems, so the "
+                             "console can be walked through without any credentials")
+    args = parser.parse_args(argv[1:])
+    with open(args.config, encoding="utf-8") as handle:
+        settings = json.load(handle)
+
+    console_config = ConsoleConfig(
+        inbox=InboxConfig.from_mapping(settings.get("inbox", {})),
+        zoho=ZohoConfig.from_mapping(settings.get("zoho", {})),
+        ticket=TicketConfig.from_mapping(settings.get("ticket", {})),
+        radar=RadarConfig.from_mapping(settings["radar"]) if settings.get("radar") else None,
+        owners=tuple(settings.get("owners", ())),
+        approver=str(settings.get("approver", "")),
+        allow_recipient_edits=bool(settings.get("allow_recipient_edits", False)),
+        payloads={name: _load(path) for name, path in (settings.get("payloads") or {}).items()},
+    )
+    graph = zoho_api = None
+    if args.fixtures:
+        outlook = _load(settings["fixtures"]["outlook"])
+        zoho_fixture = _load(settings["fixtures"]["zoho"])
+        graph = FixtureGraph(outlook["responses"], outlook.get("errors", {}))
+        zoho_api = FixtureZoho(zoho_fixture["responses"], zoho_fixture.get("errors", {}))
+
+    console = Console(console_config, graph=graph, zoho=zoho_api)
+    store = ReportStore(settings.get("store", "reports"))
+    host = args.host or settings.get("host", "127.0.0.1")
+    port = args.port or int(settings.get("port", 8080))
+    available = console.can_write()
+    print("Milou console on http://%s:%d" % (host, port))
+    print("Writes configured: " + (", ".join(name for name, ready in available.items() if ready)
+                                   or "none — every action is a rehearsal"))
+    if args.fixtures:
+        print("Reading committed fixtures, not live systems.")
+    serve(store, host=host, port=port, console=console)
+    return 0
+
+
+def _load(path):
+    with open(path, encoding="utf-8") as handle:
+        return json.load(handle)
 
 
 def _draft_ticket(parser, args, api, inbox_config, now) -> int:
@@ -175,6 +234,8 @@ def main(argv=None) -> int:
         argv = sys.argv[1:]
     if argv and argv[0] in ("scheduler", "status", "ledger", "run"):
         return scheduler_command(argv)
+    if argv and argv[0] == "serve":
+        return serve_command(argv)
     parser = argparse.ArgumentParser(description="Generate a read-only Milou routine report.")
     parser.add_argument(
         "--routine",

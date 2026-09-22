@@ -8,6 +8,24 @@ routines. It supports human judgment; it does not replace it.
 
 <br clear="left">
 
+## Running it
+
+```
+MILOU_REPORT_TOKEN=... python3 -m milou_news.cli serve --config console.json
+```
+
+That is the console: routines on the left, one report at a time, and the two
+inbox actions on the rows they belong to. It binds `127.0.0.1` and is never
+published. `console.example.json` is a starting configuration.
+
+To walk through it without any credentials at all, add `--fixtures`: every
+routine reads the committed fixtures, and both actions run as rehearsals that
+report exactly what they would have done and change nothing. `routines/console.md`
+is the contract, including what a write requires.
+
+The command line still does everything the console does, one routine at a time
+— see the sections below.
+
 ## What Milou does
 
 Routines do the domain work. Milou manages their registry, planning,

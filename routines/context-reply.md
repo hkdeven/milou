@@ -55,11 +55,16 @@ file twice.
 - **`Mail.Send` is sufficient** for the default path, which posts to
   `/me/messages/{id}/replyAll` with a comment. That scope cannot read, modify,
   move or delete anything.
-- **Editing the recipient list needs more.** Changing who receives the mail
-  requires building a draft first, which needs `Mail.ReadWrite`. Rather than
-  silently requiring the wider grant, the writer **refuses** an edited recipient
-  list unless the operator has enabled it deliberately. Change the wording
-  freely; changing who sees it is the thing that asks you a question.
+- **Editing the recipient list needs more.** `replyAll` mails Outlook's own
+  recipient list, so it cannot carry an edit — using it for one would show you
+  a list and mail a different one, including anybody you had just removed. An
+  edited list is therefore built as a draft whose recipients are actually set and
+  then sent, which needs `Mail.ReadWrite` as well as `Mail.Send`.
+
+  Whether that wider grant exists is an **operator decision**, never inferred
+  from the fact that somebody edited the field. Without it the send is refused
+  with a message saying why. Change the wording freely; changing who sees it is
+  the thing that asks you a question.
 - An empty recipient list, or a missing source message, fails closed.
 
 ## Not implemented

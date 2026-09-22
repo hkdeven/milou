@@ -7,6 +7,7 @@ for what is missing and not for what the sender already told us.
 """
 
 
+import json
 import os
 import sys
 import unittest
@@ -311,6 +312,34 @@ class ReplySendingTest(unittest.TestCase):
         with self.assertRaises(WriteNotConfigured) as caught:
             execute(edited, mail_writer=OutlookReplyWriter(token="t"))
         self.assertIn("Mail.ReadWrite", str(caught.exception))
+
+    def test_an_allowed_recipient_edit_is_actually_applied(self):
+        """replyAll would mail the thread's own list and discard the edit."""
+        calls = []
+
+        def fake_urlopen(request, timeout=None):
+            payload = json.loads(request.data.decode("utf-8")) if request.data else {}
+            calls.append((request.get_method(), request.full_url, payload))
+            return _Response('{"id": "draft-9"}')
+
+        original = actions.urllib.request.urlopen
+        actions.urllib.request.urlopen = fake_urlopen
+        try:
+            writer = OutlookReplyWriter(token="t", allow_recipient_edits=True)
+            result = writer.send_reply({"message_id": "m2", "original_to": "a@x.test",
+                                        "to": "b@x.test", "body": "hi"})
+        finally:
+            actions.urllib.request.urlopen = original
+        self.assertTrue(result.ok)
+        paths = [url for _method, url, _payload in calls]
+        self.assertTrue(any(path.endswith("/createReplyAll") for path in paths))
+        self.assertTrue(any(path.endswith("/send") for path in paths))
+        self.assertFalse(any(path.endswith("/replyAll") for path in paths),
+                         "replyAll ignores the edited list, so it must not be used here")
+        patched = [payload for method, _url, payload in calls if method == "PATCH"][0]
+        self.assertEqual(patched["toRecipients"],
+                         [{"emailAddress": {"address": "b@x.test"}}],
+                         "the list that was shown must be the list that is mailed")
 
     def test_an_empty_recipient_list_is_refused(self):
         with self.assertRaises(IncompleteAction):

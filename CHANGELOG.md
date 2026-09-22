@@ -7,6 +7,26 @@ the detailed reasoning and decisions behind each change.
 
 ### Added
 
+- Added the console (`milou_news/console.py`, `routines/console.md`) and started
+  it with `milou serve`. Milou was a command line and a read-only view of stored
+  reports; it is now something you open, with the routines on the left, any of
+  them built on demand, and the two inbox actions reachable from the row they
+  belong to. Reports are built by the routines that build them and rendered by
+  the renderer the archive already used, so the console adds navigation and
+  actions rather than a second way of producing reports.
+- The action forms are server-rendered, and every recomputation is a round trip.
+  That trades a request for the property that the sprint rule, the composed
+  description and the reply's questions have exactly one implementation, in
+  Python, rather than a browser copy free to drift from it — and it makes the
+  console work in any viewer that can submit a form.
+- Writes from the console are bounded three ways on top of the existing approval
+  boundary: an authenticated session (a bearer token can read a report and is
+  refused for an action, so a read credential cannot become a write credential),
+  a per-session CSRF token compared in constant time, and a named approver. With
+  no write credentials configured the console is fully usable and changes
+  nothing; a rehearsal is reported as a rehearsal, never as a created ticket.
+- Moved the application shell's stylesheet into `render_html.APP_STYLES`, so the
+  prototype renders the product's own CSS instead of a copy of it.
 - Added the live sprint tracker writer (`milou_news/worddoc.py`), now that the
   tracker is known to be a Word document stored online. A `.docx` is a zip
   containing `word/document.xml`, and the edit works on that markup as text,
@@ -223,6 +243,26 @@ the detailed reasoning and decisions behind each change.
   left-float markup so the opening text wraps around it.
 - Recorded the accepted manual README layout correction and the lesson to
   validate GitHub-rendered layout visually.
+
+### Fixed
+
+- A hand-edited ticket description was overwritten on the submission that
+  approved it. Re-composition triggered on a narrative field being *supplied*,
+  and a form submits every field, so the description someone edited and approved
+  was replaced by a freshly composed one before the write — the text reviewed was
+  not the text sent to Zoho. Re-composition now triggers on a value that actually
+  changed, and each form carries the composed text it displayed so an edit can be
+  told apart from a resubmission.
+- An edited acknowledgement draft was discarded entirely: the textarea was
+  editable but the field was not carried into the plan, so the mailbox got the
+  originally composed text.
+- An edited reply recipient list was accepted and then silently ignored. The
+  send path posts to Graph's `replyAll`, which mails the thread's own recipients,
+  so removing someone in the form and pressing Send would have shown one list and
+  mailed another — including the person who had just been removed. An edited list
+  now goes through a draft whose recipients are actually set, and the wider grant
+  that needs is an operator decision rather than something inferred from the fact
+  that somebody edited the field.
 
 ### Changed
 

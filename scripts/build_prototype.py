@@ -198,7 +198,7 @@ def main():
     with open(shell, encoding="utf-8") as handle:
         template = handle.read()
     page = (template
-            .replace("/*__APP_STYLES__*/", render_html.STYLES)
+            .replace("/*__APP_STYLES__*/", render_html.STYLES + render_html.APP_STYLES)
             .replace('"__PAYLOAD__"', json.dumps(payload, ensure_ascii=False)))
     target = os.path.join(ROOT, "prototypes", "milou-app.html")
     with open(target, "w", encoding="utf-8") as handle:
