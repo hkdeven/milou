@@ -3,7 +3,7 @@ import json
 import sys
 from datetime import datetime, timezone
 
-from . import render_html
+from . import render_html, render_text
 from .config import SOURCES
 from .pipeline import (BriefConfig, build_brief_report, generate_brief,
                        prepare as prepare_brief)
@@ -18,8 +18,11 @@ from .models import default_registry
 from .supervisor import SupervisorDispatcher
 from .github_radar import (FixtureApi, GhApi, RadarConfig, build_radar_report,
                            generate_github_radar, prepare as prepare_radar)
+from .actions import (ApprovalRequired, DryRunDocumentWriter, IncompleteAction,
+                      TicketConfig, WriteNotConfigured, ZohoWriter, draft_ticket,
+                      execute, plan_report, shorten)
 from .outlook import (FixtureGraph, GraphApi, InboxConfig, build_outlook_report,
-                      generate_outlook_monitor)
+                      find_message, generate_outlook_monitor)
 from .zoho import (FixtureZoho, ZohoApi, ZohoConfig, build_zoho_report, coverage_from,
                    generate_zoho_radar, prepare as prepare_zoho)
 
@@ -73,6 +76,42 @@ def scheduler_command(argv):
     return 0
 
 
+def _draft_ticket(parser, args, api, inbox_config, now) -> int:
+    """Draft a ticket from one email. Creates nothing without explicit approval."""
+    message = find_message(api, inbox_config, args.draft_ticket)
+    if message is None:
+        parser.error("no message %r in the mailbox window" % args.draft_ticket)
+    settings = {}
+    if args.ticket_config:
+        with open(args.ticket_config, encoding="utf-8") as handle:
+            settings = json.load(handle)
+    config = TicketConfig.from_mapping(settings)
+    plan = draft_ticket(
+        config, now.date(), subject=message.subject, sender=message.display,
+        received=message.when.strftime("%b %d, %H:%M UTC") if message.when else "",
+        body=message.preview, url=message.url, title=args.title or "")
+
+    if not args.approve:
+        report = plan_report(plan, config, now.date())
+        print(render_html.report_page(report) if args.format == "html"
+              else render_text.render_markdown(report))
+        if not args.title:
+            suggestion = shorten(message.subject)
+            print("\nSuggested title: %s" % (suggestion or "(none — the subject gave nothing usable)"))
+            print("Milou will not choose the title. Re-run with --title \"...\" to set it,")
+            print("then add --approve \"<your name>\" to create the ticket.")
+        return 0
+
+    try:
+        approved = plan.approve(args.approve, now)
+        results = execute(approved, ZohoWriter(), DryRunDocumentWriter())
+    except (ApprovalRequired, IncompleteAction, WriteNotConfigured) as exc:
+        parser.error(str(exc))
+    for result in results:
+        print("%s %s — %s" % ("ok  " if result.ok else "FAIL", result.action, result.detail))
+    return 0 if all(result.ok for result in results) else 1
+
+
 def main(argv=None) -> int:
     if argv is None:
         argv = sys.argv[1:]
@@ -123,6 +162,14 @@ def main(argv=None) -> int:
                         help="inbox monitor: business days of silence before a sent email is chased")
     parser.add_argument("--max-items", type=int, default=None,
                         help="inbox/zoho: hard cap on actionable lines")
+    parser.add_argument("--draft-ticket", metavar="MESSAGE_ID",
+                        help="inbox monitor: draft a Zoho ticket from one email. Nothing is "
+                             "created; the plan is printed for review")
+    parser.add_argument("--title", help="the ticket title; required before a draft can be approved")
+    parser.add_argument("--approve", metavar="WHO",
+                        help="approve and run a drafted plan. Requires MILOU_ZOHO_WRITE_TOKEN")
+    parser.add_argument("--ticket-config", metavar="PATH",
+                        help="JSON portal/project/status/document settings for ticket creation")
     parser.add_argument("--zoho-coverage", metavar="PATH",
                         help="inbox monitor: a Zoho config or fixture; notification mail the "
                              "Zoho radar already reported is suppressed, and anything "
@@ -170,6 +217,8 @@ def main(argv=None) -> int:
         if args.max_items is not None:
             settings = dict(settings, max_items=args.max_items)
         inbox_config = InboxConfig.from_mapping(settings)
+        if args.draft_ticket:
+            return _draft_ticket(parser, args, api, inbox_config, now)
         coverages = []
         if args.zoho_coverage:
             zoho_api, zoho_config = _zoho(args.zoho_coverage)

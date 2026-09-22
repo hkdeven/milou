@@ -495,6 +495,17 @@ def build_outlook_report(api, config: InboxConfig = None, now=None,
     )
 
 
+def find_message(api, config: InboxConfig = None, identifier: str = "") -> Optional[Message]:
+    """Locate one mailbox message by id, so a ticket can be drafted from it."""
+    config = config or InboxConfig()
+    _mailbox, inbox, sent, _errors, _truncated = _collect(api, config)
+    wanted = (identifier or "").strip().lower()
+    for message in list(inbox) + list(sent):
+        if message.id.lower() == wanted:
+            return message
+    return None
+
+
 def generate_outlook_monitor(api, config: InboxConfig = None, now=None,
                              report: Report = None) -> str:
     """Markdown entry point; pass ``report`` to render an already-built report."""

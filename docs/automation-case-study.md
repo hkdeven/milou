@@ -1068,3 +1068,54 @@ Implementation/build log:
 - Validation: `python3 -m unittest discover -s tests` passes with 130 tests
   (29 added), `python3 -m compileall milou_news` passes, and the committed
   fixtures show the suppression, the coverage gap, and unchanged human mail.
+
+### September 22, 2026 — The first write, and the boundary it had to cross
+
+- The user asked to turn an email into a Zoho ticket: carrying the email's scope
+  and context, set to `Ready for Development`, tagged with the sprint, given a
+  release date matching that sprint, and recorded in a manually maintained
+  tracker document. They also asked to be asked for the title.
+- This is the project's first consequential action. Every other capability is
+  read-only by construction, and the architecture reserves writes for an
+  explicit approval step, so the work was not "add a POST call". It was building
+  the boundary the architecture had always described but never needed.
+- Modelled a write as a proposed `ActionPlan` rather than an operation: a full
+  description of what would change, produced without contacting anything. Three
+  properties make the boundary real. Approval is explicit and named; approval is
+  bound to the plan's contents, so supplying or editing an input clears it and a
+  plan cannot be approved then quietly changed; and the writers read
+  `MILOU_ZOHO_WRITE_TOKEN`, never the read token, so a misconfigured read-only
+  run cannot mutate anything.
+- The sprint rule looked like a weekday special case and turned out to be one
+  sentence: the next Wednesday *strictly after* the creation day. Tuesday work is
+  picked up next morning; Wednesday work has missed that sprint and waits a week.
+  Expressing it that way removed the branching entirely and made all seven days
+  testable against one property — the sprint is always a Wednesday, and always
+  in the future.
+- Used a fixed month table rather than `strftime("%b")`. The sprint tag is data
+  that other people read, and a locale-dependent abbreviation would silently
+  produce a different tag on a differently configured machine.
+- Two design flaws surfaced when the tests ran. The tracker line was being
+  formatted at draft time, so the "last four digits" truncation ran against a
+  `{ticket_id}` placeholder and the final line carried the *full* number; the
+  line is now built at execution time, when the number exists. And portal and
+  project were being parsed back out of a human-readable target string, which
+  meant an unconfigured portal read as the literal text `portal?` and passed the
+  check. Both were fixed in the design rather than patched in the tests.
+- Execution stops at the first failure rather than half-applying a plan: a
+  tracker line naming a ticket that was never created is worse than no line.
+- Milou does not choose the title. It suggests an extremely brief one from the
+  subject and waits, because a ticket title is read by people who never saw the
+  email.
+- Honest limitation: the live document adapter is deliberately absent. Appending
+  to a shared Microsoft document requires knowing whether it is a Word file, a
+  OneNote page, or a Loop component, and each needs a different Graph call.
+  Guessing risks corrupting a manually maintained tracker, so a dry-run writer
+  reports the exact line and heading it would add, and the backend question goes
+  back to the user.
+- Lesson: the first write is an architecture change, not a feature. The value of
+  having been read-only for the whole project was that the boundary could be
+  built deliberately, once, instead of being discovered later under a bug.
+- Validation: `python3 -m unittest discover -s tests` passes with 163 tests
+  (33 added), `python3 -m compileall milou_news` passes, and the drafted plan
+  was exercised end to end against a stub writer.

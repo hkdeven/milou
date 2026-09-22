@@ -59,8 +59,11 @@ and report evidence within a declared routine scope. Sending messages,
 changing calendar events, approving or merging code, publishing reports, or
 modifying production systems requires a separate explicit approval boundary.
 
-External **write** actions are not implemented anywhere, and no routine can
-perform one. Three read-only live adapters exist: authenticated `gh api` GET for the GitHub
+One write capability exists: creating a Zoho ticket from an email and recording
+it in the sprint tracker. No *routine* can perform it. It is a proposed plan
+that creates nothing until a named person approves it, approval is bound to the
+plan's contents, and it uses a write-scoped credential that the read paths do
+not have. Everything else remains read-only by construction. Three read-only live adapters exist: authenticated `gh api` GET for the GitHub
 Change Radar, Microsoft Graph GET for the Outlook inbox monitor, and Zoho
 Projects GET for the ticket radar.
 Both fail closed without an operator-supplied credential, and neither stores it.
@@ -101,6 +104,10 @@ that makes further work unsafe or misleading.
   — launch and travel contracts
 - [`routines/github-change-radar.md`](routines/github-change-radar.md) —
   bounded authenticated repository-change contract
+- [`routines/ticket-from-email.md`](routines/ticket-from-email.md),
+  [`milou_news/actions.py`](milou_news/actions.py), and
+  [`milou_news/sprints.py`](milou_news/sprints.py) — the write-approval
+  boundary, ticket drafting, and the Wednesday sprint rule
 - [`routines/zoho-projects-radar.md`](routines/zoho-projects-radar.md),
   [`milou_news/zoho.py`](milou_news/zoho.py), and
   [`milou_news/coverage.py`](milou_news/coverage.py) — the Zoho Projects radar
@@ -249,6 +256,55 @@ marks anything read, so it cannot change mailbox state. The token is read from
 the environment and is never logged, stored, or written into a report; an absent
 token fails closed. Message bodies are not stored — only the short preview
 needed to explain why an item surfaced.
+
+## Turning an email into a ticket
+
+This is the project's **only write capability**, and it sits behind an explicit
+approval boundary. Drafting contacts nothing:
+
+```sh
+python3 -m milou_news --routine inbox --fixture fixtures/outlook.json \
+    --draft-ticket m2 --ticket-config path/to/ticket.json
+```
+
+Milou prints the full plan — every field it would set — and stops, because it
+will not choose the title. It offers an extremely brief suggestion and waits.
+Supply the title, then approve by name:
+
+```sh
+python3 -m milou_news --routine inbox --fixture fixtures/outlook.json \
+    --draft-ticket m2 --ticket-config path/to/ticket.json \
+    --title "Issue Bldg 4 stamped drawings" --approve "Deven"
+```
+
+The ticket is created with status `Ready for Development`, tagged with the
+sprint, and given an expected release date matching that sprint. The email's
+scope and context are carried into the description along with a link back to the
+source message.
+
+**Sprints start every Wednesday**, and a ticket belongs to the next Wednesday
+*strictly after* the day it is created:
+
+| Created | Sprint |
+|---|---|
+| Monday, Tuesday | that Wednesday — picked up next |
+| Wednesday–Sunday | the following Wednesday — the sprint began without it |
+
+So a ticket raised on Tuesday 1 October is tagged `2 OCT SPRINT` with a release
+date of 2 October; the same ticket raised on Wednesday gets `9 OCT SPRINT`.
+
+Once the ticket exists, one line is added under that sprint's heading in the
+tracker document — the last four digits of the ticket number, a dash, and the
+title (`1993 - Issue Bldg 4 stamped drawings`). It is built after creation
+because the number does not exist before then, and **if ticket creation fails no
+line is written**: a tracker entry pointing at a ticket that does not exist is
+worse than none.
+
+Approval is bound to the plan's exact contents, so editing it afterwards clears
+the approval. Writes require `MILOU_ZOHO_WRITE_TOKEN`, which is deliberately
+separate from the read token — a read-only run cannot write even if
+misconfigured. A missing title, an absent write token, or an unconfigured portal
+each fail closed.
 
 ## Zoho Projects, without being told twice
 

@@ -180,6 +180,28 @@ required user decision, or a correctness dependency that makes further work
 unsafe or misleading. Deployment-provider selection and credentials do not
 block local report persistence, UI, tests, or authentication-boundary work.
 
+## The write boundary
+
+Creating a Zoho ticket and editing a shared tracker are the first consequential
+actions in this project, and they are deliberately not implemented as routine
+side effects. A routine produces an `ActionPlan`: a full description of what
+would change, with every field resolved and every missing input named. Nothing
+is contacted while drafting.
+
+Three properties make the boundary real rather than decorative:
+
+- **Approval is explicit and named.** `execute` refuses an unapproved plan.
+- **Approval is bound to contents.** Supplying or changing an input clears the
+  approval, so a plan cannot be approved and then quietly edited before it runs.
+- **Write credentials are separate.** The writers read
+  `MILOU_ZOHO_WRITE_TOKEN`, never the read token, so a misconfigured read-only
+  run cannot mutate anything.
+
+Execution stops at the first failure rather than half-applying a plan: a tracker
+line naming a ticket that was never created is worse than no line at all. The
+user supplies the ticket title; Milou only ever suggests one, because a title is
+read by people who never saw the originating email.
+
 ## Cross-routine coverage
 
 When one routine watches a system directly and that system also emails a

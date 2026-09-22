@@ -7,6 +7,24 @@ the detailed reasoning and decisions behind each change.
 
 ### Added
 
+- Added the first write capability, behind an explicit approval boundary: a Zoho
+  ticket can be drafted from one email, carrying the email's scope, context and a
+  link back to the source message. The plan describes exactly what would change
+  and creates nothing until a named person approves it; approval is bound to the
+  plan's contents, so editing it afterwards clears the approval.
+- Added sprint scheduling (`milou_news/sprints.py`). Sprints start every
+  Wednesday and a ticket belongs to the next Wednesday strictly after its
+  creation day, so Tuesday work is picked up the next morning and Wednesday work
+  waits a week. Tickets are created with status `Ready for Development`, tagged
+  with the sprint (`2 OCT SPRINT`), and given an expected release date matching
+  that sprint.
+- Added the sprint tracker document line — the last four digits of the ticket
+  number, a dash, and the title — built after creation, because the ticket
+  number does not exist before then. A failed ticket writes no line.
+- Added `--draft-ticket`, `--title`, `--approve` and `--ticket-config` to the
+  inbox monitor, and a separate `MILOU_ZOHO_WRITE_TOKEN` so a read token can
+  never perform a write.
+
 - Added the read-only `zoho-projects-radar` routine, its contract, a sample
   portal fixture, and a Zoho Projects adapter. Comments are its top tier by
   design: a comment usually needs a response whether or not it is a direct
