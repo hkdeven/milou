@@ -1,0 +1,1205 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Milou</title>
+<style>
+
+:root{color-scheme:light;
+--ground:#F2F2F6;--glass:rgba(255,255,255,.60);--glass-raised:rgba(255,255,255,.78);
+--glass-soft:rgba(255,255,255,.44);--hair:rgba(0,0,0,.06);--hair-2:rgba(0,0,0,.04);
+--edge:rgba(255,255,255,.72);
+--spec:inset 0 1px 0 rgba(255,255,255,.95),inset 0 0 0 1px rgba(255,255,255,.38),inset 0 -1px 0 rgba(255,255,255,.28);
+--lift:0 1px 2px rgba(16,24,40,.05),0 14px 34px -12px rgba(16,24,40,.17),0 36px 68px -28px rgba(16,24,40,.15);
+--lift-sm:0 1px 2px rgba(16,24,40,.04),0 6px 18px -10px rgba(16,24,40,.12);
+--ink-1:#1D1D1F;--ink-2:#5C5C61;--ink-3:#6E6E73;
+--crit:#A5232B;--crit-tint:rgba(208,59,59,.10);--crit-edge:rgba(165,35,43,.22);
+--note:#7A5A05;--note-tint:rgba(250,178,25,.16);--note-edge:rgba(122,90,5,.20);
+--cov:#8A421D;--cov-tint:rgba(236,131,90,.14);--cov-edge:rgba(138,66,29,.22);
+--pos:#0E6B33;
+--sans:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Helvetica Neue",system-ui,sans-serif;
+--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+--blur:blur(30px) saturate(205%)}
+*{box-sizing:border-box}
+body{margin:0;background-color:var(--ground);background-image:
+radial-gradient(52% 40% at 8% 2%,rgba(22,87,217,.17),transparent 64%),
+radial-gradient(48% 34% at 94% 0%,rgba(160,71,155,.15),transparent 62%),
+radial-gradient(46% 38% at 86% 44%,rgba(0,145,95,.14),transparent 62%),
+radial-gradient(44% 34% at 4% 60%,rgba(210,96,10,.13),transparent 60%),
+radial-gradient(54% 34% at 52% 99%,rgba(22,87,217,.12),transparent 64%);
+background-attachment:fixed;color:var(--ink-1);font-family:var(--sans);font-size:15px;
+line-height:1.5;-webkit-font-smoothing:antialiased}
+a{color:var(--ink-1);text-decoration:none}a:hover{color:var(--crit)}
+code{font-family:var(--mono);font-size:.9em}
+.wrap{max-width:1220px;margin:0 auto;padding:44px 24px 80px}
+@media(max-width:640px){.wrap{padding:28px 16px 56px}}
+.glass{background:var(--glass);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+border:1px solid var(--edge);border-radius:26px;box-shadow:var(--spec),var(--lift)}
+.glass-soft{background:var(--glass-soft);backdrop-filter:blur(20px) saturate(165%);
+-webkit-backdrop-filter:blur(20px) saturate(165%);border:1px solid rgba(255,255,255,.72);
+box-shadow:var(--spec),var(--lift-sm)}
+.report{padding:26px 28px;display:flex;flex-direction:column;gap:16px}
+@media(max-width:640px){.report{padding:18px 16px;border-radius:20px}}
+.rpt-head{display:flex;align-items:flex-start;gap:24px;flex-wrap:wrap}
+.rpt-title{margin:0;font-size:28px;font-weight:600;letter-spacing:-.02em}
+.pill{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 11px;border-radius:999px;
+background:rgba(255,255,255,.86);border:1px solid var(--hair);font-size:12.5px;color:var(--ink-2);white-space:nowrap}
+.pill-strong{font-weight:600;color:var(--ink-1);background:rgba(255,255,255,.95)}
+.pill-ro{height:28px;font-size:11.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.dv{width:1px;height:16px;background:rgba(0,0,0,.1)}
+.small{font-size:12.5px}.xsmall{font-size:11.5px}.muted{color:var(--ink-2)}
+.banner{display:flex;align-items:flex-start;gap:12px;padding:14px 18px;border-radius:16px;
+background:rgba(255,255,255,.72);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+border:1px solid var(--cov-edge);box-shadow:var(--spec),var(--lift-sm)}
+.banner-ico{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;
+width:28px;height:28px;border-radius:999px;background:var(--cov-tint);color:var(--cov)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.kpi{padding:16px 18px 15px;border-radius:20px;background:var(--glass-raised);
+backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border:1px solid var(--edge);
+box-shadow:var(--spec),0 1px 1px rgba(0,0,0,.04),0 8px 22px -14px rgba(0,0,0,.14);
+display:flex;flex-direction:column;gap:5px}
+.kpi-label{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:600;
+letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
+.kpi-val{font-size:34px;font-weight:600;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums}
+.kpi-sub{font-size:11.5px;color:var(--ink-3)}
+.dist{padding:18px 22px 20px;border-radius:20px;display:flex;flex-direction:column;gap:12px}
+.dist-bar{display:flex;align-items:stretch;height:30px;gap:2px}
+.dist-seg{min-width:0;display:flex;align-items:center;justify-content:center;border-radius:3px;
+box-shadow:inset 0 1px 0 rgba(255,255,255,.25)}
+.dist-seg:first-child{border-radius:8px 3px 3px 8px}.dist-seg:last-child{border-radius:3px 8px 8px 3px}
+.dist-seg span{font-size:12px;font-weight:600;font-variant-numeric:tabular-nums}
+.key{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.key span{display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--ink-2)}
+.sw{width:9px;height:9px;border-radius:3px;flex:0 0 auto}
+.sw-tex{background-color:#7A5A05;background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.55) 0 2px,transparent 2px 4px)}
+.tier-head{display:flex;align-items:center;gap:9px;padding:0 4px;margin-bottom:9px;flex-wrap:wrap}
+.tier-ico{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;
+border-radius:999px;flex:0 0 auto}
+.tier-name{margin:0;font-size:15px;font-weight:600;letter-spacing:-.01em}
+.tier-count{font-size:13px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.tier-note{margin-left:auto;font-size:11.5px;color:var(--ink-3)}
+@media(max-width:640px){.tier-note{margin-left:0;flex-basis:100%}}
+.rows{border-radius:20px;overflow:hidden;display:flex;flex-direction:column}
+.row{display:flex;align-items:stretch;border-bottom:1px solid var(--hair-2)}
+.row:last-child{border-bottom:0}
+.rail{width:3px;flex:0 0 auto}
+.cells{flex:1 1 auto;min-width:0;padding:13px 18px;display:flex;align-items:center;gap:16px}
+.c-time{flex:0 0 88px}.c-repo{flex:0 0 200px}.c-type{flex:0 0 118px}
+.c-chg{flex:1 1 auto}.c-sig{flex:0 0 180px}
+@media(max-width:1100px){.cells{gap:12px}.c-type{display:none}
+.c-repo{flex:0 0 160px}.c-sig{flex:0 0 150px}}
+@media(max-width:720px){.cells{flex-wrap:wrap;gap:6px 12px;padding:14px 16px}
+.c-time,.c-repo,.c-chg,.c-sig{flex:1 1 100%}
+.c-time{flex-direction:row;gap:8px;align-items:baseline}}
+.c-time{display:flex;flex-direction:column;gap:2px}
+.t-rel{font-size:13px;font-weight:600;font-variant-numeric:tabular-nums}
+.t-abs{font-size:11px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.c-repo{min-width:0;display:flex;flex-direction:column;gap:1px}
+.r-own{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.r-nm{font-family:var(--mono);font-size:12.5px;color:var(--ink-1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chip-type{display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:7px;
+background:rgba(0,0,0,.045);font-size:11.5px;font-weight:500;color:var(--ink-2);white-space:nowrap}
+.c-chg{min-width:0;display:flex;flex-direction:column;gap:3px}
+.c-link{flex:0 0 30px}
+.chg-title{font-size:13.5px;font-weight:600;letter-spacing:-.005em}
+.chg-by{font-size:11.5px;color:var(--ink-3)}
+.c-sig{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;height:21px;padding:0 8px;border-radius:999px;
+font-size:11px;font-weight:500;white-space:nowrap;background:rgba(0,0,0,.045);
+border:1px solid var(--hair);color:var(--ink-2)}
+.chip-critical{background:var(--crit-tint);border-color:var(--crit-edge);color:var(--crit)}
+.chip-notable{background:var(--note-tint);border-color:var(--note-edge);color:var(--note)}
+.chip-coverage{background:var(--cov-tint);border-color:var(--cov-edge);color:var(--cov)}
+.c-link{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;
+border-radius:9px;flex:0 0 auto;background:rgba(255,255,255,.8);border:1px solid var(--hair);color:var(--ink-2)}
+.c-link:hover{background:#fff;color:var(--crit)}
+.row-quiet .chg-title{font-weight:400;font-size:12.5px}
+.row-quiet .t-rel{font-weight:400;font-size:12.5px;color:var(--ink-2)}
+.art-list{display:flex;flex-direction:column;gap:10px}
+.art{display:flex;gap:16px;padding:17px 20px;border-radius:20px;background:rgba(255,255,255,.80);
+backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border:1px solid var(--edge);
+box-shadow:var(--spec),0 1px 1px rgba(0,0,0,.04),0 8px 22px -16px rgba(0,0,0,.14)}
+.art-rank{flex:0 0 30px;display:flex;flex-direction:column;align-items:center;gap:3px}
+.rk{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;
+border-radius:999px;background:rgba(0,0,0,.05);font-size:12.5px;font-weight:700;
+font-variant-numeric:tabular-nums;color:var(--ink-2)}
+.rk-why{font-size:9px;color:var(--ink-3);line-height:1}
+.art-body{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:7px}
+.art-top{display:flex;align-items:baseline;gap:14px}
+.art-title{flex:1 1 auto;min-width:0;font-size:15.5px;font-weight:600;letter-spacing:-.01em;line-height:1.3}
+.art-score{flex:0 0 auto;font-size:17px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.art-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.art-outlet{font-size:12.5px;font-weight:600}
+.art-when{font-size:11.5px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.art-sum{margin:0;font-size:13px;line-height:1.55;color:var(--ink-2)}
+@media(max-width:640px){.art{padding:14px 16px;gap:12px}.art-top{flex-direction:column;gap:4px}}
+.meter{display:flex;height:13px;gap:2px;background:rgba(16,24,40,.05);border-radius:999px;overflow:hidden}
+.meter i{display:block;box-shadow:inset 0 1px 0 rgba(255,255,255,.28)}
+.meter i:first-child{border-radius:999px 2px 2px 999px}
+.meter i.tex{background-color:#7A5A05;background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.45) 0 3px,transparent 3px 6px)}
+.flags{display:flex;flex-direction:column;gap:5px}
+.quote{margin:0 0 6px;padding-left:10px;border-left:2px solid rgba(0,0,0,.12);
+font-size:12.5px;line-height:1.5;color:var(--ink-2)}
+.flag{display:inline-flex;align-items:flex-start;gap:6px;font-size:11.5px;line-height:1.45;color:var(--ink-3)}
+.flag svg{flex:0 0 auto;margin-top:2px}
+.empty{padding:22px;border-radius:16px;background:rgba(255,255,255,.7);border:1px solid var(--hair);
+display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}
+.empty-ico{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;
+border-radius:999px;background:rgba(0,0,0,.04);color:#86868B}
+.foot{padding:16px 22px;border-radius:16px;display:flex;align-items:center;gap:24px;flex-wrap:wrap}
+.idx{display:flex;flex-direction:column;gap:8px}
+.idx-row{display:flex;align-items:center;gap:14px;padding:13px 18px;border-bottom:1px solid var(--hair-2)}
+.idx-row:last-child{border-bottom:0}
+.idx-when{flex:0 0 150px;font-size:12.5px;font-variant-numeric:tabular-nums;color:var(--ink-2)}
+.idx-name{flex:1 1 auto;min-width:0;font-size:13.5px;font-weight:600}
+.btn{display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 14px;border-radius:999px;
+background:rgba(255,255,255,.85);border:1px solid var(--hair);font:inherit;font-size:12.5px;
+font-weight:500;color:var(--ink-1);cursor:pointer}
+.btn:hover{background:#fff}
+h1.page{margin:0;font-size:34px;font-weight:600;letter-spacing:-.025em}
+.eyebrow{margin:0 0 8px;font-size:10.5px;font-weight:600;letter-spacing:.08em;
+text-transform:uppercase;color:var(--ink-3)}
+.raw{margin:0;font-family:var(--mono);font-size:11.5px;line-height:1.6;color:#4A4A4F;
+white-space:pre-wrap;word-break:break-word}
+
+
+/* ---------- the shell the reports sit inside ---------- */
+body{overflow-x:hidden}
+.app{display:flex;min-height:100vh;align-items:stretch}
+.side{flex:0 0 268px;position:sticky;top:0;align-self:flex-start;height:100vh;
+  display:flex;flex-direction:column;gap:14px;padding:22px 16px 18px;
+  background:rgba(255,255,255,.42);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+  border-right:1px solid var(--edge);box-shadow:inset -1px 0 0 rgba(255,255,255,.5)}
+.brand{display:flex;align-items:center;gap:11px;padding:2px 8px 0}
+.mark{width:34px;height:34px;border-radius:11px;flex:0 0 auto;display:inline-flex;
+  align-items:center;justify-content:center;background:rgba(255,255,255,.9);
+  border:1px solid var(--edge);box-shadow:var(--spec),var(--lift-sm);font-size:17px}
+.brand-name{font-size:16px;font-weight:600;letter-spacing:-.02em;line-height:1.1}
+.brand-sub{font-size:10.5px;color:var(--ink-3);letter-spacing:.04em;text-transform:uppercase}
+.nav{flex:1 1 auto;overflow-y:auto;display:flex;flex-direction:column;gap:3px;padding-right:2px}
+.nav-group{padding:14px 10px 5px;font-size:10px;font-weight:600;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--ink-3)}
+.nav-item{display:flex;align-items:center;gap:10px;width:100%;text-align:left;border:1px solid transparent;
+  background:transparent;font:inherit;padding:8px 10px;border-radius:12px;cursor:pointer;color:var(--ink-1)}
+.nav-item:hover{background:rgba(255,255,255,.62)}
+.nav-item[aria-current=true]{background:rgba(255,255,255,.92);border-color:var(--edge);
+  box-shadow:var(--spec),var(--lift-sm)}
+.nav-ico{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;
+  border-radius:8px;background:rgba(0,0,0,.045);color:var(--ink-2)}
+.nav-item[aria-current=true] .nav-ico{background:rgba(22,87,217,.10);color:#1657D9}
+.nav-text{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:1px}
+.nav-name{font-size:13.5px;font-weight:500;letter-spacing:-.005em;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.nav-when{font-size:10.5px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nav-badge{flex:0 0 auto;min-width:22px;height:20px;padding:0 6px;border-radius:999px;display:inline-flex;
+  align-items:center;justify-content:center;font-size:11.5px;font-weight:600;
+  font-variant-numeric:tabular-nums;background:rgba(0,0,0,.05);color:var(--ink-3)}
+.nav-badge.crit{background:var(--crit-tint);color:var(--crit)}
+.nav-badge.note{background:var(--note-tint);color:var(--note)}
+.side-foot{padding:10px 10px 0;border-top:1px solid var(--hair);display:flex;flex-direction:column;gap:8px}
+.who{display:flex;align-items:center;gap:9px}
+.avatar{width:26px;height:26px;border-radius:999px;background:rgba(255,255,255,.9);
+  border:1px solid var(--edge);display:inline-flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:600;color:var(--ink-2);flex:0 0 auto}
+
+.main{flex:1 1 auto;min-width:0;display:flex;flex-direction:column}
+.topbar{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+  padding:14px 28px;background:rgba(255,255,255,.55);backdrop-filter:var(--blur);
+  -webkit-backdrop-filter:var(--blur);border-bottom:1px solid var(--edge)}
+.crumb{font-size:13px;color:var(--ink-3)}
+.crumb b{color:var(--ink-1);font-weight:600}
+.view{padding:26px 28px 72px;max-width:1120px;width:100%}
+@media(max-width:980px){
+  .app{flex-direction:column}
+  .side{position:static;flex:1 1 auto;height:auto;width:100%;border-right:0;
+    border-bottom:1px solid var(--edge)}
+  .nav{flex-direction:row;overflow-x:auto;gap:6px}
+  .nav-group{display:none}.nav-when{display:none}
+  .nav-item{width:auto;white-space:nowrap}
+  .topbar,.view{padding-left:16px;padding-right:16px}
+}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:32px;padding:0 13px;
+  border-radius:999px;background:rgba(255,255,255,.9);border:1px solid var(--hair);
+  font:inherit;font-size:12.5px;font-weight:500;color:var(--ink-1);cursor:pointer;white-space:nowrap}
+.btn:hover{background:#fff;color:var(--ink-1)}
+.btn:focus-visible{outline:2px solid #1657D9;outline-offset:2px}
+.btn-primary{background:var(--ink-1);border-color:var(--ink-1);color:#fff}
+.btn-primary:hover{background:#000;color:#fff}
+.btn-primary:disabled{background:#C7C7CC;border-color:#C7C7CC;color:#fff;cursor:not-allowed}
+.btn-icon{width:30px;height:30px;padding:0;border-radius:9px}
+.btn-sm{height:27px;padding:0 10px;font-size:11.5px}
+.btn-ticket{border-color:rgba(22,87,217,.26);color:#1657D9;background:rgba(22,87,217,.10);font-weight:600}
+.btn-ticket:hover{background:rgba(22,87,217,.18);color:#1657D9}
+.btn-reply{border-color:rgba(160,71,155,.28);color:#A0479B;background:rgba(160,71,155,.12);font-weight:600}
+.btn-reply:hover{background:rgba(160,71,155,.2);color:#A0479B}
+.row-actions{display:flex;align-items:center;gap:7px;padding:0 0 12px 18px;flex-wrap:wrap}
+
+/* ---------- dialogs ---------- */
+[hidden]{display:none !important}
+dialog{border:0;padding:0;background:transparent;max-width:min(720px,94vw);width:100%}
+dialog::backdrop{background:rgba(16,24,40,.34);backdrop-filter:blur(3px)}
+.sheet{background:rgba(255,255,255,.88);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+  border:1px solid var(--edge);border-radius:24px;box-shadow:var(--spec),0 32px 70px -20px rgba(16,24,40,.42);
+  display:flex;flex-direction:column;max-height:88vh}
+.sheet-head{padding:20px 24px 15px;border-bottom:1px solid var(--hair);display:flex;
+  align-items:flex-start;gap:16px}
+.sheet-body{padding:20px 24px;overflow-y:auto;display:flex;flex-direction:column;gap:16px}
+.sheet-foot{padding:15px 24px 19px;border-top:1px solid var(--hair);display:flex;
+  align-items:center;gap:12px;flex-wrap:wrap}
+.eyebrow{margin:0;font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.field-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+@media(max-width:560px){.field-row,.field-row-3{grid-template-columns:1fr}}
+label{font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+input[type=text],input[type=date],select,textarea{
+  font:inherit;font-size:14px;color:var(--ink-1);background:rgba(255,255,255,.92);
+  border:1px solid var(--hair);border-radius:12px;padding:10px 12px;width:100%}
+input:focus,select:focus,textarea:focus{outline:2px solid #1657D9;outline-offset:-1px;border-color:transparent}
+textarea{min-height:130px;resize:vertical;line-height:1.55;font-size:13px}
+textarea.tall{min-height:200px}
+.hint{font-size:11.5px;color:var(--ink-3)}
+.tag{display:inline-flex;align-items:center;height:18px;padding:0 7px;border-radius:999px;
+  font-size:9.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
+.tag-sug{background:var(--note-tint);border:1px solid var(--note-edge);color:var(--note)}
+.tag-req{background:var(--crit-tint);border:1px solid var(--crit-edge);color:var(--crit)}
+.tag-gue{background:var(--cov-tint);border:1px solid var(--cov-edge);color:var(--cov)}
+.tag-ok{background:rgba(12,163,12,.12);border:1px solid rgba(14,107,51,.24);color:var(--pos)}
+.tag-auto{background:rgba(0,0,0,.05);border:1px solid var(--hair);color:var(--ink-3)}
+.warn{display:flex;align-items:flex-start;gap:11px;padding:12px 15px;border-radius:14px;
+  background:rgba(255,255,255,.74);border:1px solid var(--note-edge)}
+.warn-ok{border-color:rgba(14,107,51,.24)}
+.warn-ico{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;
+  width:26px;height:26px;border-radius:999px;background:var(--note-tint);color:var(--note)}
+.warn-ok .warn-ico{background:rgba(12,163,12,.12);color:var(--pos)}
+.pre{padding:12px 14px;border-radius:12px;background:rgba(16,24,40,.045);
+  border:1px solid var(--hair);font-family:var(--mono);font-size:12px;color:var(--ink-2);
+  overflow-wrap:anywhere;white-space:pre-wrap}
+.pre b{color:var(--ink-1);font-weight:600}
+.why{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--ink-3);flex-wrap:wrap}
+.dot{width:4px;height:4px;border-radius:999px;background:var(--ink-3);flex:0 0 auto}
+.seg{display:inline-flex;padding:3px;border-radius:999px;background:rgba(0,0,0,.05);gap:2px}
+.seg button{border:0;background:transparent;font:inherit;font-size:12px;font-weight:600;
+  padding:5px 13px;border-radius:999px;cursor:pointer;color:var(--ink-3)}
+.seg button[aria-pressed=true]{background:#fff;color:var(--ink-1);box-shadow:var(--lift-sm)}
+.checks{display:flex;flex-direction:column;gap:9px;padding:13px 15px;border-radius:14px;
+  background:rgba(255,255,255,.66);border:1px solid var(--hair)}
+label.check{display:flex;align-items:flex-start;gap:10px;font-size:13px;line-height:1.45;
+  color:var(--ink-1);font-weight:400;letter-spacing:0;text-transform:none;flex-wrap:nowrap}
+.check input{margin:2px 0 0;flex:0 0 auto;accent-color:#1657D9;width:15px;height:15px}
+.check .sub{display:block;font-size:11px;color:var(--ink-3);margin-top:2px;text-transform:none;
+  letter-spacing:0;font-weight:400}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 6px 0 11px;border-radius:999px;
+  background:rgba(255,255,255,.9);border:1px solid var(--hair);font-size:12px;color:var(--ink-2)}
+.chip button{border:0;background:transparent;cursor:pointer;color:var(--ink-3);font:inherit;
+  line-height:1;padding:3px;border-radius:999px}
+.chip button:hover{color:var(--crit);background:var(--crit-tint)}
+
+/* ---------- scheduler and about views ---------- */
+.panel{padding:24px 26px;display:flex;flex-direction:column;gap:16px}
+.panel h2{margin:0;font-size:24px;font-weight:600;letter-spacing:-.02em}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{text-align:left;font-size:10.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--ink-3);padding:0 12px 9px 0;border-bottom:1px solid var(--hair)}
+td{padding:10px 12px 10px 0;border-bottom:1px solid var(--hair-2);color:var(--ink-2);vertical-align:top}
+td b{color:var(--ink-1);font-weight:600}
+tr:last-child td{border-bottom:0}
+.state{display:inline-flex;align-items:center;gap:6px;font-size:12px}
+.led{width:7px;height:7px;border-radius:999px;background:var(--pos);flex:0 0 auto}
+.led.off{background:#C7C7CC}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.card{padding:20px 22px;border-radius:20px;display:flex;flex-direction:column;gap:10px}
+.card h3{margin:0;font-size:15px;font-weight:600;letter-spacing:-.01em}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="brand">
+      <span class="mark" aria-hidden="true">🐕</span>
+      <span>
+        <span class="brand-name">Milou</span><br>
+        <span class="brand-sub">Supervisor</span>
+      </span>
+    </div>
+    <nav class="nav" id="nav" aria-label="Routines"></nav>
+    <div class="side-foot">
+      <div class="who">
+        <span class="avatar" id="initials">D</span>
+        <span class="nav-text">
+          <span class="nav-name" id="who">—</span>
+          <span class="nav-when">signed in · read-only</span>
+        </span>
+      </div>
+      <button type="button" class="btn" style="width:100%">Sign out</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <span class="crumb">Milou · <b id="crumb">—</b></span>
+      <span class="dv"></span>
+      <span class="small muted" id="cadence">—</span>
+      <span style="flex:1 1 auto"></span>
+      <span class="small muted" id="clock">—</span>
+      <button type="button" class="btn" id="run">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        Run now
+      </button>
+    </div>
+    <div class="view wrap" id="view" style="max-width:1120px;padding-top:26px"></div>
+  </main>
+</div>
+
+<!-- ============ DIALOG A — CREATE TICKET ============ -->
+<dialog id="ticket-dialog" aria-labelledby="t-head">
+  <form method="dialog" class="sheet">
+    <div class="sheet-head">
+      <div style="flex:1 1 auto;min-width:0">
+        <p class="eyebrow">New Zoho ticket</p>
+        <h2 id="t-head" style="margin:6px 0 0;font-size:21px;font-weight:600;letter-spacing:-.02em"></h2>
+        <p class="xsmall muted" style="margin-top:6px" id="t-source"></p>
+      </div>
+      <button type="button" class="btn btn-icon" data-close="ticket-dialog" aria-label="Close without creating">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+      </button>
+    </div>
+
+    <div class="sheet-body" id="t-form">
+      <div class="warn">
+        <span class="warn-ico">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </span>
+        <div>
+          <p class="small" style="font-weight:600;color:var(--note)">Nothing is created until you press Create</p>
+          <p class="xsmall muted" style="margin-top:2px">Three things happen in order: the Zoho task, one line in the sprint tracker, then an unsent draft reply. The first failure stops the rest.</p>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="t-title">Title <span class="tag tag-sug" id="t-title-badge">suggested</span></label>
+        <input type="text" id="t-title" autocomplete="off">
+        <span class="hint">Keep it extremely brief. Read by people who never saw the email.</span>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="t-status">Status <span class="tag tag-auto">default selected</span></label>
+          <select id="t-status"></select>
+          <span class="hint">Your portal's full list, from configuration.</span>
+        </div>
+        <div class="field">
+          <label for="t-owner">Owner <span class="tag tag-auto">unassigned</span></label>
+          <select id="t-owner"></select>
+          <span class="hint">At Ready for Development the sprint is the queue.</span>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="t-sprint">Sprint tag</label>
+          <select id="t-sprint"></select>
+          <span class="hint" id="t-sprint-why"></span>
+        </div>
+        <div class="field">
+          <label for="t-release">Expected release date</label>
+          <input type="date" id="t-release">
+          <span class="hint" id="t-release-why">Matches the sprint.</span>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Type <span class="tag tag-gue" id="t-kind-badge">detected</span></label>
+        <div class="seg" role="group" aria-label="Ticket type">
+          <button type="button" id="t-kind-bug" aria-pressed="false">Bug report</button>
+          <button type="button" id="t-kind-req" aria-pressed="false">Feature / change</button>
+        </div>
+        <span class="hint" id="t-kind-why"></span>
+      </div>
+
+      <div class="field-row-3">
+        <div class="field">
+          <label for="t-requested">Requested by <span class="tag tag-auto">sender</span></label>
+          <input type="text" id="t-requested" autocomplete="off">
+        </div>
+        <div class="field" data-bug-only>
+          <label for="t-reported">Reported by <span class="tag" id="t-reported-badge"></span></label>
+          <input type="text" id="t-reported" autocomplete="off" placeholder="not stated in the email">
+        </div>
+        <div class="field" data-bug-only>
+          <label for="t-when">Reported on <span class="tag" id="t-when-badge"></span></label>
+          <input type="text" id="t-when" autocomplete="off" placeholder="not stated in the email">
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="t-record">Project / record <span class="tag" id="t-record-badge"></span></label>
+        <input type="text" id="t-record" autocomplete="off" placeholder="not stated in the email">
+      </div>
+
+      <div class="field">
+        <label for="t-desc">Description
+          <span class="tag tag-auto" id="t-desc-badge">composed from the fields above</span>
+          <button type="button" class="btn btn-sm" id="t-desc-reset" hidden>Re-compose</button>
+        </label>
+        <textarea id="t-desc" class="tall"></textarea>
+        <span class="hint">Edit a field above and this rewrites itself. Type in it directly and it stops, so your wording is never overwritten.</span>
+      </div>
+
+      <div class="field">
+        <label>Also adds to the sprint tracker</label>
+        <div class="pre" id="t-tracker"></div>
+        <span class="hint">Appended to the online Word document under that sprint's heading. Nothing else in the document is touched, and a missing heading writes nothing at all.</span>
+      </div>
+
+      <div class="field">
+        <div class="checks">
+          <label class="check">
+            <input type="checkbox" id="t-ack" checked>
+            <span>Leave a draft reply once the ticket exists
+              <span class="sub">Tells them the number, where to follow it, and the release date. Saved to Drafts — never sent.</span></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="field" id="t-ack-field">
+        <label for="t-ack-body">Acknowledgement draft
+          <span class="tag tag-auto" id="t-ack-badge">number filled in after creation</span>
+          <button type="button" class="btn btn-sm" id="t-ack-reset" hidden>Re-compose</button>
+        </label>
+        <textarea id="t-ack-body"></textarea>
+      </div>
+    </div>
+
+    <div class="sheet-body" id="t-done" hidden>
+      <div class="warn warn-ok">
+        <span class="warn-ico">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+        </span>
+        <div>
+          <p class="small" style="font-weight:600;color:var(--pos)">Ticket created</p>
+          <p class="xsmall muted" style="margin-top:2px" id="t-done-sub"></p>
+        </div>
+      </div>
+      <div class="field">
+        <label>What was written</label>
+        <div class="pre" id="t-done-detail"></div>
+      </div>
+      <div class="field" id="t-done-ack">
+        <label>Waiting in your Drafts <span class="tag tag-ok">not sent</span></label>
+        <div class="pre" id="t-done-ack-body"></div>
+        <span class="hint">Open it in Outlook, read it once, press Send. Milou will not send it for you.</span>
+      </div>
+      <p class="xsmall muted">If the ticket had failed, none of this would have happened — no tracker line, no draft.</p>
+    </div>
+
+    <div class="sheet-foot">
+      <span class="why" id="t-why"></span>
+      <span style="flex:1 1 auto"></span>
+      <button type="button" class="btn" data-close="ticket-dialog" id="t-cancel">Cancel</button>
+      <button type="button" class="btn btn-primary" id="t-create">Create ticket</button>
+      <button type="button" class="btn btn-primary" data-close="ticket-dialog" id="t-done-btn" hidden>Done</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- ============ DIALOG B — ASK FOR CONTEXT ============ -->
+<dialog id="reply-dialog" aria-labelledby="r-head">
+  <form method="dialog" class="sheet">
+    <div class="sheet-head">
+      <div style="flex:1 1 auto;min-width:0">
+        <p class="eyebrow">Reply to the thread</p>
+        <h2 id="r-head" style="margin:6px 0 0;font-size:21px;font-weight:600;letter-spacing:-.02em">Ask for the missing context</h2>
+        <p class="xsmall muted" style="margin-top:6px" id="r-source"></p>
+      </div>
+      <button type="button" class="btn btn-icon" data-close="reply-dialog" aria-label="Close without sending">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+      </button>
+    </div>
+
+    <div class="sheet-body" id="r-form">
+      <div class="warn">
+        <span class="warn-ico">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </span>
+        <div>
+          <p class="small" style="font-weight:600;color:var(--note)">Nothing is sent until you press Send</p>
+          <p class="xsmall muted" style="margin-top:2px">This goes out from your mailbox, in your name, to everyone listed below.</p>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>To <span class="tag tag-auto">reply-all, minus you</span>
+          <span class="tag tag-gue" id="r-to-badge" hidden>edited — wider grant</span></label>
+        <div class="chips" id="r-to"></div>
+        <div style="display:flex;gap:8px">
+          <input type="text" id="r-add" placeholder="add a recipient" autocomplete="off">
+          <button type="button" class="btn" id="r-add-btn">Add</button>
+        </div>
+        <span class="hint" id="r-to-hint"></span>
+      </div>
+
+      <div class="field">
+        <label>Cc</label>
+        <div class="chips" id="r-cc"></div>
+      </div>
+
+      <div class="field">
+        <label for="r-subject">Subject</label>
+        <input type="text" id="r-subject" autocomplete="off">
+      </div>
+
+      <div class="field">
+        <label>What to ask for <span class="tag tag-auto">ticked = still missing</span></label>
+        <div class="checks" id="r-questions"></div>
+        <span class="hint">Unticked items are ones the email already answered.</span>
+      </div>
+
+      <div class="field">
+        <label for="r-body">Message
+          <span class="tag tag-auto" id="r-body-badge">composed from the ticks above</span>
+          <button type="button" class="btn btn-sm" id="r-body-reset" hidden>Re-compose</button>
+        </label>
+        <textarea id="r-body" class="tall"></textarea>
+      </div>
+    </div>
+
+    <div class="sheet-body" id="r-done" hidden>
+      <div class="warn warn-ok">
+        <span class="warn-ico">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+        </span>
+        <div>
+          <p class="small" style="font-weight:600;color:var(--pos)">Reply sent</p>
+          <p class="xsmall muted" style="margin-top:2px" id="r-done-sub"></p>
+        </div>
+      </div>
+      <div class="field">
+        <label>The thread now waits on them, not on you</label>
+        <div class="pre" id="r-done-detail"></div>
+      </div>
+    </div>
+
+    <div class="sheet-foot">
+      <span class="why" id="r-why"></span>
+      <span style="flex:1 1 auto"></span>
+      <button type="button" class="btn" data-close="reply-dialog" id="r-cancel">Cancel</button>
+      <button type="button" class="btn btn-primary" id="r-send">Send reply</button>
+      <button type="button" class="btn btn-primary" data-close="reply-dialog" id="r-done-btn" hidden>Done</button>
+    </div>
+  </form>
+</dialog>
+
+<script id="payload" type="application/json">{"now": "Sep 22, 15:40 UTC", "today": "2026-09-22", "you": "deven@example.test", "statuses": ["Open", "Ready for Development", "In Progress", "In Review", "Blocked", "Ready for Release", "Released", "On Hold", "Closed"], "defaultStatus": "Ready for Development", "owners": ["Deven Blackburn (you)", "A. Rivera", "D. Nguyen", "S. Okafor", "M. Castillo"], "signature": "Deven", "project": "", "sprint": {"start": "2026-09-23", "tag": "23 SEP SPRINT", "upcoming": ["2026-09-23", "2026-09-30", "2026-10-07", "2026-10-14"]}, "mail": [{"id": "m1", "subject": "Q3 pricing sheet sign-off", "fromName": "A. Rivera", "from": "a.rivera@example.test", "to": ["deven@example.test"], "cc": [], "when": "Sep 21, 14:10 UTC", "kind": "request", "requested": "A. Rivera", "reported": "", "reportedGuessed": false, "reportedOn": "", "reportedOnGuessed": false, "record": "", "recordGuessed": false, "context": "We cannot proceed without your approval on the revised tier pricing. Everything downstream is on hold until you confirm.", "links": [], "url": "https://outlook.office365.com/mail/id/m1"}, {"id": "m2", "subject": "Warehouse drawings for Bldg 4", "fromName": "M. Castillo", "from": "m.castillo@example.test", "to": ["deven@example.test"], "cc": [], "when": "Sep 21, 09:40 UTC", "kind": "request", "requested": "M. Castillo", "reported": "", "reportedGuessed": false, "reportedOn": "", "reportedOnGuessed": false, "record": "", "recordGuessed": false, "context": "Could you send the stamped drawings for Building 4 when you get a moment? The fabricator is asking, and they cannot cut until the stamped set is issued. Scope is unchanged from the drawing register at [doc 1]", "links": ["https://example.test/sites/eng/bldg4-register.xlsx"], "url": "https://outlook.office365.com/mail/id/m2"}, {"id": "m3", "subject": "Re: Site visit notes", "fromName": "S. Okafor", "from": "s.okafor@example.test", "to": ["deven@example.test"], "cc": [], "when": "Sep 19, 16:05 UTC", "kind": "request", "requested": "S. Okafor", "reported": "", "reportedGuessed": false, "reportedOn": "", "reportedOnGuessed": false, "record": "", "recordGuessed": false, "context": "Thanks, that covers it. No action needed from your side.", "links": [], "url": "https://outlook.office365.com/mail/id/m3"}, {"id": "m4", "subject": "Purchase order 88213 acknowledgement", "fromName": "Supplier Portal", "from": "no-reply@supplier.example.test", "to": ["deven@example.test"], "cc": [], "when": "Sep 21, 06:00 UTC", "kind": "request", "requested": "Supplier Portal", "reported": "", "reportedGuessed": false, "reportedOn": "", "reportedOnGuessed": false, "record": "", "recordGuessed": false, "context": "Your purchase order has been received. Please do not reply to this message.", "links": [], "url": "https://outlook.office365.com/mail/id/m4"}, {"id": "m5", "subject": "Steel market weekly digest", "fromName": "Market Watch", "from": "newsletter@marketwatch.example.test", "to": ["deven@example.test"], "cc": [], "when": "Sep 21, 05:30 UTC", "kind": "request", "requested": "Market Watch", "reported": "", "reportedGuessed": false, "reportedOn": "", "reportedOnGuessed": false, "record": "", "recordGuessed": false, "context": "This week in steel: mill capacity, scrap pricing, and what to watch. Could you spare two minutes?", "links": [], "url": "https://outlook.office365.com/mail/id/m5"}, {"id": "m6", "subject": "FYI: crane scheduling thread", "fromName": "D. Nguyen", "from": "d.nguyen@example.test", "to": ["ops@example.test"], "cc": ["deven@example.test"], "when": "Sep 21, 11:00 UTC", "kind": "request", "requested": "D. Nguyen", "reported": "", "reportedGuessed": false, "reportedOn": "", "reportedOnGuessed": false, "record": "", "recordGuessed": false, "context": "Can you all confirm the crane window for Thursday?", "links": [], "url": "https://outlook.office365.com/mail/id/m6"}, {"id": "m7", "subject": "Insurance certificate", "fromName": "Broker", "from": "broker@example.test", "to": ["deven@example.test"], "cc": [], "when": "Sep 18, 08:00 UTC", "kind": "request", "requested": "Broker", "reported": "", "reportedGuessed": false, "reportedOn": "", "reportedOnGuessed": false, "record": "", "recordGuessed": false, "context": "Please send the updated certificate of insurance when you can.", "links": [], "url": "https://outlook.office365.com/mail/id/m7"}, {"id": "m8", "subject": "[Bldg 4 Fabrication] Comment added on Task #4501001 - Stamp and issue Building 4 drawings", "fromName": "Zoho Projects", "from": "notifications@zohoprojects.com", "to": ["deven@example.test"], "cc": [], "when": "Sep 21, 14:20 UTC", "kind": "request", "requested": "Zoho Projects", "reported": "", "reportedGuessed": false, "reportedOn": "", "reportedOnGuessed": false, "record": "", "recordGuessed": false, "context": "A. Rivera commented: Fabricator is asking whether the revised base plate detail is approved. Can you confirm before Thursday?", "links": [], "url": "https://outlook.office365.com/mail/id/m8"}, {"id": "m9", "subject": "[Kansas City Yard] Comment added on Task #4777123 - Rebar delivery slip", "fromName": "Zoho Projects", "from": "notifications@zohoprojects.com", "to": ["deven@example.test"], "cc": [], "when": "Sep 21, 15:00 UTC", "kind": "request", "requested": "Zoho Projects", "reported": "", "reportedGuessed": false, "reportedOn": "", "reportedOnGuessed": false, "record": "", "recordGuessed": false, "context": "T. Alvarez commented: Can you confirm the delivery slip numbers for the rebar drop?", "links": [], "url": "https://outlook.office365.com/mail/id/m9"}, {"id": "m10", "subject": "Takeoff weight rollup is wrong on Bldg 4", "fromName": "T. Brennan", "from": "t.brennan@example.test", "to": ["deven@example.test", "ops@example.test"], "cc": ["pm@example.test"], "when": "Sep 22, 07:15 UTC", "kind": "bug", "requested": "T. Brennan", "reported": "Jane Kowalski", "reportedGuessed": true, "reportedOn": "Monday (2026-09-21)", "reportedOnGuessed": true, "record": "Bldg 4 Fabrication", "recordGuessed": true, "context": "We have a problem on the Bldg 4 Fabrication project. Our estimator Jane Kowalski reported that the weight rollup on the takeoff screen is wrong — it shows 0 lbs for any assembly with a nested sub-assembly. She hit it on Monday and it is still happening today. Steps: open the takeoff, add a nested assembly, save. The total must include the nested weights before we can quote. Could you raise a ticket for this? The agreed behaviour is written up here [doc 1].", "links": ["https://example.test/sites/eng/takeoff-spec.docx"], "url": "https://outlook.office365.com/mail/id/m10"}], "views": [{"key": "inbox", "name": "Outlook inbox monitor", "group": "Watching", "cadence": "Every 2 hours", "icon": "mail", "actions": true, "routine": "outlook-inbox-monitor", "generated": "Sep 22, 15:40 UTC", "headline": {"value": "3", "label": "Needs you", "tone": "critical"}, "html": "<div class=\"glass report\"><div class=\"rpt-head\"><div style=\"flex:1 1 320px;min-width:0;display:flex;flex-direction:column;gap:10px\"><h2 class=\"rpt-title\">Outlook inbox monitor</h2><div style=\"display:flex;align-items:center;gap:8px;flex-wrap:wrap\"><span class=\"pill pill-strong\">deven@example.test</span><span class=\"dv\"></span><span class=\"small muted\">Last 14 days · to Sep 22, 15:40 UTC</span></div></div><span class=\"pill pill-ro\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"3\" y=\"11\" width=\"18\" height=\"11\" rx=\"2\"></rect><path d=\"M7 11V7a5 5 0 0 1 10 0v4\"></path></svg> Read-only</span></div><div class=\"banner\"><span class=\"banner-ico\"><svg width=\"15\" height=\"15\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"></circle><line x1=\"12\" y1=\"16\" x2=\"12\" y2=\"12\"></line><line x1=\"12\" y1=\"8\" x2=\"12.01\" y2=\"8\"></line></svg></span><div style=\"flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:2px\"><span class=\"small\" style=\"font-weight:600;color:var(--cov)\">1 coverage gap — this report may be incomplete</span><span class=\"small muted\">1 notification(s) from zohoprojects.com did not match anything the covering routine reported; it may be missing a project, a permission, or a window</span></div></div><div class=\"kpis\"><div class=\"kpi\" style=\"border-color:var(--crit-edge)\"><span class=\"kpi-label\" style=\"color:#A5232B\"><svg width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z\"></path><line x1=\"12\" y1=\"9\" x2=\"12\" y2=\"13\"></line><line x1=\"12\" y1=\"17\" x2=\"12.01\" y2=\"17\"></line></svg>Needs you</span><span class=\"kpi-val\" style=\"color:#A5232B\">3</span><span class=\"kpi-sub\">blocked or asked</span></div><div class=\"kpi\" style=\"border-color:var(--note-edge)\"><span class=\"kpi-label\" style=\"color:#7A5A05\"><svg width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z\"></path><line x1=\"4\" y1=\"22\" x2=\"4\" y2=\"15\"></line></svg>You promised</span><span class=\"kpi-val\" style=\"color:#7A5A05\">1</span><span class=\"kpi-sub\">in sent mail</span></div><div class=\"kpi\" style=\"border-color:var(--note-edge)\"><span class=\"kpi-label\" style=\"color:#7A5A05\"><svg width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z\"></path><line x1=\"4\" y1=\"22\" x2=\"4\" y2=\"15\"></line></svg>No reply yet</span><span class=\"kpi-val\" style=\"color:#7A5A05\">1</span><span class=\"kpi-sub\">2+ business days</span></div><div class=\"kpi\"><span class=\"kpi-label\">Scanned</span><span class=\"kpi-val\">13</span><span class=\"kpi-sub\">messages</span></div><div class=\"kpi\" style=\"border-color:var(--cov-edge)\"><span class=\"kpi-label\" style=\"color:#8A421D\"><svg width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"></circle><line x1=\"12\" y1=\"16\" x2=\"12\" y2=\"12\"></line><line x1=\"12\" y1=\"8\" x2=\"12.01\" y2=\"8\"></line></svg>Excluded</span><span class=\"kpi-val\" style=\"color:#8A421D\">8</span><span class=\"kpi-sub\">not shown</span></div><div class=\"kpi\" style=\"border-color:var(--cov-edge)\"><span class=\"kpi-label\" style=\"color:#8A421D\"><svg width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"></circle><line x1=\"12\" y1=\"16\" x2=\"12\" y2=\"12\"></line><line x1=\"12\" y1=\"8\" x2=\"12.01\" y2=\"8\"></line></svg>Warnings</span><span class=\"kpi-val\" style=\"color:#8A421D\">1</span><span class=\"kpi-sub\">access or coverage</span></div></div><div class=\"glass-soft dist\"><div style=\"display:flex;align-items:baseline;gap:10px;flex-wrap:wrap\"><span class=\"kpi-label\">Why mail was excluded</span><span class=\"xsmall muted\">Counted, never listed — so you can tell what the report is not showing</span></div><div class=\"dist-bar\"><div class=\"dist-seg\" style=\"flex:2;background:#0E2F73\" title=\"automated sender — 2\"><span style=\"color:#FFFFFF\">2</span></div><div class=\"dist-seg\" style=\"flex:2;background:#1657D9\" title=\"you already replied — 2\"><span style=\"color:#FFFFFF\">2</span></div><div class=\"dist-seg\" style=\"flex:1;background:#5C90EA\" title=\"already reported by zoho-projects-radar — 1\"><span style=\"color:#1D1D1F\">1</span></div><div class=\"dist-seg\" style=\"flex:1;background:#93B6F3\" title=\"notification from zoho-projects-radar not matched to a tracked item — 1\"><span style=\"color:#1D1D1F\">1</span></div><div class=\"dist-seg\" style=\"flex:1;background:#BFD4F9\" title=\"sent mail that asked nothing — 1\"><span style=\"color:#1D1D1F\">1</span></div><div class=\"dist-seg\" style=\"flex:1;background:#E2EBFD\" title=\"you were only CC&#x27;d — 1\"><span style=\"color:#1D1D1F\">1</span></div></div><div class=\"key\"><span><i class=\"sw\" style=\"background:#0E2F73\"></i>automated sender</span><span><i class=\"sw\" style=\"background:#1657D9\"></i>you already replied</span><span><i class=\"sw\" style=\"background:#5C90EA\"></i>already reported by zoho-projects-radar</span><span><i class=\"sw\" style=\"background:#93B6F3\"></i>notification from zoho-projects-radar not matched to a tracked item</span><span><i class=\"sw\" style=\"background:#BFD4F9\"></i>sent mail that asked nothing</span><span><i class=\"sw\" style=\"background:#E2EBFD\"></i>you were only CC&#x27;d</span></div></div><div><div class=\"tier-head\"><span class=\"tier-ico\" style=\"background:var(--crit-tint);color:#A5232B\"><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z\"></path><line x1=\"12\" y1=\"9\" x2=\"12\" y2=\"13\"></line><line x1=\"12\" y1=\"17\" x2=\"12.01\" y2=\"17\"></line></svg></span><h3 class=\"tier-name\" style=\"color:#A5232B\">Blocked on you</h3><span class=\"tier-count\">1</span><span class=\"tier-note\">They say they cannot move without you</span></div><div class=\"rows glass\"><div class=\"row\"><div class=\"rail\" style=\"background:#A5232B\"></div><div style=\"flex:1 1 auto;min-width:0\"><div class=\"cells\"><div class=\"c-time\"><span class=\"t-rel\">1d ago</span><span class=\"t-abs\">Sep 21, 14:10</span></div><div class=\"c-chg\"><span class=\"chg-title\">A. Rivera cannot proceed without you</span><span class=\"chg-by\">A. Rivera · Q3 pricing sheet sign-off</span></div><a class=\"c-link\" href=\"https://outlook.office365.com/mail/id/m1\" rel=\"noopener noreferrer\" aria-label=\"Open source\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><line x1=\"7\" y1=\"17\" x2=\"17\" y2=\"7\"></line><polyline points=\"7 7 17 7 17 17\"></polyline></svg></a></div><div style=\"padding:0 18px 12px\"><p class=\"quote\">We cannot proceed without your approval on the revised tier pricing.</p><div class=\"flags\"><span class=\"flag\">addressed directly to you · states they are blocked · no reply from you · marked high importance</span></div></div></div></div></div></div><div><div class=\"tier-head\"><span class=\"tier-ico\" style=\"background:var(--crit-tint);color:#A5232B\"><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z\"></path><line x1=\"12\" y1=\"9\" x2=\"12\" y2=\"13\"></line><line x1=\"12\" y1=\"17\" x2=\"12.01\" y2=\"17\"></line></svg></span><h3 class=\"tier-name\" style=\"color:#A5232B\">Waiting on your reply</h3><span class=\"tier-count\">2</span><span class=\"tier-note\">Addressed to you, asked, unanswered</span></div><div class=\"rows glass\"><div class=\"row\"><div class=\"rail\" style=\"background:#A5232B\"></div><div style=\"flex:1 1 auto;min-width:0\"><div class=\"cells\"><div class=\"c-time\"><span class=\"t-rel\">8h ago</span><span class=\"t-abs\">Sep 22, 07:15</span></div><div class=\"c-chg\"><span class=\"chg-title\">T. Brennan is waiting on your reply</span><span class=\"chg-by\">T. Brennan · Takeoff weight rollup is wrong on Bldg 4</span></div><a class=\"c-link\" href=\"https://outlook.office365.com/mail/id/m10\" rel=\"noopener noreferrer\" aria-label=\"Open source\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><line x1=\"7\" y1=\"17\" x2=\"17\" y2=\"7\"></line><polyline points=\"7 7 17 7 17 17\"></polyline></svg></a></div><div style=\"padding:0 18px 12px\"><p class=\"quote\">Could you raise a ticket?</p><div class=\"flags\"><span class=\"flag\">addressed directly to you · request language detected · no reply from you</span></div></div></div></div><div class=\"row\"><div class=\"rail\" style=\"background:#A5232B\"></div><div style=\"flex:1 1 auto;min-width:0\"><div class=\"cells\"><div class=\"c-time\"><span class=\"t-rel\">1d ago</span><span class=\"t-abs\">Sep 21, 09:40</span></div><div class=\"c-chg\"><span class=\"chg-title\">M. Castillo is waiting on your reply</span><span class=\"chg-by\">M. Castillo · Warehouse drawings for Bldg 4</span></div><a class=\"c-link\" href=\"https://outlook.office365.com/mail/id/m2\" rel=\"noopener noreferrer\" aria-label=\"Open source\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><line x1=\"7\" y1=\"17\" x2=\"17\" y2=\"7\"></line><polyline points=\"7 7 17 7 17 17\"></polyline></svg></a></div><div style=\"padding:0 18px 12px\"><p class=\"quote\">Could you send the stamped drawings for Building 4 when you get a moment?</p><div class=\"flags\"><span class=\"flag\">addressed directly to you · request language detected · no reply from you</span></div></div></div></div></div></div><div><div class=\"tier-head\"><span class=\"tier-ico\" style=\"background:var(--note-tint);color:#7A5A05\"><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z\"></path><line x1=\"4\" y1=\"22\" x2=\"4\" y2=\"15\"></line></svg></span><h3 class=\"tier-name\" style=\"color:#7A5A05\">You promised</h3><span class=\"tier-count\">1</span><span class=\"tier-note\">Promise language in your own sent mail</span></div><div class=\"rows glass\"><div class=\"row\"><div class=\"rail\" style=\"background:#C9A227\"></div><div style=\"flex:1 1 auto;min-width:0\"><div class=\"cells\"><div class=\"c-time\"><span class=\"t-rel\">4d ago</span><span class=\"t-abs\">Sep 18, 09:15</span></div><div class=\"c-chg\"><span class=\"chg-title\">You owe broker@example.test: RE: Insurance certificate</span><span class=\"chg-by\">Deven · RE: Insurance certificate</span></div><a class=\"c-link\" href=\"https://outlook.office365.com/mail/id/s1\" rel=\"noopener noreferrer\" aria-label=\"Open source\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><line x1=\"7\" y1=\"17\" x2=\"17\" y2=\"7\"></line><polyline points=\"7 7 17 7 17 17\"></polyline></svg></a></div><div style=\"padding:0 18px 12px\"><p class=\"quote\">I&#x27;ll send the updated certificate over once underwriting confirms the endorsement.</p><div class=\"flags\"><span class=\"flag\">promise language in your own sent mail</span></div></div></div></div></div></div><div><div class=\"tier-head\"><span class=\"tier-ico\" style=\"background:var(--note-tint);color:#7A5A05\"><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z\"></path><line x1=\"4\" y1=\"22\" x2=\"4\" y2=\"15\"></line></svg></span><h3 class=\"tier-name\" style=\"color:#7A5A05\">No reply yet</h3><span class=\"tier-count\">1</span><span class=\"tier-note\">Silent for 2 business days or more</span></div><div class=\"rows glass\"><div class=\"row\"><div class=\"rail\" style=\"background:#C9A227\"></div><div style=\"flex:1 1 auto;min-width:0\"><div class=\"cells\"><div class=\"c-time\"><span class=\"t-rel\">4 business days</span><span class=\"t-abs\">Sep 16, 15:00</span></div><div class=\"c-chg\"><span class=\"chg-title\">j.park@example.test has not replied: Revised quote for the Tulsa job</span><span class=\"chg-by\">Deven · Revised quote for the Tulsa job</span></div><a class=\"c-link\" href=\"https://outlook.office365.com/mail/id/s2\" rel=\"noopener noreferrer\" aria-label=\"Open source\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><line x1=\"7\" y1=\"17\" x2=\"17\" y2=\"7\"></line><polyline points=\"7 7 17 7 17 17\"></polyline></svg></a></div><div style=\"padding:0 18px 12px\"><p class=\"quote\">Let me know if the schedule still works.</p><div class=\"flags\"><span class=\"flag\">you asked; nothing received since</span><span class=\"flag\">threshold is 2 business days</span></div></div></div></div></div></div><div class=\"glass-soft foot\"><div style=\"flex:1 1 320px;min-width:0;display:flex;flex-direction:column;gap:4px\"><span class=\"kpi-label\">Scope &amp; boundary</span><span class=\"small muted\" style=\"line-height:1.5\">Read-only Microsoft Graph GET only · never sends, replies, flags, moves, archives or marks read · 5 of at most 8 items shown · message bodies are not stored.</span></div></div></div>"}, {"key": "zoho", "name": "Zoho Projects radar", "group": "Watching", "cadence": "Daily · 08:00", "icon": "ticket", "actions": false, "routine": "zoho-projects-radar", "generated": "Sep 22, 15:40 UTC", "headline": {"value": "2", "label": "Comments", "tone": "critical"}, "html": "<div class=\"glass report\"><div class=\"rpt-head\"><div style=\"flex:1 1 320px;min-width:0;display:flex;flex-direction:column;gap:10px\"><h2 class=\"rpt-title\">Zoho Projects radar</h2><div style=\"display:flex;align-items:center;gap:8px;flex-wrap:wrap\"><span class=\"pill pill-strong\">alliedsteel</span><span class=\"dv\"></span><span class=\"small muted\">Last 72 hours · to Sep 22, 15:40 UTC</span></div></div><span class=\"pill pill-ro\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"3\" y=\"11\" width=\"18\" height=\"11\" rx=\"2\"></rect><path d=\"M7 11V7a5 5 0 0 1 10 0v4\"></path></svg> Read-only</span></div><div class=\"kpis\"><div class=\"kpi\" style=\"border-color:var(--crit-edge)\"><span class=\"kpi-label\" style=\"color:#A5232B\"><svg width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z\"></path><line x1=\"12\" y1=\"9\" x2=\"12\" y2=\"13\"></line><line x1=\"12\" y1=\"17\" x2=\"12.01\" y2=\"17\"></line></svg>Comments</span><span class=\"kpi-val\" style=\"color:#A5232B\">2</span><span class=\"kpi-sub\">usually need a reply</span></div><div class=\"kpi\" style=\"border-color:var(--crit-edge)\"><span class=\"kpi-label\" style=\"color:#A5232B\"><svg width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z\"></path><line x1=\"12\" y1=\"9\" x2=\"12\" y2=\"13\"></line><line x1=\"12\" y1=\"17\" x2=\"12.01\" y2=\"17\"></line></svg>Assigned to you</span><span class=\"kpi-val\" style=\"color:#A5232B\">1</span><span class=\"kpi-sub\">ownership changed</span></div><div class=\"kpi\" style=\"border-color:var(--note-edge)\"><span class=\"kpi-label\" style=\"color:#7A5A05\"><svg width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z\"></path><line x1=\"4\" y1=\"22\" x2=\"4\" y2=\"15\"></line></svg>Status changes</span><span class=\"kpi-val\" style=\"color:#7A5A05\">1</span><span class=\"kpi-sub\">on your items</span></div><div class=\"kpi\"><span class=\"kpi-label\">Projects</span><span class=\"kpi-val\">2</span><span class=\"kpi-sub\">scanned</span></div><div class=\"kpi\" style=\"border-color:var(--cov-edge)\"><span class=\"kpi-label\" style=\"color:#8A421D\"><svg width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"></circle><line x1=\"12\" y1=\"16\" x2=\"12\" y2=\"12\"></line><line x1=\"12\" y1=\"8\" x2=\"12.01\" y2=\"8\"></line></svg>Excluded</span><span class=\"kpi-val\" style=\"color:#8A421D\">3</span><span class=\"kpi-sub\">not shown</span></div><div class=\"kpi\"><span class=\"kpi-label\">Warnings</span><span class=\"kpi-val\">0</span><span class=\"kpi-sub\">access or coverage</span></div></div><div class=\"glass-soft dist\"><div style=\"display:flex;align-items:baseline;gap:10px;flex-wrap:wrap\"><span class=\"kpi-label\">Why activity was excluded</span><span class=\"xsmall muted\">Counted, never listed</span></div><div class=\"dist-bar\"><div class=\"dist-seg\" style=\"flex:1;background:#0E2F73\" title=\"not involving you — 1\"><span style=\"color:#FFFFFF\">1</span></div><div class=\"dist-seg\" style=\"flex:1;background:#1657D9\" title=\"outside the 72-hour window — 1\"><span style=\"color:#FFFFFF\">1</span></div><div class=\"dist-seg\" style=\"flex:1;background:#5C90EA\" title=\"your own activity — 1\"><span style=\"color:#1D1D1F\">1</span></div></div><div class=\"key\"><span><i class=\"sw\" style=\"background:#0E2F73\"></i>not involving you</span><span><i class=\"sw\" style=\"background:#1657D9\"></i>outside the 72-hour window</span><span><i class=\"sw\" style=\"background:#5C90EA\"></i>your own activity</span></div></div><div><div class=\"tier-head\"><span class=\"tier-ico\" style=\"background:var(--crit-tint);color:#A5232B\"><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z\"></path><line x1=\"12\" y1=\"9\" x2=\"12\" y2=\"13\"></line><line x1=\"12\" y1=\"17\" x2=\"12.01\" y2=\"17\"></line></svg></span><h3 class=\"tier-name\" style=\"color:#A5232B\">Comments</h3><span class=\"tier-count\">2</span><span class=\"tier-note\">A comment usually needs a reply</span></div><div class=\"rows glass\"><div class=\"row\"><div class=\"rail\" style=\"background:#A5232B\"></div><div style=\"flex:1 1 auto;min-width:0\"><div class=\"cells\"><div class=\"c-time\"><span class=\"t-rel\">1d ago</span><span class=\"t-abs\">Sep 21, 14:13</span></div><div class=\"c-chg\"><span class=\"chg-title\">a.rivera@example.test commented on Stamp and issue Building 4 drawings</span><span class=\"chg-by\">Bldg 4 Fabrication · Stamp and issue Building 4 drawings</span></div><a class=\"c-link\" href=\"https://projects.zoho.com/portal/alliedsteel#taskdetail/5001/4501001\" rel=\"noopener noreferrer\" aria-label=\"Open source\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><line x1=\"7\" y1=\"17\" x2=\"17\" y2=\"7\"></line><polyline points=\"7 7 17 7 17 17\"></polyline></svg></a></div><div style=\"padding:0 18px 12px\"><p class=\"quote\">Fabricator is asking whether the revised base plate detail is approved. Can you confirm before Thursday?</p><div class=\"flags\"><span class=\"flag\">comments usually need a reply · on your item</span></div></div></div></div><div class=\"row\"><div class=\"rail\" style=\"background:#A5232B\"></div><div style=\"flex:1 1 auto;min-width:0\"><div class=\"cells\"><div class=\"c-time\"><span class=\"t-rel\">1d ago</span><span class=\"t-abs\">Sep 21, 11:26</span></div><div class=\"c-chg\"><span class=\"chg-title\">m.castillo@example.test commented on Anchor bolt layout mismatch</span><span class=\"chg-by\">Bldg 4 Fabrication · Anchor bolt layout mismatch</span></div><a class=\"c-link\" href=\"https://projects.zoho.com/portal/alliedsteel#bugdetail/5001/4501044\" rel=\"noopener noreferrer\" aria-label=\"Open source\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><line x1=\"7\" y1=\"17\" x2=\"17\" y2=\"7\"></line><polyline points=\"7 7 17 7 17 17\"></polyline></svg></a></div><div style=\"padding:0 18px 12px\"><p class=\"quote\">Adding the surveyor notes here for the record.</p><div class=\"flags\"><span class=\"flag\">comments usually need a reply</span></div></div></div></div></div></div><div><div class=\"tier-head\"><span class=\"tier-ico\" style=\"background:var(--crit-tint);color:#A5232B\"><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z\"></path><line x1=\"12\" y1=\"9\" x2=\"12\" y2=\"13\"></line><line x1=\"12\" y1=\"17\" x2=\"12.01\" y2=\"17\"></line></svg></span><h3 class=\"tier-name\" style=\"color:#A5232B\">Assigned to you</h3><span class=\"tier-count\">1</span><span class=\"tier-note\">Ownership changed to you</span></div><div class=\"rows glass\"><div class=\"row\"><div class=\"rail\" style=\"background:#A5232B\"></div><div style=\"flex:1 1 auto;min-width:0\"><div class=\"cells\"><div class=\"c-time\"><span class=\"t-rel\">1d ago</span><span class=\"t-abs\">Sep 21, 08:40</span></div><div class=\"c-chg\"><span class=\"chg-title\">Assigned to you: Reconcile shipping list for sequence 3</span><span class=\"chg-by\">Bldg 4 Fabrication · Reconcile shipping list for sequence 3</span></div><a class=\"c-link\" href=\"https://projects.zoho.com/portal/alliedsteel#taskdetail/5001/4501077\" rel=\"noopener noreferrer\" aria-label=\"Open source\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><line x1=\"7\" y1=\"17\" x2=\"17\" y2=\"7\"></line><polyline points=\"7 7 17 7 17 17\"></polyline></svg></a></div><div style=\"padding:0 18px 12px\"><div class=\"flags\"><span class=\"flag\">assignment change involving you</span></div></div></div></div></div></div><div><div class=\"tier-head\"><span class=\"tier-ico\" style=\"background:var(--note-tint);color:#7A5A05\"><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z\"></path><line x1=\"4\" y1=\"22\" x2=\"4\" y2=\"15\"></line></svg></span><h3 class=\"tier-name\" style=\"color:#7A5A05\">Status changes on your items</h3><span class=\"tier-count\">1</span><span class=\"tier-note\">Moved without you</span></div><div class=\"rows glass\"><div class=\"row\"><div class=\"rail\" style=\"background:#C9A227\"></div><div style=\"flex:1 1 auto;min-width:0\"><div class=\"cells\"><div class=\"c-time\"><span class=\"t-rel\">1d ago</span><span class=\"t-abs\">Sep 21, 05:53</span></div><div class=\"c-chg\"><span class=\"chg-title\">Status changed to In Progress on Reconcile shipping list for sequence 3</span><span class=\"chg-by\">Bldg 4 Fabrication · Reconcile shipping list for sequence 3</span></div><a class=\"c-link\" href=\"https://projects.zoho.com/portal/alliedsteel#taskdetail/5001/4501077\" rel=\"noopener noreferrer\" aria-label=\"Open source\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><line x1=\"7\" y1=\"17\" x2=\"17\" y2=\"7\"></line><polyline points=\"7 7 17 7 17 17\"></polyline></svg></a></div><div style=\"padding:0 18px 12px\"><div class=\"flags\"><span class=\"flag\">status change on your item</span></div></div></div></div></div></div><div class=\"glass-soft foot\"><div style=\"flex:1 1 320px;min-width:0;display:flex;flex-direction:column;gap:4px\"><span class=\"kpi-label\">Scope &amp; boundary</span><span class=\"small muted\" style=\"line-height:1.5\">Read-only Zoho Projects GET only · never comments, closes, reassigns or changes a ticket · 4 of at most 10 items shown.</span></div></div></div>"}, {"key": "github", "name": "GitHub change radar", "group": "Watching", "cadence": "Daily · 08:00", "icon": "code", "actions": false, "routine": "github-change-radar", "generated": "Sep 15, 09:00 UTC", "headline": {"value": "0", "label": "High risk", "tone": "critical"}, "html": "<div class=\"glass report\"><div class=\"rpt-head\"><div style=\"flex:1 1 320px;min-width:0;display:flex;flex-direction:column;gap:10px\"><h2 class=\"rpt-title\">GitHub Change Radar</h2><div style=\"display:flex;align-items:center;gap:8px;flex-wrap:wrap\"><span class=\"pill pill-strong\">Allied-Steel-Buildings</span><span class=\"pill\">hkdeven/milou</span><span class=\"dv\"></span><span class=\"small muted\">Last 168 hours · to Sep 15, 09:00 UTC</span></div></div><span class=\"pill pill-ro\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"3\" y=\"11\" width=\"18\" height=\"11\" rx=\"2\"></rect><path d=\"M7 11V7a5 5 0 0 1 10 0v4\"></path></svg> Read-only</span></div><div class=\"kpis\"><div class=\"kpi\"><span class=\"kpi-label\">Changes</span><span class=\"kpi-val\">2</span><span class=\"kpi-sub\">in window</span></div><div class=\"kpi\"><span class=\"kpi-label\">Repositories</span><span class=\"kpi-val\">2</span><span class=\"kpi-sub\">scanned</span></div><div class=\"kpi\"><span class=\"kpi-label\">Contributors</span><span class=\"kpi-val\">0</span><span class=\"kpi-sub\">distinct authors</span></div><div class=\"kpi\" style=\"border-color:var(--crit-edge)\"><span class=\"kpi-label\" style=\"color:#A5232B\"><svg width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z\"></path><line x1=\"12\" y1=\"9\" x2=\"12\" y2=\"13\"></line><line x1=\"12\" y1=\"17\" x2=\"12.01\" y2=\"17\"></line></svg>High risk</span><span class=\"kpi-val\" style=\"color:#A5232B\">0</span><span class=\"kpi-sub\">needs attention</span></div><div class=\"kpi\" style=\"border-color:var(--note-edge)\"><span class=\"kpi-label\" style=\"color:#7A5A05\"><svg width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z\"></path><line x1=\"4\" y1=\"22\" x2=\"4\" y2=\"15\"></line></svg>Notable</span><span class=\"kpi-val\" style=\"color:#7A5A05\">0</span><span class=\"kpi-sub\">merges &amp; releases</span></div><div class=\"kpi\"><span class=\"kpi-label\">Warnings</span><span class=\"kpi-val\">0</span><span class=\"kpi-sub\">API or permission</span></div></div><div class=\"glass-soft dist\"><div style=\"display:flex;align-items:baseline;gap:10px;flex-wrap:wrap\"><span class=\"kpi-label\">Changes by type</span></div><div class=\"dist-bar\"><div class=\"dist-seg\" style=\"flex:1;background:#0E2F73\" title=\"commit — 1\"><span style=\"color:#FFFFFF\">1</span></div><div class=\"dist-seg\" style=\"flex:1;background:#1657D9\" title=\"pull request — 1\"><span style=\"color:#FFFFFF\">1</span></div></div><div class=\"key\"><span><i class=\"sw\" style=\"background:#0E2F73\"></i>commit</span><span><i class=\"sw\" style=\"background:#1657D9\"></i>pull request</span></div></div><div><div class=\"tier-head\"><span class=\"tier-ico\" style=\"background:rgba(0,0,0,.05);color:#6E6E73\"><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"9\"></circle></svg></span><h3 class=\"tier-name\" style=\"color:#6E6E73\">Routine activity</h3><span class=\"tier-count\">2</span><span class=\"tier-note\">Commits, branches, comments — no action implied</span></div><div class=\"rows glass-soft\"><div class=\"row row-quiet\"><div class=\"rail\" style=\"background:transparent\"></div><div style=\"flex:1 1 auto;min-width:0\"><div class=\"cells\"><div class=\"c-time\"><span class=\"t-rel\">1h ago</span><span class=\"t-abs\">Sep 15, 08:00</span></div><div class=\"c-repo\"><span class=\"r-own\">hkdeven/</span><span class=\"r-nm\">milou</span></div><div class=\"c-type\"><span class=\"chip-type\">pull request</span></div><div class=\"c-chg\"><span class=\"chg-title\">pull request: Radar [opened]</span><span class=\"chg-by\">reviewed by reviewer</span></div><div class=\"c-sig\"><span class=\"chip\">security</span></div><a class=\"c-link\" href=\"https://github.com/hkdeven/milou/pull/1\" rel=\"noopener noreferrer\" aria-label=\"Open source\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><line x1=\"7\" y1=\"17\" x2=\"17\" y2=\"7\"></line><polyline points=\"7 7 17 7 17 17\"></polyline></svg></a></div></div></div><div class=\"row row-quiet\"><div class=\"rail\" style=\"background:transparent\"></div><div style=\"flex:1 1 auto;min-width:0\"><div class=\"cells\"><div class=\"c-time\"><span class=\"t-rel\">1h ago</span><span class=\"t-abs\">Sep 15, 07:30</span></div><div class=\"c-repo\"><span class=\"r-own\">hkdeven/</span><span class=\"r-nm\">milou</span></div><div class=\"c-type\"><span class=\"chip-type\">commit</span></div><div class=\"c-chg\"><span class=\"chg-title\">1 commit; u1 by unknown: message unavailable</span></div><a class=\"c-link\" href=\"https://github.com/hkdeven/milou/commit/u1\" rel=\"noopener noreferrer\" aria-label=\"Open source\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><line x1=\"7\" y1=\"17\" x2=\"17\" y2=\"7\"></line><polyline points=\"7 7 17 7 17 17\"></polyline></svg></a></div></div></div></div></div><div class=\"glass-soft foot\"><div style=\"flex:1 1 320px;min-width:0;display:flex;flex-direction:column;gap:4px\"><span class=\"kpi-label\">Scope &amp; boundary</span><span class=\"small muted\" style=\"line-height:1.5\">Read-only authenticated `gh api` GET calls only · no mention filtering · user activity pages fetched: 1; organization Allied-Steel-Buildings repository page(s): 1 (cap 100); repository hkdeven/milou event page(s): 1; repository Allied-Steel-Buildings/steel event page(s): 1 · results outside the configured scope and window are unknown.</span></div></div></div>"}, {"key": "news", "name": "Daily AI news brief", "group": "Reading", "cadence": "Daily · 07:00", "icon": "news", "actions": false, "routine": "daily-global-ai-news-brief", "generated": "Sep 11, 12:00 UTC", "headline": {"value": "4", "label": "Selected", "tone": ""}, "html": "<div class=\"glass report\"><div class=\"rpt-head\"><div style=\"flex:1 1 320px;min-width:0;display:flex;flex-direction:column;gap:10px\"><h2 class=\"rpt-title\">Daily global AI news brief</h2><div style=\"display:flex;align-items:center;gap:8px;flex-wrap:wrap\"><span class=\"pill pill-strong\">8 configured sources</span><span class=\"dv\"></span><span class=\"small muted\">Previous 24 hours · to Sep 11, 12:00 UTC</span></div></div><span class=\"pill pill-ro\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"3\" y=\"11\" width=\"18\" height=\"11\" rx=\"2\"></rect><path d=\"M7 11V7a5 5 0 0 1 10 0v4\"></path></svg> Read-only</span></div><div class=\"banner\"><span class=\"banner-ico\"><svg width=\"15\" height=\"15\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"></circle><line x1=\"12\" y1=\"16\" x2=\"12\" y2=\"12\"></line><line x1=\"12\" y1=\"8\" x2=\"12.01\" y2=\"8\"></line></svg></span><div style=\"flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:2px\"><span class=\"small\" style=\"font-weight:600;color:var(--cov)\">2 of 8 sources unavailable — this brief is incomplete</span><span class=\"small muted\">IEEE Spectrum: fixture missing; THE DECODER: fixture missing</span></div></div><div class=\"kpis\"><div class=\"kpi\"><span class=\"kpi-label\">Selected</span><span class=\"kpi-val\">4</span><span class=\"kpi-sub\">of 5 slots</span></div><div class=\"kpi\"><span class=\"kpi-label\">Sources</span><span class=\"kpi-val\">6/8</span><span class=\"kpi-sub\">reachable</span></div><div class=\"kpi\"><span class=\"kpi-label\">Non-US</span><span class=\"kpi-val\">3/4</span><span class=\"kpi-sub\">lead or impact</span></div><div class=\"kpi\"><span class=\"kpi-label\">Regions</span><span class=\"kpi-val\">4</span><span class=\"kpi-sub\">represented</span></div><div class=\"kpi\"><span class=\"kpi-label\">Deduplicated</span><span class=\"kpi-val\">1</span><span class=\"kpi-sub\">same event, 2 outlets</span></div><div class=\"kpi\" style=\"border-color:var(--cov-edge)\"><span class=\"kpi-label\" style=\"color:#8A421D\"><svg width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"></circle><line x1=\"12\" y1=\"16\" x2=\"12\" y2=\"12\"></line><line x1=\"12\" y1=\"8\" x2=\"12.01\" y2=\"8\"></line></svg>Warnings</span><span class=\"kpi-val\" style=\"color:#8A421D\">2</span><span class=\"kpi-sub\">source failures</span></div></div><div class=\"glass-soft dist\"><div style=\"display:flex;align-items:baseline;gap:10px;flex-wrap:wrap\"><span class=\"kpi-label\">Geographic spread</span><span class=\"xsmall muted\">The brief weights non-US coverage, so the spread is a headline</span></div><div class=\"dist-bar\"><div class=\"dist-seg\" style=\"flex:1;background:#1657D9\" title=\"Europe — 1\"><span style=\"color:#FFFFFF\">Europe</span></div><div class=\"dist-seg\" style=\"flex:1;background:#D2600A\" title=\"Africa — 1\"><span style=\"color:#FFFFFF\">Africa</span></div><div class=\"dist-seg\" style=\"flex:1;background:#00915F\" title=\"East Asia — 1\"><span style=\"color:#FFFFFF\">East Asia</span></div><div class=\"dist-seg\" style=\"flex:1;background:#A0479B\" title=\"North America — 1\"><span style=\"color:#FFFFFF\">North America</span></div></div><div class=\"key\"><span><i class=\"sw\" style=\"background:#1657D9\"></i>Europe</span><span><i class=\"sw\" style=\"background:#D2600A\"></i>Africa</span><span><i class=\"sw\" style=\"background:#00915F\"></i>East Asia</span><span><i class=\"sw\" style=\"background:#A0479B\"></i>North America</span></div></div><div><div class=\"tier-head\"><span class=\"tier-ico\" style=\"background:rgba(0,0,0,.05);color:var(--ink-2)\"><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"9\"></circle></svg></span><h3 class=\"tier-name\" style=\"color:var(--ink-2)\">Selected</h3><span class=\"tier-count\">4</span><span class=\"tier-note\">Ordered by score, then adjusted for region diversity</span></div><div class=\"key\" style=\"padding:0 4px 10px\"><span class=\"kpi-label\" style=\"margin-right:4px\">Score made of</span><span><i class=\"sw\" style=\"background:#1657D9\"></i>discussion</span><span><i class=\"sw\" style=\"background:#D2600A\"></i>significance</span><span><i class=\"sw\" style=\"background:#00915F\"></i>freshness</span><span><i class=\"sw\" style=\"background:#A0479B\"></i>evidence</span><span><i class=\"sw sw-tex\"></i>non-US bonus</span></div><div class=\"art-list\"><article class=\"art\"><div class=\"art-rank\"><span class=\"rk\">1</span></div><div class=\"art-body\"><div class=\"art-top\"><a class=\"art-title\" href=\"https://example.test/euractiv/evaluation\" rel=\"noopener noreferrer\">EU publishes model evaluation guidance</a><span class=\"art-score\">0.99</span></div><div class=\"art-meta\"><span class=\"art-outlet\">Euractiv</span><span class=\"chip\">Europe</span><span class=\"chip\">policy</span><span class=\"chip\">safety</span><span class=\"art-when\">Sep 11, 08:00</span></div><p class=\"art-sum\">The guidance describes evidence expected for high-risk model evaluations.</p><div class=\"meter\" role=\"img\" aria-label=\"Score made of: discussion discussion 0.80 x 0.30 = 0.24, significance significance 0.90 x 0.28 = 0.25, freshness freshness 0.83 x 0.20 = 0.17, evidence evidence 0.95 x 0.22 = 0.21, non-US bonus non-US bonus +0.12\"><i style=\"width:21.43%;background:#1657D9\" title=\"discussion 0.80 x 0.30 = 0.24\"></i><i style=\"width:22.5%;background:#D2600A\" title=\"significance 0.90 x 0.28 = 0.25\"></i><i style=\"width:14.88%;background:#00915F\" title=\"freshness 0.83 x 0.20 = 0.17\"></i><i style=\"width:18.66%;background:#A0479B\" title=\"evidence 0.95 x 0.22 = 0.21\"></i><i class=\"tex\" style=\"width:10.71%\" title=\"non-US bonus +0.12\"></i></div></div></article><article class=\"art\"><div class=\"art-rank\"><span class=\"rk\">2</span></div><div class=\"art-body\"><div class=\"art-top\"><a class=\"art-title\" href=\"https://example.test/row/clinics\" rel=\"noopener noreferrer\">Kenyan clinics test multilingual AI triage</a><span class=\"art-score\">0.94</span></div><div class=\"art-meta\"><span class=\"art-outlet\">Rest of World</span><span class=\"chip\">Africa</span><span class=\"chip\">deployment</span><span class=\"chip\">health</span><span class=\"art-when\">Sep 11, 10:00</span></div><p class=\"art-sum\">Clinics are testing a language-aware triage tool and documenting limits.</p><div class=\"meter\" role=\"img\" aria-label=\"Score made of: discussion discussion 0.70 x 0.30 = 0.21, significance significance 0.80 x 0.28 = 0.22, freshness freshness 0.92 x 0.20 = 0.18, evidence evidence 0.90 x 0.22 = 0.20, non-US bonus non-US bonus +0.12\"><i style=\"width:18.75%;background:#1657D9\" title=\"discussion 0.70 x 0.30 = 0.21\"></i><i style=\"width:20%;background:#D2600A\" title=\"significance 0.80 x 0.28 = 0.22\"></i><i style=\"width:16.37%;background:#00915F\" title=\"freshness 0.92 x 0.20 = 0.18\"></i><i style=\"width:17.68%;background:#A0479B\" title=\"evidence 0.90 x 0.22 = 0.20\"></i><i class=\"tex\" style=\"width:10.71%\" title=\"non-US bonus +0.12\"></i></div></div></article><article class=\"art\"><div class=\"art-rank\"><span class=\"rk\">3</span></div><div class=\"art-body\"><div class=\"art-top\"><a class=\"art-title\" href=\"https://example.test/nikkei/chips\" rel=\"noopener noreferrer\">Japanese manufacturers expand efficient AI chips</a><span class=\"art-score\">0.77</span></div><div class=\"art-meta\"><span class=\"art-outlet\">Nikkei Asia</span><span class=\"chip\">East Asia</span><span class=\"chip\">chips</span><span class=\"chip\">industry</span><span class=\"art-when\">Sep 10, 20:00</span></div><p class=\"art-sum\">Manufacturers announced a partnership focused on lower-power inference.</p><div class=\"meter\" role=\"img\" aria-label=\"Score made of: discussion discussion 0.65 x 0.30 = 0.20, significance significance 0.75 x 0.28 = 0.21, freshness freshness 0.33 x 0.20 = 0.07, evidence evidence 0.80 x 0.22 = 0.18, non-US bonus non-US bonus +0.12\"><i style=\"width:17.41%;background:#1657D9\" title=\"discussion 0.65 x 0.30 = 0.20\"></i><i style=\"width:18.75%;background:#D2600A\" title=\"significance 0.75 x 0.28 = 0.21\"></i><i style=\"width:5.952%;background:#00915F\" title=\"freshness 0.33 x 0.20 = 0.07\"></i><i style=\"width:15.71%;background:#A0479B\" title=\"evidence 0.80 x 0.22 = 0.18\"></i><i class=\"tex\" style=\"width:10.71%\" title=\"non-US bonus +0.12\"></i></div></div></article><article class=\"art\"><div class=\"art-rank\"><span class=\"rk\">4</span></div><div class=\"art-body\"><div class=\"art-top\"><a class=\"art-title\" href=\"https://example.test/tc/partnership\" rel=\"noopener noreferrer\">US startup announces model partnership</a><span class=\"art-score\">0.60</span></div><div class=\"art-meta\"><span class=\"art-outlet\">TechCrunch</span><span class=\"chip\">North America</span><span class=\"chip\">business</span><span class=\"art-when\">Sep 11, 11:00</span></div><p class=\"art-sum\">A startup announced a model partnership; terms remain preliminary.</p><div class=\"meter\" role=\"img\" aria-label=\"Score made of: discussion discussion 0.50 x 0.30 = 0.15, significance significance 0.50 x 0.28 = 0.14, freshness freshness 0.96 x 0.20 = 0.19, evidence evidence 0.55 x 0.22 = 0.12\"><i style=\"width:13.39%;background:#1657D9\" title=\"discussion 0.50 x 0.30 = 0.15\"></i><i style=\"width:12.5%;background:#D2600A\" title=\"significance 0.50 x 0.28 = 0.14\"></i><i style=\"width:17.11%;background:#00915F\" title=\"freshness 0.96 x 0.20 = 0.19\"></i><i style=\"width:10.8%;background:#A0479B\" title=\"evidence 0.55 x 0.22 = 0.12\"></i></div><div class=\"flags\"><span class=\"flag\" style=\"color:#7A5A05\"><svg width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z\"></path><line x1=\"4\" y1=\"22\" x2=\"4\" y2=\"15\"></line></svg>Single-source announcement.</span></div></div></article></div></div><div><div class=\"tier-head\"><span class=\"tier-ico\" style=\"background:rgba(0,0,0,.05);color:#6E6E73\"><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"9\"></circle></svg></span><h3 class=\"tier-name\" style=\"color:#6E6E73\">Considered, not selected</h3><span class=\"tier-count\">2</span><span class=\"tier-note\">What was dropped, and why</span></div><div class=\"rows glass-soft\"><div class=\"row row-quiet\"><div class=\"rail\" style=\"background:transparent\"></div><div style=\"flex:1 1 auto;min-width:0\"><div class=\"cells\"><div class=\"c-time\"><span class=\"t-rel\"></span><span class=\"t-abs\">Sep 11, 09:00</span></div><div class=\"c-repo\"><span class=\"r-nm\">South China Morning Post</span></div><div class=\"c-type\"><span class=\"chip-type\">duplicate</span></div><div class=\"c-chg\"><span class=\"chg-title\">EU publishes model evaluation guidance</span><span class=\"chg-by\">South China Morning Post · corroborates the Euractiv account, which ranked higher (0.99 vs 0.86)</span></div><a class=\"c-link\" href=\"https://example.test/scmp/evaluation\" rel=\"noopener noreferrer\" aria-label=\"Open source\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><line x1=\"7\" y1=\"17\" x2=\"17\" y2=\"7\"></line><polyline points=\"7 7 17 7 17 17\"></polyline></svg></a></div></div></div><div class=\"row row-quiet\"><div class=\"rail\" style=\"background:transparent\"></div><div style=\"flex:1 1 auto;min-width:0\"><div class=\"cells\"><div class=\"c-time\"><span class=\"t-rel\"></span><span class=\"t-abs\">Sep 01, 11:00</span></div><div class=\"c-repo\"><span class=\"r-nm\">MIT Technology Review</span></div><div class=\"c-type\"><span class=\"chip-type\">stale</span></div><div class=\"c-chg\"><span class=\"chg-title\">Old AI policy explainer</span><span class=\"chg-by\">Published outside the 24-hour window</span></div><a class=\"c-link\" href=\"https://example.test/mit/old\" rel=\"noopener noreferrer\" aria-label=\"Open source\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><line x1=\"7\" y1=\"17\" x2=\"17\" y2=\"7\"></line><polyline points=\"7 7 17 7 17 17\"></polyline></svg></a></div></div></div></div></div><div class=\"glass-soft foot\"><div style=\"flex:1 1 320px;min-width:0;display:flex;flex-direction:column;gap:4px\"><span class=\"kpi-label\">Scope &amp; boundary</span><span class=\"small muted\" style=\"line-height:1.5\">Read-only fetch of configured sources · every item carries a direct citation · ranking weights are fixed and shown · nothing outside the 24-hour window was considered.</span></div></div></div>"}, {"key": "wins", "name": "Daily wins recap", "group": "Reading", "cadence": "Daily · 18:00", "icon": "check", "actions": false, "routine": "daily-wins-recap", "generated": "2026-09-12T07:00:00+00:00", "headline": {"value": "1", "label": "Inferred", "tone": "notable"}, "html": "<div class=\"glass report\"><div class=\"rpt-head\"><div style=\"flex:1 1 320px;min-width:0;display:flex;flex-direction:column;gap:10px\"><h2 class=\"rpt-title\">Daily wins recap</h2><div style=\"display:flex;align-items:center;gap:8px;flex-wrap:wrap\"><span class=\"pill pill-strong\">structured activity fixture</span><span class=\"dv\"></span><span class=\"small muted\">fixture period · to 2026-09-12T07:00:00+00:00</span></div></div><span class=\"pill pill-ro\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"3\" y=\"11\" width=\"18\" height=\"11\" rx=\"2\"></rect><path d=\"M7 11V7a5 5 0 0 1 10 0v4\"></path></svg> Read-only</span></div><div class=\"kpis\"><div class=\"kpi\"><span class=\"kpi-label\">Wins</span><span class=\"kpi-val\">2</span><span class=\"kpi-sub\">recorded</span></div><div class=\"kpi\"><span class=\"kpi-label\">With evidence</span><span class=\"kpi-val\">2</span><span class=\"kpi-sub\">of 2</span></div><div class=\"kpi\" style=\"border-color:var(--note-edge)\"><span class=\"kpi-label\" style=\"color:#7A5A05\"><svg width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z\"></path><line x1=\"4\" y1=\"22\" x2=\"4\" y2=\"15\"></line></svg>Inferred</span><span class=\"kpi-val\" style=\"color:#7A5A05\">1</span><span class=\"kpi-sub\">impact claims</span></div><div class=\"kpi\"><span class=\"kpi-label\">Missing evidence</span><span class=\"kpi-val\">0</span><span class=\"kpi-sub\">unverified</span></div></div><div><div class=\"tier-head\"><span class=\"tier-ico\" style=\"background:rgba(0,0,0,.05);color:var(--ink-2)\"><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"9\"></circle></svg></span><h3 class=\"tier-name\" style=\"color:var(--ink-2)\">Verified facts</h3><span class=\"tier-count\">2</span><span class=\"tier-note\">Each carries its own evidence link</span></div><div class=\"rows glass\"><div class=\"row\"><div class=\"rail\" style=\"background:transparent\"></div><div style=\"flex:1 1 auto;min-width:0\"><div class=\"cells\"><div class=\"c-time\"><span class=\"t-rel\"></span><span class=\"t-abs\">2026-09-11T16:20:00+00:00</span></div><div class=\"c-chg\"><span class=\"chg-title\">Merged accessibility fixes</span></div><div class=\"c-sig\"><span class=\"chip\">completed</span></div><a class=\"c-link\" href=\"https://example.test/github/pull/42\" rel=\"noopener noreferrer\" aria-label=\"Open source\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><line x1=\"7\" y1=\"17\" x2=\"17\" y2=\"7\"></line><polyline points=\"7 7 17 7 17 17\"></polyline></svg></a></div><div style=\"padding:0 18px 12px\"><p class=\"quote\">Reviewed and merged the keyboard-navigation pull request.</p></div></div></div><div class=\"row\"><div class=\"rail\" style=\"background:transparent\"></div><div style=\"flex:1 1 auto;min-width:0\"><div class=\"cells\"><div class=\"c-time\"><span class=\"t-rel\"></span><span class=\"t-abs\">2026-09-11T14:00:00+00:00</span></div><div class=\"c-chg\"><span class=\"chg-title\">Published project decision</span></div><div class=\"c-sig\"><span class=\"chip\">completed</span></div><a class=\"c-link\" href=\"https://example.test/docs/decision\" rel=\"noopener noreferrer\" aria-label=\"Open source\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><line x1=\"7\" y1=\"17\" x2=\"17\" y2=\"7\"></line><polyline points=\"7 7 17 7 17 17\"></polyline></svg></a></div></div></div></div></div><div><div class=\"tier-head\"><span class=\"tier-ico\" style=\"background:var(--note-tint);color:#7A5A05\"><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z\"></path><line x1=\"4\" y1=\"22\" x2=\"4\" y2=\"15\"></line></svg></span><h3 class=\"tier-name\" style=\"color:#7A5A05\">Inferred impact</h3><span class=\"tier-count\">1</span><span class=\"tier-note\">Inference from the same activity — not a measurement</span></div><div class=\"rows glass\"><div class=\"row\"><div class=\"rail\" style=\"background:#C9A227\"></div><div style=\"flex:1 1 auto;min-width:0\"><div class=\"cells\"><div class=\"c-chg\"><span class=\"chg-title\">Merged accessibility fixes</span></div><span class=\"c-link\" style=\"border:0;background:none\"></span></div><div style=\"padding:0 18px 12px\"><p class=\"quote\">Likely reduces friction for keyboard users; impact has not been measured.</p><div class=\"flags\"><span class=\"flag\" style=\"color:#7A5A05\"><svg width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z\"></path><line x1=\"4\" y1=\"22\" x2=\"4\" y2=\"15\"></line></svg>Inferred, not measured</span></div></div></div></div></div></div><div class=\"glass-soft foot\"><div style=\"flex:1 1 320px;min-width:0;display:flex;flex-direction:column;gap:4px\"><span class=\"kpi-label\">Scope &amp; boundary</span><span class=\"small muted\" style=\"line-height:1.5\">Structured activity fixture only · missing evidence is never treated as completion.</span></div></div></div>"}, {"key": "brief", "name": "Morning brief", "group": "Reading", "cadence": "Weekdays · 07:30", "icon": "calendar", "actions": false, "routine": "morning-brief-meeting-prep", "generated": "2026-09-12T07:30:00+00:00", "headline": {"value": "1", "label": "Commitments", "tone": "notable"}, "html": "<div class=\"glass report\"><div class=\"rpt-head\"><div style=\"flex:1 1 320px;min-width:0;display:flex;flex-direction:column;gap:10px\"><h2 class=\"rpt-title\">Morning brief / meeting prep</h2><div style=\"display:flex;align-items:center;gap:8px;flex-wrap:wrap\"><span class=\"pill pill-strong\">calendar/meeting fixture</span><span class=\"dv\"></span><span class=\"small muted\">calendar fixture period · to 2026-09-12T07:30:00+00:00</span></div></div><span class=\"pill pill-ro\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"3\" y=\"11\" width=\"18\" height=\"11\" rx=\"2\"></rect><path d=\"M7 11V7a5 5 0 0 1 10 0v4\"></path></svg> Read-only</span></div><div class=\"kpis\"><div class=\"kpi\"><span class=\"kpi-label\">Meetings</span><span class=\"kpi-val\">1</span><span class=\"kpi-sub\">scheduled</span></div><div class=\"kpi\" style=\"border-color:var(--note-edge)\"><span class=\"kpi-label\" style=\"color:#7A5A05\"><svg width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z\"></path><line x1=\"4\" y1=\"22\" x2=\"4\" y2=\"15\"></line></svg>Commitments</span><span class=\"kpi-val\" style=\"color:#7A5A05\">1</span><span class=\"kpi-sub\">to carry in</span></div><div class=\"kpi\"><span class=\"kpi-label\">Open questions</span><span class=\"kpi-val\">1</span><span class=\"kpi-sub\">unresolved</span></div><div class=\"kpi\" style=\"border-color:var(--cov-edge)\"><span class=\"kpi-label\" style=\"color:#8A421D\"><svg width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"></circle><line x1=\"12\" y1=\"16\" x2=\"12\" y2=\"12\"></line><line x1=\"12\" y1=\"8\" x2=\"12.01\" y2=\"8\"></line></svg>Inaccessible</span><span class=\"kpi-val\" style=\"color:#8A421D\">1</span><span class=\"kpi-sub\">links</span></div></div><div><div class=\"tier-head\"><span class=\"tier-ico\" style=\"background:rgba(0,0,0,.05);color:var(--ink-2)\"><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"9\"></circle></svg></span><h3 class=\"tier-name\" style=\"color:var(--ink-2)\">Meetings</h3><span class=\"tier-count\">1</span><span class=\"tier-note\">Context, decisions and commitments preserved</span></div><div class=\"rows glass\"><div class=\"row\"><div class=\"rail\" style=\"background:transparent\"></div><div style=\"flex:1 1 auto;min-width:0\"><div class=\"cells\"><div class=\"c-time\"><span class=\"t-rel\"></span><span class=\"t-abs\">2026-09-12T09:00:00+00:00</span></div><div class=\"c-chg\"><span class=\"chg-title\">Accessibility launch review</span><span class=\"chg-by\">A. Rivera, M. Chen</span></div><div class=\"c-sig\"><span class=\"chip\">2 linked</span></div><a class=\"c-link\" href=\"https://example.test/docs/decision\" rel=\"noopener noreferrer\" aria-label=\"Open source\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><line x1=\"7\" y1=\"17\" x2=\"17\" y2=\"7\"></line><polyline points=\"7 7 17 7 17 17\"></polyline></svg></a></div><div style=\"padding:0 18px 12px\"><p class=\"quote\">Confirm launch readiness and ownership of remaining checks.</p><div class=\"flags\"><span class=\"flag\">Decision: Launch checklist owner</span><span class=\"flag\" style=\"color:#7A5A05\"><svg width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z\"></path><line x1=\"4\" y1=\"22\" x2=\"4\" y2=\"15\"></line></svg>Open question: Are translations ready?</span><span class=\"flag\" style=\"color:#7A5A05\"><svg width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z\"></path><line x1=\"4\" y1=\"22\" x2=\"4\" y2=\"15\"></line></svg>Commitment: Bring the current test report</span><span class=\"flag\" style=\"color:#8A421D\"><svg width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"></circle><line x1=\"12\" y1=\"16\" x2=\"12\" y2=\"12\"></line><line x1=\"12\" y1=\"8\" x2=\"12.01\" y2=\"8\"></line></svg>Inaccessible link: https://example.test/private/roadmap</span></div></div></div></div></div></div><div class=\"glass-soft foot\"><div style=\"flex:1 1 320px;min-width:0;display:flex;flex-direction:column;gap:4px\"><span class=\"kpi-label\">Scope &amp; boundary</span><span class=\"small muted\" style=\"line-height:1.5\">Read-only preparation · no attendee was contacted and no event was created, edited, accepted, declined, or moved.</span></div></div></div>"}, {"key": "commitments", "name": "Commitments tracker", "group": "Watching", "cadence": "Daily · 09:00", "icon": "clock", "actions": false, "routine": "commitments-follow-up-tracker", "generated": "2026-09-12T07:00:00+00:00", "headline": {"value": "1", "label": "Commitments", "tone": ""}, "html": "<div class=\"glass report\"><div class=\"rpt-head\"><div style=\"flex:1 1 320px;min-width:0;display:flex;flex-direction:column;gap:10px\"><h2 class=\"rpt-title\">Commitments and follow-up tracker</h2><div style=\"display:flex;align-items:center;gap:8px;flex-wrap:wrap\"><span class=\"pill pill-strong\">messages and activities fixture</span><span class=\"dv\"></span><span class=\"small muted\">fixture period · to 2026-09-12T07:00:00+00:00</span></div></div><span class=\"pill pill-ro\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"3\" y=\"11\" width=\"18\" height=\"11\" rx=\"2\"></rect><path d=\"M7 11V7a5 5 0 0 1 10 0v4\"></path></svg> Read-only</span></div><div class=\"kpis\"><div class=\"kpi\"><span class=\"kpi-label\">Commitments</span><span class=\"kpi-val\">1</span><span class=\"kpi-sub\">detected</span></div><div class=\"kpi\"><span class=\"kpi-label\">Ageing</span><span class=\"kpi-val\">0</span><span class=\"kpi-sub\">a week or more</span></div><div class=\"kpi\"><span class=\"kpi-label\">Unclear owner</span><span class=\"kpi-val\">0</span><span class=\"kpi-sub\">need clarifying</span></div><div class=\"kpi\"><span class=\"kpi-label\">Scanned</span><span class=\"kpi-val\">2</span><span class=\"kpi-sub\">messages &amp; activities</span></div></div><div><div class=\"tier-head\"><span class=\"tier-ico\" style=\"background:var(--note-tint);color:#7A5A05\"><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z\"></path><line x1=\"4\" y1=\"22\" x2=\"4\" y2=\"15\"></line></svg></span><h3 class=\"tier-name\" style=\"color:#7A5A05\">Recent</h3><span class=\"tier-count\">1</span><span class=\"tier-note\">Three days or more</span></div><div class=\"rows glass\"><div class=\"row\"><div class=\"rail\" style=\"background:#C9A227\"></div><div style=\"flex:1 1 auto;min-width:0\"><div class=\"cells\"><div class=\"c-time\"><span class=\"t-rel\">3 days</span></div><div class=\"c-chg\"><span class=\"chg-title\">I&#x27;ll share the rollout notes by Friday.</span><span class=\"chg-by\">Alex</span></div><div class=\"c-sig\"><span class=\"chip\">open</span></div><a class=\"c-link\" href=\"https://example.test/messages/1\" rel=\"noopener noreferrer\" aria-label=\"Open source\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><line x1=\"7\" y1=\"17\" x2=\"17\" y2=\"7\"></line><polyline points=\"7 7 17 7 17 17\"></polyline></svg></a></div><div style=\"padding:0 18px 12px\"><div class=\"flags\"><span class=\"flag\">Suggested follow-up: Confirm progress and agree a due date</span></div></div></div></div></div></div><div class=\"glass-soft foot\"><div style=\"flex:1 1 320px;min-width:0;display:flex;flex-direction:column;gap:4px\"><span class=\"kpi-label\">Scope &amp; boundary</span><span class=\"small muted\" style=\"line-height:1.5\">Explicit promise language only · read-only: no message was sent and no commitment was edited.</span></div></div></div>"}, {"key": "stale", "name": "Stale work finder", "group": "Watching", "cadence": "Weekly · Mon", "icon": "clock", "actions": false, "routine": "stale-work-finder", "generated": "2026-09-12T07:00:00+00:00", "headline": {"value": "1", "label": "Urgent", "tone": "critical"}, "html": "<div class=\"glass report\"><div class=\"rpt-head\"><div style=\"flex:1 1 320px;min-width:0;display:flex;flex-direction:column;gap:10px\"><h2 class=\"rpt-title\">Stale work finder</h2><div style=\"display:flex;align-items:center;gap:8px;flex-wrap:wrap\"><span class=\"pill pill-strong\">GitHub work fixture</span><span class=\"dv\"></span><span class=\"small muted\">fixture period · to 2026-09-12T07:00:00+00:00</span></div></div><span class=\"pill pill-ro\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"3\" y=\"11\" width=\"18\" height=\"11\" rx=\"2\"></rect><path d=\"M7 11V7a5 5 0 0 1 10 0v4\"></path></svg> Read-only</span></div><div class=\"kpis\"><div class=\"kpi\"><span class=\"kpi-label\">Stale</span><span class=\"kpi-val\">4</span><span class=\"kpi-sub\">of 4 scanned</span></div><div class=\"kpi\" style=\"border-color:var(--crit-edge)\"><span class=\"kpi-label\" style=\"color:#A5232B\"><svg width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z\"></path><line x1=\"12\" y1=\"9\" x2=\"12\" y2=\"13\"></line><line x1=\"12\" y1=\"17\" x2=\"12.01\" y2=\"17\"></line></svg>Urgent</span><span class=\"kpi-val\" style=\"color:#A5232B\">1</span><span class=\"kpi-sub\">act now</span></div><div class=\"kpi\" style=\"border-color:var(--note-edge)\"><span class=\"kpi-label\" style=\"color:#7A5A05\"><svg width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z\"></path><line x1=\"4\" y1=\"22\" x2=\"4\" y2=\"15\"></line></svg>Soon</span><span class=\"kpi-val\" style=\"color:#7A5A05\">1</span><span class=\"kpi-sub\">act this week</span></div><div class=\"kpi\"><span class=\"kpi-label\">Monitor</span><span class=\"kpi-val\">2</span><span class=\"kpi-sub\">watch</span></div></div><div><div class=\"tier-head\"><span class=\"tier-ico\" style=\"background:var(--crit-tint);color:#A5232B\"><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z\"></path><line x1=\"12\" y1=\"9\" x2=\"12\" y2=\"13\"></line><line x1=\"12\" y1=\"17\" x2=\"12.01\" y2=\"17\"></line></svg></span><h3 class=\"tier-name\" style=\"color:#A5232B\">Urgent</h3><span class=\"tier-count\">1</span><span class=\"tier-note\">Three times past its threshold</span></div><div class=\"rows glass\"><div class=\"row\"><div class=\"rail\" style=\"background:#A5232B\"></div><div style=\"flex:1 1 auto;min-width:0\"><div class=\"cells\"><div class=\"c-time\"><span class=\"t-rel\">23 days idle</span></div><div class=\"c-type\"><span class=\"chip-type\">Authored PR</span></div><div class=\"c-chg\"><span class=\"chg-title\">Accessibility follow-up</span></div><div class=\"c-sig\"><span class=\"chip\">threshold 7 days</span></div><a class=\"c-link\" href=\"https://example.test/pull/8\" rel=\"noopener noreferrer\" aria-label=\"Open source\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><line x1=\"7\" y1=\"17\" x2=\"17\" y2=\"7\"></line><polyline points=\"7 7 17 7 17 17\"></polyline></svg></a></div></div></div></div></div><div><div class=\"tier-head\"><span class=\"tier-ico\" style=\"background:var(--note-tint);color:#7A5A05\"><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z\"></path><line x1=\"4\" y1=\"22\" x2=\"4\" y2=\"15\"></line></svg></span><h3 class=\"tier-name\" style=\"color:#7A5A05\">Soon</h3><span class=\"tier-count\">1</span><span class=\"tier-note\">Twice past its threshold</span></div><div class=\"rows glass\"><div class=\"row\"><div class=\"rail\" style=\"background:#C9A227\"></div><div style=\"flex:1 1 auto;min-width:0\"><div class=\"cells\"><div class=\"c-time\"><span class=\"t-rel\">6 days idle</span></div><div class=\"c-type\"><span class=\"chip-type\">Assigned review</span></div><div class=\"c-chg\"><span class=\"chg-title\">Review API change</span></div><div class=\"c-sig\"><span class=\"chip\">threshold 3 days</span></div><a class=\"c-link\" href=\"https://example.test/pull/9\" rel=\"noopener noreferrer\" aria-label=\"Open source\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><line x1=\"7\" y1=\"17\" x2=\"17\" y2=\"7\"></line><polyline points=\"7 7 17 7 17 17\"></polyline></svg></a></div></div></div></div></div><div><div class=\"tier-head\"><span class=\"tier-ico\" style=\"background:rgba(0,0,0,.05);color:#6E6E73\"><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"9\"></circle></svg></span><h3 class=\"tier-name\" style=\"color:#6E6E73\">Monitor</h3><span class=\"tier-count\">2</span><span class=\"tier-note\">Past its threshold</span></div><div class=\"rows glass-soft\"><div class=\"row row-quiet\"><div class=\"rail\" style=\"background:transparent\"></div><div style=\"flex:1 1 auto;min-width:0\"><div class=\"cells\"><div class=\"c-time\"><span class=\"t-rel\">23 days idle</span></div><div class=\"c-type\"><span class=\"chip-type\">Assigned issue</span></div><div class=\"c-chg\"><span class=\"chg-title\">Document backup path</span></div><div class=\"c-sig\"><span class=\"chip\">threshold 14 days</span></div><a class=\"c-link\" href=\"https://example.test/issues/3\" rel=\"noopener noreferrer\" aria-label=\"Open source\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><line x1=\"7\" y1=\"17\" x2=\"17\" y2=\"7\"></line><polyline points=\"7 7 17 7 17 17\"></polyline></svg></a></div></div></div><div class=\"row row-quiet\"><div class=\"rail\" style=\"background:transparent\"></div><div style=\"flex:1 1 auto;min-width:0\"><div class=\"cells\"><div class=\"c-time\"><span class=\"t-rel\">42 days idle</span></div><div class=\"c-type\"><span class=\"chip-type\">Old draft</span></div><div class=\"c-chg\"><span class=\"chg-title\">Draft migration</span></div><div class=\"c-sig\"><span class=\"chip\">threshold 30 days</span></div><a class=\"c-link\" href=\"https://example.test/pull/10\" rel=\"noopener noreferrer\" aria-label=\"Open source\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><line x1=\"7\" y1=\"17\" x2=\"17\" y2=\"7\"></line><polyline points=\"7 7 17 7 17 17\"></polyline></svg></a></div></div></div></div></div><div class=\"glass-soft foot\"><div style=\"flex:1 1 320px;min-width:0;display:flex;flex-direction:column;gap:4px\"><span class=\"kpi-label\">Scope &amp; boundary</span><span class=\"small muted\" style=\"line-height:1.5\">Thresholds: authored PR 7 days · assigned review 3 days · assigned issue 14 days · draft 30 days. Read-only: nothing was changed.</span></div></div></div>"}, {"key": "dependabot", "name": "Dependabot triage", "group": "Watching", "cadence": "Daily · 08:30", "icon": "code", "actions": false, "routine": "dependabot-pr-triage", "generated": "2026-09-12T07:00:00+00:00", "headline": {"value": "1", "label": "Security", "tone": "critical"}, "html": "<div class=\"glass report\"><div class=\"rpt-head\"><div style=\"flex:1 1 320px;min-width:0;display:flex;flex-direction:column;gap:10px\"><h2 class=\"rpt-title\">Dependabot PR triage</h2><div style=\"display:flex;align-items:center;gap:8px;flex-wrap:wrap\"><span class=\"pill pill-strong\">Dependabot pull-request fixture</span><span class=\"dv\"></span><span class=\"small muted\">fixture period · to 2026-09-12T07:00:00+00:00</span></div></div><span class=\"pill pill-ro\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"3\" y=\"11\" width=\"18\" height=\"11\" rx=\"2\"></rect><path d=\"M7 11V7a5 5 0 0 1 10 0v4\"></path></svg> Read-only</span></div><div class=\"kpis\"><div class=\"kpi\"><span class=\"kpi-label\">Updates</span><span class=\"kpi-val\">2</span><span class=\"kpi-sub\">open</span></div><div class=\"kpi\" style=\"border-color:var(--crit-edge)\"><span class=\"kpi-label\" style=\"color:#A5232B\"><svg width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z\"></path><line x1=\"12\" y1=\"9\" x2=\"12\" y2=\"13\"></line><line x1=\"12\" y1=\"17\" x2=\"12.01\" y2=\"17\"></line></svg>Security</span><span class=\"kpi-val\" style=\"color:#A5232B\">1</span><span class=\"kpi-sub\">critical or high</span></div><div class=\"kpi\" style=\"border-color:var(--note-edge)\"><span class=\"kpi-label\" style=\"color:#7A5A05\"><svg width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z\"></path><line x1=\"4\" y1=\"22\" x2=\"4\" y2=\"15\"></line></svg>Review soon</span><span class=\"kpi-val\" style=\"color:#7A5A05\">1</span><span class=\"kpi-sub\">two weeks or more</span></div><div class=\"kpi\" style=\"border-color:var(--cov-edge)\"><span class=\"kpi-label\" style=\"color:#8A421D\"><svg width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"></circle><line x1=\"12\" y1=\"16\" x2=\"12\" y2=\"12\"></line><line x1=\"12\" y1=\"8\" x2=\"12.01\" y2=\"8\"></line></svg>Blocked</span><span class=\"kpi-val\" style=\"color:#8A421D\">1</span><span class=\"kpi-sub\">failing or conflicted</span></div></div><div class=\"glass-soft dist\"><div style=\"display:flex;align-items:baseline;gap:10px;flex-wrap:wrap\"><span class=\"kpi-label\">Updates by classification</span></div><div class=\"dist-bar\"><div class=\"dist-seg\" style=\"flex:1;background:#0E2F73\" title=\"security — 1\"><span style=\"color:#FFFFFF\">1</span></div><div class=\"dist-seg\" style=\"flex:1;background:#1657D9\" title=\"review soon — 1\"><span style=\"color:#FFFFFF\">1</span></div></div><div class=\"key\"><span><i class=\"sw\" style=\"background:#0E2F73\"></i>security</span><span><i class=\"sw\" style=\"background:#1657D9\"></i>review soon</span></div></div><div><div class=\"tier-head\"><span class=\"tier-ico\" style=\"background:var(--crit-tint);color:#A5232B\"><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z\"></path><line x1=\"12\" y1=\"9\" x2=\"12\" y2=\"13\"></line><line x1=\"12\" y1=\"17\" x2=\"12.01\" y2=\"17\"></line></svg></span><h3 class=\"tier-name\" style=\"color:#A5232B\">Security</h3><span class=\"tier-count\">1</span><span class=\"tier-note\">Critical or high severity</span></div><div class=\"rows glass\"><div class=\"row\"><div class=\"rail\" style=\"background:#A5232B\"></div><div style=\"flex:1 1 auto;min-width:0\"><div class=\"cells\"><div class=\"c-time\"><span class=\"t-rel\">4 days</span></div><div class=\"c-chg\"><span class=\"chg-title\">Bump openssl (security)</span></div><div class=\"c-sig\"><span class=\"chip chip-critical\">high</span><span class=\"chip\">checks: passing</span><span class=\"chip\">conflicts: no</span></div><a class=\"c-link\" href=\"https://example.test/pull/20\" rel=\"noopener noreferrer\" aria-label=\"Open source\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><line x1=\"7\" y1=\"17\" x2=\"17\" y2=\"7\"></line><polyline points=\"7 7 17 7 17 17\"></polyline></svg></a></div><div style=\"padding:0 18px 12px\"><div class=\"flags\"><span class=\"flag\">Safe to review checks and diff — never auto-approve</span></div></div></div></div></div></div><div><div class=\"tier-head\"><span class=\"tier-ico\" style=\"background:var(--note-tint);color:#7A5A05\"><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z\"></path><line x1=\"4\" y1=\"22\" x2=\"4\" y2=\"15\"></line></svg></span><h3 class=\"tier-name\" style=\"color:#7A5A05\">Review soon</h3><span class=\"tier-count\">1</span><span class=\"tier-note\">Open two weeks or more</span></div><div class=\"rows glass\"><div class=\"row\"><div class=\"rail\" style=\"background:#C9A227\"></div><div style=\"flex:1 1 auto;min-width:0\"><div class=\"cells\"><div class=\"c-time\"><span class=\"t-rel\">42 days</span></div><div class=\"c-chg\"><span class=\"chg-title\">Bump example-lib</span></div><div class=\"c-sig\"><span class=\"chip\">low</span><span class=\"chip chip-critical\">checks: failing</span><span class=\"chip\">conflicts: yes</span></div><a class=\"c-link\" href=\"https://example.test/pull/21\" rel=\"noopener noreferrer\" aria-label=\"Open source\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><line x1=\"7\" y1=\"17\" x2=\"17\" y2=\"7\"></line><polyline points=\"7 7 17 7 17 17\"></polyline></svg></a></div><div style=\"padding:0 18px 12px\"><div class=\"flags\"><span class=\"flag\" style=\"color:#7A5A05\"><svg width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z\"></path><line x1=\"4\" y1=\"22\" x2=\"4\" y2=\"15\"></line></svg>Needs human investigation before review</span></div></div></div></div></div></div><div class=\"glass-soft foot\"><div style=\"flex:1 1 320px;min-width:0;display:flex;flex-direction:column;gap:4px\"><span class=\"kpi-label\">Scope &amp; boundary</span><span class=\"small muted\" style=\"line-height:1.5\">Recommendation only · no approval, merge, dependency change, or notification was performed.</span></div></div></div>"}, {"key": "launch", "name": "Launch decoder", "group": "Reading", "cadence": "Daily · 09:00", "icon": "news", "actions": false, "routine": "launch-decoder", "generated": "2026-09-14T08:00:00+00:00", "headline": {"value": "1", "label": "With uncertainty", "tone": "notable"}, "html": "<div class=\"glass report\"><div class=\"rpt-head\"><div style=\"flex:1 1 320px;min-width:0;display:flex;flex-direction:column;gap:10px\"><h2 class=\"rpt-title\">Launch Decoder</h2><div style=\"display:flex;align-items:center;gap:8px;flex-wrap:wrap\"><span class=\"pill pill-strong\">launch fixture</span><span class=\"dv\"></span><span class=\"small muted\">last 24 hours · to 2026-09-14T08:00:00+00:00</span></div></div><span class=\"pill pill-ro\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"3\" y=\"11\" width=\"18\" height=\"11\" rx=\"2\"></rect><path d=\"M7 11V7a5 5 0 0 1 10 0v4\"></path></svg> Read-only</span></div><div class=\"kpis\"><div class=\"kpi\"><span class=\"kpi-label\">Launches</span><span class=\"kpi-val\">1</span><span class=\"kpi-sub\">in window</span></div><div class=\"kpi\" style=\"border-color:var(--note-edge)\"><span class=\"kpi-label\" style=\"color:#7A5A05\"><svg width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z\"></path><line x1=\"4\" y1=\"22\" x2=\"4\" y2=\"15\"></line></svg>With uncertainty</span><span class=\"kpi-val\" style=\"color:#7A5A05\">1</span><span class=\"kpi-sub\">flagged</span></div></div><div><div class=\"tier-head\"><span class=\"tier-ico\" style=\"background:rgba(0,0,0,.05);color:var(--ink-2)\"><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"9\"></circle></svg></span><h3 class=\"tier-name\" style=\"color:var(--ink-2)\">Launches</h3><span class=\"tier-count\">1</span><span class=\"tier-note\">Decoded from supplied records only</span></div><div class=\"rows glass\"><div class=\"row\"><div class=\"rail\" style=\"background:transparent\"></div><div style=\"flex:1 1 auto;min-width:0\"><div class=\"cells\"><div class=\"c-chg\"><span class=\"chg-title\">Example Assist</span></div><a class=\"c-link\" href=\"https://example.test/launch/assist\" rel=\"noopener noreferrer\" aria-label=\"Open source\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><line x1=\"7\" y1=\"17\" x2=\"17\" y2=\"7\"></line><polyline points=\"7 7 17 7 17 17\"></polyline></svg></a></div><div style=\"padding:0 18px 12px\"><p class=\"quote\">A writing assistant now supports local language controls.</p><div class=\"flags\"><span class=\"flag\" style=\"color:#7A5A05\"><svg width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z\"></path><line x1=\"4\" y1=\"22\" x2=\"4\" y2=\"15\"></line></svg>Availability by region is not stated.</span></div></div></div></div></div></div><div class=\"glass-soft foot\"><div style=\"flex:1 1 320px;min-width:0;display:flex;flex-direction:column;gap:4px\"><span class=\"kpi-label\">Scope &amp; boundary</span><span class=\"small muted\" style=\"line-height:1.5\">Read-only decoding · no launch detail was inferred or invented; records outside the supplied 24-hour fixture are unknown.</span></div></div></div>"}, {"key": "radar", "name": "Launch radar", "group": "Reading", "cadence": "Weekly · Tue", "icon": "news", "actions": false, "routine": "launch-radar", "generated": "2026-09-14T08:00:00+00:00", "headline": {"value": "1", "label": "Tentative", "tone": "notable"}, "html": "<div class=\"glass report\"><div class=\"rpt-head\"><div style=\"flex:1 1 320px;min-width:0;display:flex;flex-direction:column;gap:10px\"><h2 class=\"rpt-title\">Launch Radar</h2><div style=\"display:flex;align-items:center;gap:8px;flex-wrap:wrap\"><span class=\"pill pill-strong\">configured areas: developer tools, AI safety</span><span class=\"dv\"></span><span class=\"small muted\">next seven days · to 2026-09-14T08:00:00+00:00</span></div></div><span class=\"pill pill-ro\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"3\" y=\"11\" width=\"18\" height=\"11\" rx=\"2\"></rect><path d=\"M7 11V7a5 5 0 0 1 10 0v4\"></path></svg> Read-only</span></div><div class=\"kpis\"><div class=\"kpi\"><span class=\"kpi-label\">Upcoming</span><span class=\"kpi-val\">1</span><span class=\"kpi-sub\">in window</span></div><div class=\"kpi\"><span class=\"kpi-label\">Confirmed</span><span class=\"kpi-val\">0</span><span class=\"kpi-sub\">high confidence</span></div><div class=\"kpi\" style=\"border-color:var(--note-edge)\"><span class=\"kpi-label\" style=\"color:#7A5A05\"><svg width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z\"></path><line x1=\"4\" y1=\"22\" x2=\"4\" y2=\"15\"></line></svg>Tentative</span><span class=\"kpi-val\" style=\"color:#7A5A05\">1</span><span class=\"kpi-sub\">verify timing</span></div><div class=\"kpi\"><span class=\"kpi-label\">Areas</span><span class=\"kpi-val\">2</span><span class=\"kpi-sub\">configured</span></div></div><div><div class=\"tier-head\"><span class=\"tier-ico\" style=\"background:var(--note-tint);color:#7A5A05\"><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z\"></path><line x1=\"4\" y1=\"22\" x2=\"4\" y2=\"15\"></line></svg></span><h3 class=\"tier-name\" style=\"color:#7A5A05\">Tentative</h3><span class=\"tier-count\">1</span><span class=\"tier-note\">Lower or unstated confidence</span></div><div class=\"rows glass\"><div class=\"row\"><div class=\"rail\" style=\"background:#C9A227\"></div><div style=\"flex:1 1 auto;min-width:0\"><div class=\"cells\"><div class=\"c-time\"><span class=\"t-rel\"></span><span class=\"t-abs\">2026-09-18</span></div><div class=\"c-chg\"><span class=\"chg-title\">Example API v2</span><span class=\"chg-by\">developer tools</span></div><div class=\"c-sig\"><span class=\"chip\">confidence: medium</span></div><a class=\"c-link\" href=\"https://example.test/launch/api-v2\" rel=\"noopener noreferrer\" aria-label=\"Open source\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><line x1=\"7\" y1=\"17\" x2=\"17\" y2=\"7\"></line><polyline points=\"7 7 17 7 17 17\"></polyline></svg></a></div><div style=\"padding:0 18px 12px\"><div class=\"flags\"><span class=\"flag\" style=\"color:#7A5A05\"><svg width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z\"></path><line x1=\"4\" y1=\"22\" x2=\"4\" y2=\"15\"></line></svg>Unknowns: Pricing and final availability are unknown.</span></div></div></div></div></div></div><div class=\"glass-soft foot\"><div style=\"flex:1 1 320px;min-width:0;display:flex;flex-direction:column;gap:4px\"><span class=\"kpi-label\">Scope &amp; boundary</span><span class=\"small muted\" style=\"line-height:1.5\">Read-only weekly radar · missing timing, relevance, source, or confidence is reported as unknown; no forecast is asserted.</span></div></div></div>"}, {"key": "travel", "name": "Travel logistics", "group": "Reading", "cadence": "On demand", "icon": "calendar", "actions": false, "routine": "travel-logistics-tracker", "generated": "2026-09-14T08:00:00+00:00", "headline": {"value": "2", "label": "Open items", "tone": "notable"}, "html": "<div class=\"glass report\"><div class=\"rpt-head\"><div style=\"flex:1 1 320px;min-width:0;display:flex;flex-direction:column;gap:10px\"><h2 class=\"rpt-title\">Travel Logistics Tracker</h2><div style=\"display:flex;align-items:center;gap:8px;flex-wrap:wrap\"><span class=\"pill pill-strong\">calendar and message fixtures</span><span class=\"dv\"></span><span class=\"small muted\">travel fixture period · to 2026-09-14T08:00:00+00:00</span></div></div><span class=\"pill pill-ro\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"3\" y=\"11\" width=\"18\" height=\"11\" rx=\"2\"></rect><path d=\"M7 11V7a5 5 0 0 1 10 0v4\"></path></svg> Read-only</span></div><div class=\"kpis\"><div class=\"kpi\"><span class=\"kpi-label\">Events</span><span class=\"kpi-val\">1</span><span class=\"kpi-sub\">in itinerary</span></div><div class=\"kpi\"><span class=\"kpi-label\">Logistics</span><span class=\"kpi-val\">2</span><span class=\"kpi-sub\">arrangements</span></div><div class=\"kpi\" style=\"border-color:var(--note-edge)\"><span class=\"kpi-label\" style=\"color:#7A5A05\"><svg width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z\"></path><line x1=\"4\" y1=\"22\" x2=\"4\" y2=\"15\"></line></svg>Open items</span><span class=\"kpi-val\" style=\"color:#7A5A05\">2</span><span class=\"kpi-sub\">unresolved</span></div></div><div><div class=\"tier-head\"><span class=\"tier-ico\" style=\"background:rgba(0,0,0,.05);color:var(--ink-2)\"><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"9\"></circle></svg></span><h3 class=\"tier-name\" style=\"color:var(--ink-2)\">Itinerary</h3><span class=\"tier-count\">1</span><span class=\"tier-note\">Confirmed events from the fixture</span></div><div class=\"rows glass\"><div class=\"row\"><div class=\"rail\" style=\"background:transparent\"></div><div style=\"flex:1 1 auto;min-width:0\"><div class=\"cells\"><div class=\"c-time\"><span class=\"t-rel\"></span><span class=\"t-abs\">2026-10-05</span></div><div class=\"c-chg\"><span class=\"chg-title\">Example AI Conference</span><span class=\"chg-by\">Berlin</span></div><a class=\"c-link\" href=\"https://example.test/events/ai\" rel=\"noopener noreferrer\" aria-label=\"Open source\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><line x1=\"7\" y1=\"17\" x2=\"17\" y2=\"7\"></line><polyline points=\"7 7 17 7 17 17\"></polyline></svg></a></div></div></div></div></div><div><div class=\"tier-head\"><span class=\"tier-ico\" style=\"background:rgba(0,0,0,.05);color:#6E6E73\"><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"9\"></circle></svg></span><h3 class=\"tier-name\" style=\"color:#6E6E73\">Logistics</h3><span class=\"tier-count\">2</span><span class=\"tier-note\">Supplied arrangements</span></div><div class=\"rows glass-soft\"><div class=\"row row-quiet\"><div class=\"rail\" style=\"background:transparent\"></div><div style=\"flex:1 1 auto;min-width:0\"><div class=\"cells\"><div class=\"c-chg\"><span class=\"chg-title\">Hotel confirmation is in the fixture.</span></div><span class=\"c-link\" style=\"border:0;background:none\"></span></div></div></div><div class=\"row row-quiet\"><div class=\"rail\" style=\"background:transparent\"></div><div style=\"flex:1 1 auto;min-width:0\"><div class=\"cells\"><div class=\"c-chg\"><span class=\"chg-title\">Transit from airport is not supplied.</span></div><span class=\"c-link\" style=\"border:0;background:none\"></span></div></div></div></div></div><div><div class=\"tier-head\"><span class=\"tier-ico\" style=\"background:var(--note-tint);color:#7A5A05\"><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z\"></path><line x1=\"4\" y1=\"22\" x2=\"4\" y2=\"15\"></line></svg></span><h3 class=\"tier-name\" style=\"color:#7A5A05\">Open items and missing information</h3><span class=\"tier-count\">2</span><span class=\"tier-note\">Unresolved — never assume a booking exists</span></div><div class=\"rows glass\"><div class=\"row\"><div class=\"rail\" style=\"background:#C9A227\"></div><div style=\"flex:1 1 auto;min-width:0\"><div class=\"cells\"><div class=\"c-chg\"><span class=\"chg-title\">Confirm registration status</span></div><span class=\"c-link\" style=\"border:0;background:none\"></span></div><div style=\"padding:0 18px 12px\"><div class=\"flags\"><span class=\"flag\" style=\"color:#7A5A05\"><svg width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z\"></path><line x1=\"4\" y1=\"22\" x2=\"4\" y2=\"15\"></line></svg>Unresolved</span></div></div></div></div><div class=\"row\"><div class=\"rail\" style=\"background:#C9A227\"></div><div style=\"flex:1 1 auto;min-width:0\"><div class=\"cells\"><div class=\"c-chg\"><span class=\"chg-title\">Bring passport for registration.</span><span class=\"chg-by\">message note</span></div><a class=\"c-link\" href=\"https://example.test/messages/7\" rel=\"noopener noreferrer\" aria-label=\"Open source\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><line x1=\"7\" y1=\"17\" x2=\"17\" y2=\"7\"></line><polyline points=\"7 7 17 7 17 17\"></polyline></svg></a></div></div></div></div></div><div class=\"glass-soft foot\"><div style=\"flex:1 1 320px;min-width:0;display:flex;flex-direction:column;gap:4px\"><span class=\"kpi-label\">Scope &amp; boundary</span><span class=\"small muted\" style=\"line-height:1.5\">Read-only synthesis · never book, change, or cancel travel; missing information remains explicitly unknown.</span></div></div></div>"}], "schedule": [{"name": "launch-decoder", "cadence": "daily 09:00", "timezone": "Europe/Amsterdam", "enabled": true, "retries": 1, "source": "fixtures/launch-decoder.json", "last": "Sep 22, 14:40 UTC"}, {"name": "launch-radar", "cadence": "weekly 09:00", "timezone": "Europe/Amsterdam", "enabled": true, "retries": 2, "source": "fixtures/launch-radar.json", "last": "Sep 22, 13:40 UTC"}, {"name": "travel-logistics-tracker", "cadence": "on-demand", "timezone": "", "enabled": false, "retries": 0, "source": "fixtures/travel-logistics.json", "last": "Sep 22, 12:40 UTC"}]}</script>
+<script>
+(function () {
+  "use strict";
+  var APP = JSON.parse(document.getElementById("payload").textContent);
+  var MONTHS = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
+  var LONG = ["January","February","March","April","May","June","July","August",
+              "September","October","November","December"];
+  var DAYS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  var $ = function (id) { return document.getElementById(id); };
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c];
+    });
+  }
+  function parse(iso) { var p = String(iso).split("-"); return new Date(+p[0], +p[1] - 1, +p[2]); }
+  function iso(d) {
+    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") +
+           "-" + String(d.getDate()).padStart(2, "0");
+  }
+  function longDate(d) { return d.getDate() + " " + LONG[d.getMonth()] + " " + d.getFullYear(); }
+  /* The sprint rule: the next Wednesday strictly after the given day. */
+  function nextSprint(d) {
+    var ahead = (3 - d.getDay() + 7) % 7;
+    var out = new Date(d.getTime());
+    out.setDate(out.getDate() + (ahead || 7));
+    return out;
+  }
+  function sprintName(d) { return d.getDate() + " " + MONTHS[d.getMonth()] + " SPRINT"; }
+  function upcoming(d, n) {
+    var list = [], cursor = d;
+    for (var i = 0; i < n; i++) { cursor = nextSprint(cursor); list.push(new Date(cursor.getTime())); }
+    return list;
+  }
+  function today() { return parse(APP.today); }
+
+  var ICONS = {
+    mail: '<path d="M4 4h16v16H4z"/><polyline points="4 7 12 13 20 7"/>',
+    ticket: '<path d="M4 7h16v4a2 2 0 0 0 0 4v3H4v-3a2 2 0 0 0 0-4z"/>',
+    code: '<polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>',
+    news: '<path d="M4 4h13v16H4z"/><path d="M17 8h3v10a2 2 0 0 1-2 2"/><line x1="7" y1="8" x2="14" y2="8"/><line x1="7" y1="12" x2="14" y2="12"/>',
+    check: '<polyline points="20 6 9 17 4 12"/>',
+    calendar: '<rect x="3" y="5" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/>',
+    clock: '<circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/>',
+    gear: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1"/>'
+  };
+  function icon(name, size) {
+    return '<svg width="' + (size || 14) + '" height="' + (size || 14) + '" viewBox="0 0 24 24" ' +
+      'fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" ' +
+      'stroke-linejoin="round" aria-hidden="true">' + (ICONS[name] || ICONS.news) + '</svg>';
+  }
+
+  /* ---------------- navigation ---------------- */
+  var EXTRA = [
+    { key: "__schedule", name: "Scheduler", group: "System", cadence: "12 routines", icon: "clock" },
+    { key: "__about", name: "What is real here", group: "System", cadence: "prototype notes", icon: "gear" }
+  ];
+  var ALL = APP.views.concat(EXTRA);
+  var current = APP.views[0].key;
+
+  function renderNav() {
+    var groups = [], seen = {};
+    ALL.forEach(function (view) {
+      if (!seen[view.group]) { seen[view.group] = []; groups.push(view.group); }
+      seen[view.group].push(view);
+    });
+    $("nav").innerHTML = groups.map(function (group) {
+      return '<div class="nav-group">' + escapeHtml(group) + '</div>' +
+        seen[group].map(function (view) {
+          var head = view.headline || {};
+          var tone = head.tone === "critical" ? "crit" : (head.tone === "notable" ? "note" : "");
+          return '<button type="button" class="nav-item" data-view="' + view.key + '" ' +
+            'aria-current="' + (view.key === current) + '">' +
+            '<span class="nav-ico">' + icon(view.icon, 14) + '</span>' +
+            '<span class="nav-text"><span class="nav-name">' + escapeHtml(view.name) + '</span>' +
+            '<span class="nav-when">' + escapeHtml(view.cadence) + '</span></span>' +
+            (head.value ? '<span class="nav-badge ' + tone + '">' + escapeHtml(head.value) + '</span>' : "") +
+            '</button>';
+        }).join("");
+    }).join("");
+  }
+
+  function scheduleView() {
+    var rows = APP.schedule.map(function (item) {
+      return '<tr><td><b>' + escapeHtml(item.name) + '</b></td>' +
+        '<td>' + escapeHtml(item.cadence) + '</td>' +
+        '<td>' + escapeHtml(item.timezone || "—") + '</td>' +
+        '<td>' + escapeHtml(item.last) + '</td>' +
+        '<td>' + escapeHtml(String(item.retries)) + '</td>' +
+        '<td><span class="state"><span class="led' + (item.enabled ? "" : " off") + '"></span>' +
+        (item.enabled ? "enabled" : "paused") + '</span></td></tr>';
+    }).join("");
+    return '<div class="glass panel"><h2>Scheduler</h2>' +
+      '<p class="small muted">Cadence, retries and the last run of every routine. A run that fails ' +
+      'is a failure, not an empty report: a routine that cannot reach its source says so rather ' +
+      'than rendering as a quiet day.</p>' +
+      '<table><thead><tr><th>Routine</th><th>Cadence</th><th>Timezone</th><th>Last run</th>' +
+      '<th>Retries</th><th>State</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+  }
+
+  function aboutView() {
+    return '<div class="glass panel"><h2>What is real here</h2>' +
+      '<p class="small muted">This page is built by <code>scripts/build_prototype.py</code> from ' +
+      'the project itself. It is not a drawing of the product.</p>' +
+      '<div class="cards">' +
+      card("Real", "Every report on the left is produced by the routine that produces it in the " +
+        "running application, rendered by the renderer the web view uses, over the fixtures the " +
+        "test suite runs against. The tiering, the caps, the excluded counts and the coverage " +
+        "gaps are all the product's own logic. So is everything the two dialogs pre-fill: the " +
+        "sprint rule, the composed description, the extracted reporter and date, and which " +
+        "questions the reply asks.") +
+      card("Staged", "The sample mailbox, portal, repositories and people are fixtures. Pressing " +
+        "Create or Send changes nothing — no ticket is allocated, no document is edited, no mail " +
+        "leaves any mailbox. The ticket number is invented on the spot so the acknowledgement can " +
+        "show what substitution looks like.") +
+      card("Not built yet", "The application has no navigation like this: today it is a CLI and a " +
+        "read-only web view of stored reports. The two actions have no server endpoint, the Zoho " +
+        "and Graph adapters have never run against a live portal or mailbox, and the status list " +
+        "is a placeholder until the portal's real one is supplied.") +
+      '</div></div>';
+  }
+  function card(title, body) {
+    return '<div class="glass-soft card"><h3>' + escapeHtml(title) + '</h3>' +
+      '<p class="small muted">' + escapeHtml(body) + '</p></div>';
+  }
+
+  function show(key) {
+    current = key;
+    var view = ALL.filter(function (item) { return item.key === key; })[0];
+    $("crumb").textContent = view.name;
+    $("cadence").textContent = view.cadence;
+    $("clock").textContent = view.generated ? "Last run " + view.generated : "";
+    $("run").hidden = key.indexOf("__") === 0;
+    if (key === "__schedule") { $("view").innerHTML = scheduleView(); }
+    else if (key === "__about") { $("view").innerHTML = aboutView(); }
+    else { $("view").innerHTML = view.html; if (view.actions) { attachActions(); } }
+    renderNav();
+    window.scrollTo(0, 0);
+  }
+
+  /* Rows are rendered by the product's own renderer, which knows nothing about
+     these actions, so they are attached afterwards by matching each row's
+     citation link back to the message it came from. */
+  function attachActions() {
+    APP.mail.forEach(function (mail, index) {
+      if (!mail.url) { return; }
+      var link = $("view").querySelector('a[href="' + mail.url + '"]');
+      if (!link) { return; }
+      var row = link.closest(".row") || link.parentElement;
+      if (!row || row.querySelector(".row-actions")) { return; }
+      var bar = document.createElement("div");
+      bar.className = "row-actions";
+      bar.innerHTML =
+        '<button type="button" class="btn btn-sm btn-ticket" data-open="ticket" data-mail="' + index + '">' +
+          '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
+          'Create ticket</button>' +
+        '<button type="button" class="btn btn-sm btn-reply" data-open="reply" data-mail="' + index + '">' +
+          '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>' +
+          'Ask for context</button>';
+      row.appendChild(bar);
+    });
+  }
+
+  /* ---------------- composed text ---------------- */
+  function composeDescription(state) {
+    var unknown = "(not stated in the email — ask, or fill in before creating)";
+    var lines = ["Type: " + (state.kind === "bug" ? "Bug report" : "Feature / change request"),
+                 "Requested by: " + (state.requested || unknown)];
+    if (state.kind === "bug") {
+      lines.push("Reported by: " + (state.reported || unknown));
+      lines.push("Reported on: " + (state.reportedOn || unknown));
+    }
+    if (state.record) { lines.push("Project / record: " + state.record); }
+    lines.push("", "Context", "-------", state.context || "(the email carried no description)");
+    lines.push("", "Supporting documents", "--------------------");
+    if (state.links.length) { state.links.forEach(function (l) { lines.push("- " + l); }); }
+    else { lines.push("- none shared in the email"); }
+    lines.push("", "--- Raised from email ---", "From: " + state.fromName,
+               "Received: " + state.when, "Subject: " + state.subject, "Source: " + state.url);
+    return lines.join("\n");
+  }
+
+  function composeAcknowledgement(reference, releaseDate, tag, isBug) {
+    return ["Hi all,", "",
+      "Thanks — this is now raised as ticket #" + reference + ", and we are looking into it.", "",
+      "You are welcome to follow it directly. The development work, the release it goes into and " +
+      "the change log are all recorded against that ticket number, so you can check progress " +
+      "there at any time rather than waiting for an update from me.", "",
+      "Expected release date: " + longDate(releaseDate) + " (the " + tag + ").",
+      "That is when we are aiming to have this " + (isBug ? "resolved" : "delivered") +
+      " at the very latest. If it lands sooner, the ticket will show it before I do.", "",
+      "Thanks,", APP.signature].join("\n");
+  }
+
+  /* ---------------- dialog A ---------------- */
+  var ticket = { mail: null, titleTouched: false, descTouched: false, ackTouched: false };
+
+  function badge(el, text, cls) {
+    el.hidden = !text;
+    el.textContent = text || "";
+    el.className = "tag " + (cls || "tag-auto");
+  }
+  function suggestTitle(subject) {
+    var text = String(subject || "").replace(/^\s*(re|fw|fwd|aw|tr)\s*:\s*/i, "");
+    while (/^\s*[[(][^\])]{0,40}[\])]\s*/.test(text)) {
+      text = text.replace(/^\s*[[(][^\])]{0,40}[\])]\s*/, "");
+    }
+    var stop = ["the","a","an","for","and","to","of","on","in","please","request",
+                "regarding","re","about","with","your","our","this","that"];
+    var kept = [], seen = false;
+    text.trim().split(/\s+/).forEach(function (word) {
+      if (kept.length >= 6) { return; }
+      if (!seen && stop.indexOf(word.toLowerCase()) !== -1) { return; }
+      seen = true; kept.push(word);
+    });
+    while (kept.length && stop.indexOf(kept[kept.length - 1].toLowerCase()) !== -1) { kept.pop(); }
+    var out = kept.join(" ").replace(/^[\s\-–—:·,.]+|[\s\-–—:·,.]+$/g, "");
+    return out ? out.charAt(0).toUpperCase() + out.slice(1) : "";
+  }
+
+  function fillSelect(el, values, selected, suffix) {
+    el.innerHTML = "";
+    values.forEach(function (value) {
+      var opt = document.createElement("option");
+      opt.value = value;
+      opt.textContent = value + (value === selected && suffix ? suffix : "");
+      el.appendChild(opt);
+    });
+    if (selected) { el.value = selected; }
+  }
+
+  function ticketState() {
+    return {
+      kind: $("t-kind-bug").getAttribute("aria-pressed") === "true" ? "bug" : "request",
+      requested: $("t-requested").value.trim(),
+      reported: $("t-reported").value.trim(),
+      reportedOn: $("t-when").value.trim(),
+      record: $("t-record").value.trim(),
+      context: ticket.mail.context, links: ticket.mail.links,
+      fromName: ticket.mail.fromName, when: ticket.mail.when,
+      subject: ticket.mail.subject, url: ticket.mail.url
+    };
+  }
+
+  function fillSprints() {
+    var options = upcoming(today(), 4), current = $("t-sprint").value;
+    $("t-sprint").innerHTML = "";
+    options.forEach(function (d, i) {
+      var opt = document.createElement("option");
+      opt.value = iso(d);
+      opt.textContent = sprintName(d) + (i === 0 ? "  (next)" : "");
+      $("t-sprint").appendChild(opt);
+    });
+    $("t-sprint").value = (current && $("t-sprint").querySelector('option[value="' + current + '"]'))
+      ? current : iso(options[0]);
+    $("t-release").value = $("t-sprint").value;
+  }
+
+  function describeSprint() {
+    var base = today(), day = DAYS[base.getDay()], first = nextSprint(base);
+    var chosen = parse($("t-sprint").value);
+    $("t-sprint-why").textContent = chosen.getTime() === first.getTime()
+      ? (base.getDay() === 2 ? "Today is Tuesday — developers pick this up tomorrow."
+                             : "The next sprint after " + day + ".")
+      : "Deferred past the next sprint.";
+    if ($("t-release").value === $("t-sprint").value) {
+      $("t-release-why").textContent = "Matches the sprint.";
+      $("t-release-why").style.color = "";
+    } else {
+      $("t-release-why").textContent = "Does not match " + sprintName(parse($("t-sprint").value)) + ".";
+      $("t-release-why").style.color = "var(--cov)";
+    }
+  }
+
+  function renderTicket() {
+    var state = ticketState(), isBug = state.kind === "bug";
+    Array.prototype.forEach.call(document.querySelectorAll("#t-form [data-bug-only]"), function (el) {
+      el.hidden = !isBug;
+    });
+    $("t-kind-bug").setAttribute("aria-pressed", String(isBug));
+    $("t-kind-req").setAttribute("aria-pressed", String(!isBug));
+    $("t-kind-why").textContent = isBug
+      ? "A bug needs a reporter and a report date. Both are required before it can be created."
+      : "A change request needs only the requester.";
+
+    badge($("t-reported-badge"),
+          state.reported ? (ticket.mail.reportedGuessed ? "guessed" : "") : "required",
+          state.reported ? "tag-gue" : "tag-req");
+    badge($("t-when-badge"),
+          state.reportedOn ? (ticket.mail.reportedOnGuessed ? "guessed" : "") : "required",
+          state.reportedOn ? "tag-gue" : "tag-req");
+    badge($("t-record-badge"),
+          state.record ? (ticket.mail.recordGuessed ? "guessed" : "") : "optional",
+          state.record ? "tag-gue" : "tag-auto");
+
+    if (!ticket.descTouched) { $("t-desc").value = composeDescription(state); }
+    $("t-desc-badge").textContent = ticket.descTouched
+      ? "edited by you — no longer re-composed" : "composed from the fields above";
+    $("t-desc-badge").className = "tag " + (ticket.descTouched ? "tag-gue" : "tag-auto");
+    $("t-desc-reset").hidden = !ticket.descTouched;
+
+    $("t-ack-field").hidden = !$("t-ack").checked;
+    if (!ticket.ackTouched) {
+      $("t-ack-body").value = composeAcknowledgement(
+        "•••••••",
+        parse($("t-release").value || $("t-sprint").value),
+        sprintName(parse($("t-sprint").value)), isBug);
+    }
+    $("t-ack-badge").textContent = ticket.ackTouched
+      ? "edited by you — no longer re-composed" : "number filled in after creation";
+    $("t-ack-badge").className = "tag " + (ticket.ackTouched ? "tag-gue" : "tag-auto");
+    $("t-ack-reset").hidden = !ticket.ackTouched;
+
+    var title = $("t-title").value.trim();
+    var missing = [];
+    if (!title) { missing.push("title"); }
+    if (!state.requested) { missing.push("requested by"); }
+    if (isBug && !state.reported) { missing.push("reported by"); }
+    if (isBug && !state.reportedOn) { missing.push("reported on"); }
+
+    $("t-tracker").innerHTML = "Under <b>" + sprintName(parse($("t-sprint").value)) + "</b>\n" +
+      "####&nbsp;-&nbsp;" + (title ? escapeHtml(title) : "&lt;title&gt;");
+    $("t-create").disabled = missing.length > 0;
+    var bits = missing.length ? ["waiting on: " + missing.join(", ")]
+                              : ["ready",
+                                 $("t-owner").value.split(" \u2014 ")[0].toLowerCase(),
+                                 $("t-status").value];
+    $("t-why").innerHTML = bits.map(function (b, i) {
+      return (i ? '<span class="dot"></span>' : "") + escapeHtml(b);
+    }).join("");
+    if (missing.length && missing.indexOf("title") === -1) {
+      $("t-why").innerHTML += '<span class="dot"></span>ask for it with “Ask for context”';
+    }
+
+    $("t-title-badge").hidden = ticket.titleTouched && title;
+    if (!title) {
+      $("t-title-badge").hidden = false;
+      $("t-title-badge").textContent = "required";
+      $("t-title-badge").className = "tag tag-req";
+    } else if (!ticket.titleTouched) {
+      $("t-title-badge").textContent = "suggested";
+      $("t-title-badge").className = "tag tag-sug";
+    }
+  }
+
+  function openTicket(mail) {
+    ticket = { mail: mail, titleTouched: false, descTouched: false, ackTouched: false };
+    $("t-form").hidden = false; $("t-done").hidden = true;
+    $("t-create").hidden = false; $("t-cancel").hidden = false; $("t-done-btn").hidden = true;
+    $("t-head").innerHTML = APP.project
+      ? escapeHtml(APP.project)
+      : 'Zoho project <span class="tag tag-req" style="vertical-align:3px">not configured</span>';
+    $("t-source").innerHTML = "From <b>" + escapeHtml(mail.fromName) + "</b> · " +
+      escapeHtml(mail.subject) + " · " + escapeHtml(mail.when);
+    $("t-title").value = suggestTitle(mail.subject);
+    $("t-requested").value = mail.requested;
+    $("t-reported").value = mail.reported;
+    $("t-when").value = mail.reportedOn;
+    $("t-record").value = mail.record;
+    $("t-kind-bug").setAttribute("aria-pressed", String(mail.kind === "bug"));
+    $("t-kind-req").setAttribute("aria-pressed", String(mail.kind !== "bug"));
+    $("t-kind-badge").textContent = "detected";
+    fillSelect($("t-status"), APP.statuses, APP.defaultStatus, "  (default)");
+    fillSelect($("t-owner"), ["Unassigned \u2014 the sprint is the queue"].concat(APP.owners),
+               "Unassigned \u2014 the sprint is the queue", "");
+    fillSprints(); describeSprint(); renderTicket();
+    $("ticket-dialog").showModal();
+    $("t-title").focus(); $("t-title").select();
+  }
+
+  function createTicket() {
+    var number = String(4501000 + Math.floor(Math.random() * 999));
+    var title = $("t-title").value.trim();
+    $("t-form").hidden = true; $("t-done").hidden = false;
+    $("t-create").hidden = true; $("t-cancel").hidden = true; $("t-done-btn").hidden = false;
+    $("t-done-sub").textContent = "Task #" + number + " · nothing was actually created";
+    $("t-done-detail").innerHTML =
+      "<b>Zoho task</b>\n#" + number + " · " + escapeHtml(title) + "\n" +
+      "status: " + escapeHtml($("t-status").value) + "\n" +
+      "tag: " + sprintName(parse($("t-sprint").value)) + "\n" +
+      "release: " + $("t-release").value + "\n" +
+      "owner: " + escapeHtml($("t-owner").value.split(" \u2014 ")[0]) +
+      "\n\n<b>Sprint tracker</b>\nunder " + sprintName(parse($("t-sprint").value)) + "\n" +
+      number.slice(-4) + " - " + escapeHtml(title);
+    $("t-done-ack").hidden = !$("t-ack").checked;
+    if ($("t-ack").checked) {
+      $("t-done-ack-body").textContent = $("t-ack-body").value.replace(/•+/g, number);
+    }
+    $("t-why").textContent = "";
+  }
+
+  /* ---------------- dialog B ---------------- */
+  var reply = { mail: null, to: [], cc: [], bodyTouched: false, questions: [] };
+
+  function questionsFor(mail) {
+    var isBug = mail.kind === "bug";
+    var list = [
+      { key: "who", label: isBug ? "Reported by" : "Requested by",
+        text: "The full name of the person who " + (isBug ? "reported it." : "requested it."),
+        answered: isBug ? !!mail.reported : !!mail.requested,
+        known: isBug ? mail.reported : mail.requested },
+      { key: "record", label: "Project / record",
+        text: "The project name or record title where it was " + (isBug ? "encountered." : "needed."),
+        answered: !!mail.record, known: mail.record }
+    ];
+    if (isBug) {
+      list.push({ key: "when", label: "Reported on",
+                  text: "The date it was first reported or noticed.",
+                  answered: !!mail.reportedOn, known: mail.reportedOn });
+    }
+    list.push({ key: "docs", label: "Documents",
+                text: "If you have any documentation, scope, screenshots or specifications, " +
+                      "please attach those as well.",
+                answered: mail.links.length > 0,
+                known: mail.links.length ? mail.links.length + " link(s) already shared" : "" });
+    return list.map(function (q) {
+      return { key: q.key, label: q.label, text: q.text, answered: q.answered,
+               known: q.known, checked: !q.answered };
+    });
+  }
+
+  function composeReply() {
+    var asked = reply.questions.filter(function (q) { return q.checked; });
+    var numbered = asked.filter(function (q) { return q.key !== "docs"; });
+    var isBug = reply.mail.kind === "bug";
+    var lines = ["Hi all,", ""];
+    if (numbered.length) {
+      lines.push(isBug
+        ? "Thanks for flagging this. Before I raise it as a ticket, could you fill in a few details for me?"
+        : "Thanks for this. Before I raise it as a ticket, could you fill in a few details for me?");
+      lines.push("");
+      numbered.forEach(function (q, i) { lines.push((i + 1) + ". " + q.text); });
+      if (asked.length !== numbered.length) {
+        lines.push("", asked.filter(function (q) { return q.key === "docs"; })[0].text);
+      }
+    } else {
+      lines.push("Thanks — I think I have everything I need to raise this as a ticket. " +
+                 "Can you confirm I have it right?", "");
+      reply.questions.forEach(function (q) {
+        if (q.key !== "docs" && q.known) { lines.push("- " + q.label + ": " + q.known); }
+      });
+      lines.push("", "If anything else is documented — scope, screenshots, specifications — " +
+                     "please attach that as well.");
+    }
+    lines.push("", "Once I have that, I will raise the ticket and send you the number.", "");
+    lines.push("Thanks,", APP.signature);
+    return lines.join("\n");
+  }
+
+  function renderChips(host, list, removable) {
+    host.innerHTML = list.length ? list.map(function (address, index) {
+      return '<span class="chip">' + escapeHtml(address) +
+        (removable ? '<button type="button" data-remove="' + index + '" aria-label="Remove">' +
+          '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>' +
+          '</button>' : "") + '</span>';
+    }).join("") : '<span class="hint">nobody</span>';
+  }
+
+  function originalRecipients(mail) {
+    var seen = {}, primary = [];
+    [mail.from].concat(mail.to).forEach(function (address) {
+      var key = String(address || "").toLowerCase();
+      if (!key || key === APP.you.toLowerCase() || seen[key]) { return; }
+      seen[key] = true; primary.push(address);
+    });
+    return primary;
+  }
+
+  function renderReply() {
+    renderChips($("r-to"), reply.to, true);
+    renderChips($("r-cc"), reply.cc, false);
+    var edited = reply.to.join(",") !== originalRecipients(reply.mail).join(",");
+    $("r-to-badge").hidden = !edited;
+    $("r-to-hint").textContent = edited
+      ? "You changed the recipient list. Sending an edited list needs Mail.ReadWrite as well as Mail.Send — Milou says so rather than failing at send time."
+      : "Everyone on the thread except you. Sending this list as-is needs only Mail.Send.";
+    $("r-to-hint").style.color = edited ? "var(--cov)" : "";
+
+    $("r-questions").innerHTML = reply.questions.map(function (q, index) {
+      return '<label class="check"><input type="checkbox" data-question="' + index + '"' +
+        (q.checked ? " checked" : "") + '><span>' + escapeHtml(q.text) +
+        '<span class="sub">' + (q.answered
+          ? "the email already gave this" + (q.known ? ": " + escapeHtml(q.known) : "")
+          : "missing — this is why the ticket cannot be created yet") +
+        '</span></span></label>';
+    }).join("");
+
+    if (!reply.bodyTouched) { $("r-body").value = composeReply(); }
+    $("r-body-badge").textContent = reply.bodyTouched
+      ? "edited by you — no longer re-composed" : "composed from the ticks above";
+    $("r-body-badge").className = "tag " + (reply.bodyTouched ? "tag-gue" : "tag-auto");
+    $("r-body-reset").hidden = !reply.bodyTouched;
+
+    var asking = reply.questions.filter(function (q) { return q.checked; }).length;
+    $("r-send").disabled = reply.to.length === 0 || !$("r-body").value.trim();
+    $("r-why").innerHTML = [
+      reply.to.length + " recipient" + (reply.to.length === 1 ? "" : "s"),
+      asking ? "asking for " + asking : "confirming what you have"
+    ].map(function (b, i) {
+      return (i ? '<span class="dot"></span>' : "") + escapeHtml(b);
+    }).join("");
+  }
+
+  function openReply(mail) {
+    reply = { mail: mail, to: originalRecipients(mail),
+              cc: mail.cc.filter(function (a) { return a.toLowerCase() !== APP.you.toLowerCase(); }),
+              bodyTouched: false, questions: questionsFor(mail) };
+    $("r-form").hidden = false; $("r-done").hidden = true;
+    $("r-send").hidden = false; $("r-cancel").hidden = false; $("r-done-btn").hidden = true;
+    $("r-source").innerHTML = "Replying to <b>" + escapeHtml(mail.fromName) + "</b> · " +
+      escapeHtml(mail.subject) + " · " + escapeHtml(mail.when);
+    $("r-subject").value = /^re\s*:/i.test(mail.subject) ? mail.subject : "Re: " + mail.subject;
+    renderReply();
+    $("reply-dialog").showModal();
+  }
+
+  function sendReply() {
+    $("r-form").hidden = true; $("r-done").hidden = false;
+    $("r-send").hidden = true; $("r-cancel").hidden = true; $("r-done-btn").hidden = false;
+    $("r-done-sub").textContent = "To " + reply.to.join(", ") +
+      (reply.cc.length ? " · cc " + reply.cc.join(", ") : "") + " · nothing was actually sent";
+    var asked = reply.questions.filter(function (q) { return q.checked; });
+    $("r-done-detail").textContent =
+      $("r-subject").value + "\n" +
+      (asked.length ? "asked for: " + asked.map(function (q) { return q.label; }).join(", ")
+                    : "asked them to confirm what you already have") +
+      "\nfollow-up starts counting in 2 business days";
+    $("r-why").textContent = "";
+  }
+
+  /* ---------------- wiring ---------------- */
+  document.addEventListener("click", function (event) {
+    var nav = event.target.closest("[data-view]");
+    if (nav) { show(nav.getAttribute("data-view")); return; }
+    var opener = event.target.closest("[data-open]");
+    if (opener) {
+      var mail = APP.mail[+opener.getAttribute("data-mail")];
+      if (opener.getAttribute("data-open") === "ticket") { openTicket(mail); } else { openReply(mail); }
+      return;
+    }
+    var closer = event.target.closest("[data-close]");
+    if (closer) { $(closer.getAttribute("data-close")).close(); return; }
+    var remove = event.target.closest("[data-remove]");
+    if (remove) { reply.to.splice(+remove.getAttribute("data-remove"), 1); renderReply(); }
+  });
+
+  ["t-status", "t-owner", "t-requested", "t-reported", "t-when", "t-record"].forEach(function (id) {
+    $(id).addEventListener("input", renderTicket);
+    $(id).addEventListener("change", renderTicket);
+  });
+  $("t-title").addEventListener("input", function () { ticket.titleTouched = true; renderTicket(); });
+  $("t-desc").addEventListener("input", function () { ticket.descTouched = true; renderTicket(); });
+  $("t-desc-reset").addEventListener("click", function () { ticket.descTouched = false; renderTicket(); });
+  $("t-ack").addEventListener("change", renderTicket);
+  $("t-ack-body").addEventListener("input", function () { ticket.ackTouched = true; renderTicket(); });
+  $("t-ack-reset").addEventListener("click", function () { ticket.ackTouched = false; renderTicket(); });
+  $("t-sprint").addEventListener("change", function () {
+    $("t-release").value = $("t-sprint").value; describeSprint(); renderTicket();
+  });
+  $("t-release").addEventListener("change", function () { describeSprint(); renderTicket(); });
+  $("t-kind-bug").addEventListener("click", function () {
+    $("t-kind-bug").setAttribute("aria-pressed", "true");
+    $("t-kind-req").setAttribute("aria-pressed", "false");
+    $("t-kind-badge").textContent = "set by you"; renderTicket();
+  });
+  $("t-kind-req").addEventListener("click", function () {
+    $("t-kind-bug").setAttribute("aria-pressed", "false");
+    $("t-kind-req").setAttribute("aria-pressed", "true");
+    $("t-kind-badge").textContent = "set by you"; renderTicket();
+  });
+  $("t-create").addEventListener("click", createTicket);
+
+  $("r-questions").addEventListener("change", function (event) {
+    var box = event.target.closest("[data-question]");
+    if (!box) { return; }
+    reply.questions[+box.getAttribute("data-question")].checked = box.checked;
+    renderReply();
+  });
+  $("r-body").addEventListener("input", function () { reply.bodyTouched = true; renderReply(); });
+  $("r-body-reset").addEventListener("click", function () { reply.bodyTouched = false; renderReply(); });
+  $("r-add-btn").addEventListener("click", function () {
+    var value = $("r-add").value.trim();
+    if (value) { reply.to.push(value); $("r-add").value = ""; renderReply(); }
+  });
+  $("r-add").addEventListener("keydown", function (event) {
+    if (event.key === "Enter") { event.preventDefault(); $("r-add-btn").click(); }
+  });
+  $("r-send").addEventListener("click", sendReply);
+  $("run").addEventListener("click", function () {
+    var label = $("run");
+    label.disabled = true;
+    label.textContent = "Ran just now";
+    setTimeout(function () {
+      label.disabled = false;
+      label.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" ' +
+        'stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" ' +
+        'aria-hidden="true"><polyline points="23 4 23 10 17 10"/>' +
+        '<path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> Run now';
+    }, 1400);
+  });
+
+  $("who").textContent = APP.you;
+  $("initials").textContent = (APP.you[0] || "D").toUpperCase();
+  show(current);
+})();
+</script>
+</body>
+</html>

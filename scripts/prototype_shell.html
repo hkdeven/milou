@@ -1,0 +1,1048 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Milou</title>
+<style>
+/*__APP_STYLES__*/
+
+/* ---------- the shell the reports sit inside ---------- */
+body{overflow-x:hidden}
+.app{display:flex;min-height:100vh;align-items:stretch}
+.side{flex:0 0 268px;position:sticky;top:0;align-self:flex-start;height:100vh;
+  display:flex;flex-direction:column;gap:14px;padding:22px 16px 18px;
+  background:rgba(255,255,255,.42);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+  border-right:1px solid var(--edge);box-shadow:inset -1px 0 0 rgba(255,255,255,.5)}
+.brand{display:flex;align-items:center;gap:11px;padding:2px 8px 0}
+.mark{width:34px;height:34px;border-radius:11px;flex:0 0 auto;display:inline-flex;
+  align-items:center;justify-content:center;background:rgba(255,255,255,.9);
+  border:1px solid var(--edge);box-shadow:var(--spec),var(--lift-sm);font-size:17px}
+.brand-name{font-size:16px;font-weight:600;letter-spacing:-.02em;line-height:1.1}
+.brand-sub{font-size:10.5px;color:var(--ink-3);letter-spacing:.04em;text-transform:uppercase}
+.nav{flex:1 1 auto;overflow-y:auto;display:flex;flex-direction:column;gap:3px;padding-right:2px}
+.nav-group{padding:14px 10px 5px;font-size:10px;font-weight:600;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--ink-3)}
+.nav-item{display:flex;align-items:center;gap:10px;width:100%;text-align:left;border:1px solid transparent;
+  background:transparent;font:inherit;padding:8px 10px;border-radius:12px;cursor:pointer;color:var(--ink-1)}
+.nav-item:hover{background:rgba(255,255,255,.62)}
+.nav-item[aria-current=true]{background:rgba(255,255,255,.92);border-color:var(--edge);
+  box-shadow:var(--spec),var(--lift-sm)}
+.nav-ico{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;
+  border-radius:8px;background:rgba(0,0,0,.045);color:var(--ink-2)}
+.nav-item[aria-current=true] .nav-ico{background:rgba(22,87,217,.10);color:#1657D9}
+.nav-text{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:1px}
+.nav-name{font-size:13.5px;font-weight:500;letter-spacing:-.005em;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.nav-when{font-size:10.5px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nav-badge{flex:0 0 auto;min-width:22px;height:20px;padding:0 6px;border-radius:999px;display:inline-flex;
+  align-items:center;justify-content:center;font-size:11.5px;font-weight:600;
+  font-variant-numeric:tabular-nums;background:rgba(0,0,0,.05);color:var(--ink-3)}
+.nav-badge.crit{background:var(--crit-tint);color:var(--crit)}
+.nav-badge.note{background:var(--note-tint);color:var(--note)}
+.side-foot{padding:10px 10px 0;border-top:1px solid var(--hair);display:flex;flex-direction:column;gap:8px}
+.who{display:flex;align-items:center;gap:9px}
+.avatar{width:26px;height:26px;border-radius:999px;background:rgba(255,255,255,.9);
+  border:1px solid var(--edge);display:inline-flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:600;color:var(--ink-2);flex:0 0 auto}
+
+.main{flex:1 1 auto;min-width:0;display:flex;flex-direction:column}
+.topbar{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+  padding:14px 28px;background:rgba(255,255,255,.55);backdrop-filter:var(--blur);
+  -webkit-backdrop-filter:var(--blur);border-bottom:1px solid var(--edge)}
+.crumb{font-size:13px;color:var(--ink-3)}
+.crumb b{color:var(--ink-1);font-weight:600}
+.view{padding:26px 28px 72px;max-width:1120px;width:100%}
+@media(max-width:980px){
+  .app{flex-direction:column}
+  .side{position:static;flex:1 1 auto;height:auto;width:100%;border-right:0;
+    border-bottom:1px solid var(--edge)}
+  .nav{flex-direction:row;overflow-x:auto;gap:6px}
+  .nav-group{display:none}.nav-when{display:none}
+  .nav-item{width:auto;white-space:nowrap}
+  .topbar,.view{padding-left:16px;padding-right:16px}
+}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:32px;padding:0 13px;
+  border-radius:999px;background:rgba(255,255,255,.9);border:1px solid var(--hair);
+  font:inherit;font-size:12.5px;font-weight:500;color:var(--ink-1);cursor:pointer;white-space:nowrap}
+.btn:hover{background:#fff;color:var(--ink-1)}
+.btn:focus-visible{outline:2px solid #1657D9;outline-offset:2px}
+.btn-primary{background:var(--ink-1);border-color:var(--ink-1);color:#fff}
+.btn-primary:hover{background:#000;color:#fff}
+.btn-primary:disabled{background:#C7C7CC;border-color:#C7C7CC;color:#fff;cursor:not-allowed}
+.btn-icon{width:30px;height:30px;padding:0;border-radius:9px}
+.btn-sm{height:27px;padding:0 10px;font-size:11.5px}
+.btn-ticket{border-color:rgba(22,87,217,.26);color:#1657D9;background:rgba(22,87,217,.10);font-weight:600}
+.btn-ticket:hover{background:rgba(22,87,217,.18);color:#1657D9}
+.btn-reply{border-color:rgba(160,71,155,.28);color:#A0479B;background:rgba(160,71,155,.12);font-weight:600}
+.btn-reply:hover{background:rgba(160,71,155,.2);color:#A0479B}
+.row-actions{display:flex;align-items:center;gap:7px;padding:0 0 12px 18px;flex-wrap:wrap}
+
+/* ---------- dialogs ---------- */
+[hidden]{display:none !important}
+dialog{border:0;padding:0;background:transparent;max-width:min(720px,94vw);width:100%}
+dialog::backdrop{background:rgba(16,24,40,.34);backdrop-filter:blur(3px)}
+.sheet{background:rgba(255,255,255,.88);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+  border:1px solid var(--edge);border-radius:24px;box-shadow:var(--spec),0 32px 70px -20px rgba(16,24,40,.42);
+  display:flex;flex-direction:column;max-height:88vh}
+.sheet-head{padding:20px 24px 15px;border-bottom:1px solid var(--hair);display:flex;
+  align-items:flex-start;gap:16px}
+.sheet-body{padding:20px 24px;overflow-y:auto;display:flex;flex-direction:column;gap:16px}
+.sheet-foot{padding:15px 24px 19px;border-top:1px solid var(--hair);display:flex;
+  align-items:center;gap:12px;flex-wrap:wrap}
+.eyebrow{margin:0;font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.field-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+@media(max-width:560px){.field-row,.field-row-3{grid-template-columns:1fr}}
+label{font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+input[type=text],input[type=date],select,textarea{
+  font:inherit;font-size:14px;color:var(--ink-1);background:rgba(255,255,255,.92);
+  border:1px solid var(--hair);border-radius:12px;padding:10px 12px;width:100%}
+input:focus,select:focus,textarea:focus{outline:2px solid #1657D9;outline-offset:-1px;border-color:transparent}
+textarea{min-height:130px;resize:vertical;line-height:1.55;font-size:13px}
+textarea.tall{min-height:200px}
+.hint{font-size:11.5px;color:var(--ink-3)}
+.tag{display:inline-flex;align-items:center;height:18px;padding:0 7px;border-radius:999px;
+  font-size:9.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
+.tag-sug{background:var(--note-tint);border:1px solid var(--note-edge);color:var(--note)}
+.tag-req{background:var(--crit-tint);border:1px solid var(--crit-edge);color:var(--crit)}
+.tag-gue{background:var(--cov-tint);border:1px solid var(--cov-edge);color:var(--cov)}
+.tag-ok{background:rgba(12,163,12,.12);border:1px solid rgba(14,107,51,.24);color:var(--pos)}
+.tag-auto{background:rgba(0,0,0,.05);border:1px solid var(--hair);color:var(--ink-3)}
+.warn{display:flex;align-items:flex-start;gap:11px;padding:12px 15px;border-radius:14px;
+  background:rgba(255,255,255,.74);border:1px solid var(--note-edge)}
+.warn-ok{border-color:rgba(14,107,51,.24)}
+.warn-ico{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;
+  width:26px;height:26px;border-radius:999px;background:var(--note-tint);color:var(--note)}
+.warn-ok .warn-ico{background:rgba(12,163,12,.12);color:var(--pos)}
+.pre{padding:12px 14px;border-radius:12px;background:rgba(16,24,40,.045);
+  border:1px solid var(--hair);font-family:var(--mono);font-size:12px;color:var(--ink-2);
+  overflow-wrap:anywhere;white-space:pre-wrap}
+.pre b{color:var(--ink-1);font-weight:600}
+.why{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--ink-3);flex-wrap:wrap}
+.dot{width:4px;height:4px;border-radius:999px;background:var(--ink-3);flex:0 0 auto}
+.seg{display:inline-flex;padding:3px;border-radius:999px;background:rgba(0,0,0,.05);gap:2px}
+.seg button{border:0;background:transparent;font:inherit;font-size:12px;font-weight:600;
+  padding:5px 13px;border-radius:999px;cursor:pointer;color:var(--ink-3)}
+.seg button[aria-pressed=true]{background:#fff;color:var(--ink-1);box-shadow:var(--lift-sm)}
+.checks{display:flex;flex-direction:column;gap:9px;padding:13px 15px;border-radius:14px;
+  background:rgba(255,255,255,.66);border:1px solid var(--hair)}
+label.check{display:flex;align-items:flex-start;gap:10px;font-size:13px;line-height:1.45;
+  color:var(--ink-1);font-weight:400;letter-spacing:0;text-transform:none;flex-wrap:nowrap}
+.check input{margin:2px 0 0;flex:0 0 auto;accent-color:#1657D9;width:15px;height:15px}
+.check .sub{display:block;font-size:11px;color:var(--ink-3);margin-top:2px;text-transform:none;
+  letter-spacing:0;font-weight:400}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 6px 0 11px;border-radius:999px;
+  background:rgba(255,255,255,.9);border:1px solid var(--hair);font-size:12px;color:var(--ink-2)}
+.chip button{border:0;background:transparent;cursor:pointer;color:var(--ink-3);font:inherit;
+  line-height:1;padding:3px;border-radius:999px}
+.chip button:hover{color:var(--crit);background:var(--crit-tint)}
+
+/* ---------- scheduler and about views ---------- */
+.panel{padding:24px 26px;display:flex;flex-direction:column;gap:16px}
+.panel h2{margin:0;font-size:24px;font-weight:600;letter-spacing:-.02em}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{text-align:left;font-size:10.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--ink-3);padding:0 12px 9px 0;border-bottom:1px solid var(--hair)}
+td{padding:10px 12px 10px 0;border-bottom:1px solid var(--hair-2);color:var(--ink-2);vertical-align:top}
+td b{color:var(--ink-1);font-weight:600}
+tr:last-child td{border-bottom:0}
+.state{display:inline-flex;align-items:center;gap:6px;font-size:12px}
+.led{width:7px;height:7px;border-radius:999px;background:var(--pos);flex:0 0 auto}
+.led.off{background:#C7C7CC}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.card{padding:20px 22px;border-radius:20px;display:flex;flex-direction:column;gap:10px}
+.card h3{margin:0;font-size:15px;font-weight:600;letter-spacing:-.01em}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="brand">
+      <span class="mark" aria-hidden="true">🐕</span>
+      <span>
+        <span class="brand-name">Milou</span><br>
+        <span class="brand-sub">Supervisor</span>
+      </span>
+    </div>
+    <nav class="nav" id="nav" aria-label="Routines"></nav>
+    <div class="side-foot">
+      <div class="who">
+        <span class="avatar" id="initials">D</span>
+        <span class="nav-text">
+          <span class="nav-name" id="who">—</span>
+          <span class="nav-when">signed in · read-only</span>
+        </span>
+      </div>
+      <button type="button" class="btn" style="width:100%">Sign out</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <span class="crumb">Milou · <b id="crumb">—</b></span>
+      <span class="dv"></span>
+      <span class="small muted" id="cadence">—</span>
+      <span style="flex:1 1 auto"></span>
+      <span class="small muted" id="clock">—</span>
+      <button type="button" class="btn" id="run">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        Run now
+      </button>
+    </div>
+    <div class="view wrap" id="view" style="max-width:1120px;padding-top:26px"></div>
+  </main>
+</div>
+
+<!-- ============ DIALOG A — CREATE TICKET ============ -->
+<dialog id="ticket-dialog" aria-labelledby="t-head">
+  <form method="dialog" class="sheet">
+    <div class="sheet-head">
+      <div style="flex:1 1 auto;min-width:0">
+        <p class="eyebrow">New Zoho ticket</p>
+        <h2 id="t-head" style="margin:6px 0 0;font-size:21px;font-weight:600;letter-spacing:-.02em"></h2>
+        <p class="xsmall muted" style="margin-top:6px" id="t-source"></p>
+      </div>
+      <button type="button" class="btn btn-icon" data-close="ticket-dialog" aria-label="Close without creating">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+      </button>
+    </div>
+
+    <div class="sheet-body" id="t-form">
+      <div class="warn">
+        <span class="warn-ico">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </span>
+        <div>
+          <p class="small" style="font-weight:600;color:var(--note)">Nothing is created until you press Create</p>
+          <p class="xsmall muted" style="margin-top:2px">Three things happen in order: the Zoho task, one line in the sprint tracker, then an unsent draft reply. The first failure stops the rest.</p>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="t-title">Title <span class="tag tag-sug" id="t-title-badge">suggested</span></label>
+        <input type="text" id="t-title" autocomplete="off">
+        <span class="hint">Keep it extremely brief. Read by people who never saw the email.</span>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="t-status">Status <span class="tag tag-auto">default selected</span></label>
+          <select id="t-status"></select>
+          <span class="hint">Your portal's full list, from configuration.</span>
+        </div>
+        <div class="field">
+          <label for="t-owner">Owner <span class="tag tag-auto">unassigned</span></label>
+          <select id="t-owner"></select>
+          <span class="hint">At Ready for Development the sprint is the queue.</span>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="t-sprint">Sprint tag</label>
+          <select id="t-sprint"></select>
+          <span class="hint" id="t-sprint-why"></span>
+        </div>
+        <div class="field">
+          <label for="t-release">Expected release date</label>
+          <input type="date" id="t-release">
+          <span class="hint" id="t-release-why">Matches the sprint.</span>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Type <span class="tag tag-gue" id="t-kind-badge">detected</span></label>
+        <div class="seg" role="group" aria-label="Ticket type">
+          <button type="button" id="t-kind-bug" aria-pressed="false">Bug report</button>
+          <button type="button" id="t-kind-req" aria-pressed="false">Feature / change</button>
+        </div>
+        <span class="hint" id="t-kind-why"></span>
+      </div>
+
+      <div class="field-row-3">
+        <div class="field">
+          <label for="t-requested">Requested by <span class="tag tag-auto">sender</span></label>
+          <input type="text" id="t-requested" autocomplete="off">
+        </div>
+        <div class="field" data-bug-only>
+          <label for="t-reported">Reported by <span class="tag" id="t-reported-badge"></span></label>
+          <input type="text" id="t-reported" autocomplete="off" placeholder="not stated in the email">
+        </div>
+        <div class="field" data-bug-only>
+          <label for="t-when">Reported on <span class="tag" id="t-when-badge"></span></label>
+          <input type="text" id="t-when" autocomplete="off" placeholder="not stated in the email">
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="t-record">Project / record <span class="tag" id="t-record-badge"></span></label>
+        <input type="text" id="t-record" autocomplete="off" placeholder="not stated in the email">
+      </div>
+
+      <div class="field">
+        <label for="t-desc">Description
+          <span class="tag tag-auto" id="t-desc-badge">composed from the fields above</span>
+          <button type="button" class="btn btn-sm" id="t-desc-reset" hidden>Re-compose</button>
+        </label>
+        <textarea id="t-desc" class="tall"></textarea>
+        <span class="hint">Edit a field above and this rewrites itself. Type in it directly and it stops, so your wording is never overwritten.</span>
+      </div>
+
+      <div class="field">
+        <label>Also adds to the sprint tracker</label>
+        <div class="pre" id="t-tracker"></div>
+        <span class="hint">Appended to the online Word document under that sprint's heading. Nothing else in the document is touched, and a missing heading writes nothing at all.</span>
+      </div>
+
+      <div class="field">
+        <div class="checks">
+          <label class="check">
+            <input type="checkbox" id="t-ack" checked>
+            <span>Leave a draft reply once the ticket exists
+              <span class="sub">Tells them the number, where to follow it, and the release date. Saved to Drafts — never sent.</span></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="field" id="t-ack-field">
+        <label for="t-ack-body">Acknowledgement draft
+          <span class="tag tag-auto" id="t-ack-badge">number filled in after creation</span>
+          <button type="button" class="btn btn-sm" id="t-ack-reset" hidden>Re-compose</button>
+        </label>
+        <textarea id="t-ack-body"></textarea>
+      </div>
+    </div>
+
+    <div class="sheet-body" id="t-done" hidden>
+      <div class="warn warn-ok">
+        <span class="warn-ico">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+        </span>
+        <div>
+          <p class="small" style="font-weight:600;color:var(--pos)">Ticket created</p>
+          <p class="xsmall muted" style="margin-top:2px" id="t-done-sub"></p>
+        </div>
+      </div>
+      <div class="field">
+        <label>What was written</label>
+        <div class="pre" id="t-done-detail"></div>
+      </div>
+      <div class="field" id="t-done-ack">
+        <label>Waiting in your Drafts <span class="tag tag-ok">not sent</span></label>
+        <div class="pre" id="t-done-ack-body"></div>
+        <span class="hint">Open it in Outlook, read it once, press Send. Milou will not send it for you.</span>
+      </div>
+      <p class="xsmall muted">If the ticket had failed, none of this would have happened — no tracker line, no draft.</p>
+    </div>
+
+    <div class="sheet-foot">
+      <span class="why" id="t-why"></span>
+      <span style="flex:1 1 auto"></span>
+      <button type="button" class="btn" data-close="ticket-dialog" id="t-cancel">Cancel</button>
+      <button type="button" class="btn btn-primary" id="t-create">Create ticket</button>
+      <button type="button" class="btn btn-primary" data-close="ticket-dialog" id="t-done-btn" hidden>Done</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- ============ DIALOG B — ASK FOR CONTEXT ============ -->
+<dialog id="reply-dialog" aria-labelledby="r-head">
+  <form method="dialog" class="sheet">
+    <div class="sheet-head">
+      <div style="flex:1 1 auto;min-width:0">
+        <p class="eyebrow">Reply to the thread</p>
+        <h2 id="r-head" style="margin:6px 0 0;font-size:21px;font-weight:600;letter-spacing:-.02em">Ask for the missing context</h2>
+        <p class="xsmall muted" style="margin-top:6px" id="r-source"></p>
+      </div>
+      <button type="button" class="btn btn-icon" data-close="reply-dialog" aria-label="Close without sending">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+      </button>
+    </div>
+
+    <div class="sheet-body" id="r-form">
+      <div class="warn">
+        <span class="warn-ico">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </span>
+        <div>
+          <p class="small" style="font-weight:600;color:var(--note)">Nothing is sent until you press Send</p>
+          <p class="xsmall muted" style="margin-top:2px">This goes out from your mailbox, in your name, to everyone listed below.</p>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>To <span class="tag tag-auto">reply-all, minus you</span>
+          <span class="tag tag-gue" id="r-to-badge" hidden>edited — wider grant</span></label>
+        <div class="chips" id="r-to"></div>
+        <div style="display:flex;gap:8px">
+          <input type="text" id="r-add" placeholder="add a recipient" autocomplete="off">
+          <button type="button" class="btn" id="r-add-btn">Add</button>
+        </div>
+        <span class="hint" id="r-to-hint"></span>
+      </div>
+
+      <div class="field">
+        <label>Cc</label>
+        <div class="chips" id="r-cc"></div>
+      </div>
+
+      <div class="field">
+        <label for="r-subject">Subject</label>
+        <input type="text" id="r-subject" autocomplete="off">
+      </div>
+
+      <div class="field">
+        <label>What to ask for <span class="tag tag-auto">ticked = still missing</span></label>
+        <div class="checks" id="r-questions"></div>
+        <span class="hint">Unticked items are ones the email already answered.</span>
+      </div>
+
+      <div class="field">
+        <label for="r-body">Message
+          <span class="tag tag-auto" id="r-body-badge">composed from the ticks above</span>
+          <button type="button" class="btn btn-sm" id="r-body-reset" hidden>Re-compose</button>
+        </label>
+        <textarea id="r-body" class="tall"></textarea>
+      </div>
+    </div>
+
+    <div class="sheet-body" id="r-done" hidden>
+      <div class="warn warn-ok">
+        <span class="warn-ico">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+        </span>
+        <div>
+          <p class="small" style="font-weight:600;color:var(--pos)">Reply sent</p>
+          <p class="xsmall muted" style="margin-top:2px" id="r-done-sub"></p>
+        </div>
+      </div>
+      <div class="field">
+        <label>The thread now waits on them, not on you</label>
+        <div class="pre" id="r-done-detail"></div>
+      </div>
+    </div>
+
+    <div class="sheet-foot">
+      <span class="why" id="r-why"></span>
+      <span style="flex:1 1 auto"></span>
+      <button type="button" class="btn" data-close="reply-dialog" id="r-cancel">Cancel</button>
+      <button type="button" class="btn btn-primary" id="r-send">Send reply</button>
+      <button type="button" class="btn btn-primary" data-close="reply-dialog" id="r-done-btn" hidden>Done</button>
+    </div>
+  </form>
+</dialog>
+
+<script id="payload" type="application/json">"__PAYLOAD__"</script>
+<script>
+(function () {
+  "use strict";
+  var APP = JSON.parse(document.getElementById("payload").textContent);
+  var MONTHS = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
+  var LONG = ["January","February","March","April","May","June","July","August",
+              "September","October","November","December"];
+  var DAYS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  var $ = function (id) { return document.getElementById(id); };
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c];
+    });
+  }
+  function parse(iso) { var p = String(iso).split("-"); return new Date(+p[0], +p[1] - 1, +p[2]); }
+  function iso(d) {
+    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") +
+           "-" + String(d.getDate()).padStart(2, "0");
+  }
+  function longDate(d) { return d.getDate() + " " + LONG[d.getMonth()] + " " + d.getFullYear(); }
+  /* The sprint rule: the next Wednesday strictly after the given day. */
+  function nextSprint(d) {
+    var ahead = (3 - d.getDay() + 7) % 7;
+    var out = new Date(d.getTime());
+    out.setDate(out.getDate() + (ahead || 7));
+    return out;
+  }
+  function sprintName(d) { return d.getDate() + " " + MONTHS[d.getMonth()] + " SPRINT"; }
+  function upcoming(d, n) {
+    var list = [], cursor = d;
+    for (var i = 0; i < n; i++) { cursor = nextSprint(cursor); list.push(new Date(cursor.getTime())); }
+    return list;
+  }
+  function today() { return parse(APP.today); }
+
+  var ICONS = {
+    mail: '<path d="M4 4h16v16H4z"/><polyline points="4 7 12 13 20 7"/>',
+    ticket: '<path d="M4 7h16v4a2 2 0 0 0 0 4v3H4v-3a2 2 0 0 0 0-4z"/>',
+    code: '<polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>',
+    news: '<path d="M4 4h13v16H4z"/><path d="M17 8h3v10a2 2 0 0 1-2 2"/><line x1="7" y1="8" x2="14" y2="8"/><line x1="7" y1="12" x2="14" y2="12"/>',
+    check: '<polyline points="20 6 9 17 4 12"/>',
+    calendar: '<rect x="3" y="5" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/>',
+    clock: '<circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/>',
+    gear: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1"/>'
+  };
+  function icon(name, size) {
+    return '<svg width="' + (size || 14) + '" height="' + (size || 14) + '" viewBox="0 0 24 24" ' +
+      'fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" ' +
+      'stroke-linejoin="round" aria-hidden="true">' + (ICONS[name] || ICONS.news) + '</svg>';
+  }
+
+  /* ---------------- navigation ---------------- */
+  var EXTRA = [
+    { key: "__schedule", name: "Scheduler", group: "System", cadence: "12 routines", icon: "clock" },
+    { key: "__about", name: "What is real here", group: "System", cadence: "prototype notes", icon: "gear" }
+  ];
+  var ALL = APP.views.concat(EXTRA);
+  var current = APP.views[0].key;
+
+  function renderNav() {
+    var groups = [], seen = {};
+    ALL.forEach(function (view) {
+      if (!seen[view.group]) { seen[view.group] = []; groups.push(view.group); }
+      seen[view.group].push(view);
+    });
+    $("nav").innerHTML = groups.map(function (group) {
+      return '<div class="nav-group">' + escapeHtml(group) + '</div>' +
+        seen[group].map(function (view) {
+          var head = view.headline || {};
+          var tone = head.tone === "critical" ? "crit" : (head.tone === "notable" ? "note" : "");
+          return '<button type="button" class="nav-item" data-view="' + view.key + '" ' +
+            'aria-current="' + (view.key === current) + '">' +
+            '<span class="nav-ico">' + icon(view.icon, 14) + '</span>' +
+            '<span class="nav-text"><span class="nav-name">' + escapeHtml(view.name) + '</span>' +
+            '<span class="nav-when">' + escapeHtml(view.cadence) + '</span></span>' +
+            (head.value ? '<span class="nav-badge ' + tone + '">' + escapeHtml(head.value) + '</span>' : "") +
+            '</button>';
+        }).join("");
+    }).join("");
+  }
+
+  function scheduleView() {
+    var rows = APP.schedule.map(function (item) {
+      return '<tr><td><b>' + escapeHtml(item.name) + '</b></td>' +
+        '<td>' + escapeHtml(item.cadence) + '</td>' +
+        '<td>' + escapeHtml(item.timezone || "—") + '</td>' +
+        '<td>' + escapeHtml(item.last) + '</td>' +
+        '<td>' + escapeHtml(String(item.retries)) + '</td>' +
+        '<td><span class="state"><span class="led' + (item.enabled ? "" : " off") + '"></span>' +
+        (item.enabled ? "enabled" : "paused") + '</span></td></tr>';
+    }).join("");
+    return '<div class="glass panel"><h2>Scheduler</h2>' +
+      '<p class="small muted">Cadence, retries and the last run of every routine. A run that fails ' +
+      'is a failure, not an empty report: a routine that cannot reach its source says so rather ' +
+      'than rendering as a quiet day.</p>' +
+      '<table><thead><tr><th>Routine</th><th>Cadence</th><th>Timezone</th><th>Last run</th>' +
+      '<th>Retries</th><th>State</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+  }
+
+  function aboutView() {
+    return '<div class="glass panel"><h2>What is real here</h2>' +
+      '<p class="small muted">This page is built by <code>scripts/build_prototype.py</code> from ' +
+      'the project itself. It is not a drawing of the product.</p>' +
+      '<div class="cards">' +
+      card("Real", "Every report on the left is produced by the routine that produces it in the " +
+        "running application, rendered by the renderer the web view uses, over the fixtures the " +
+        "test suite runs against. The tiering, the caps, the excluded counts and the coverage " +
+        "gaps are all the product's own logic. So is everything the two dialogs pre-fill: the " +
+        "sprint rule, the composed description, the extracted reporter and date, and which " +
+        "questions the reply asks.") +
+      card("Staged", "The sample mailbox, portal, repositories and people are fixtures. Pressing " +
+        "Create or Send changes nothing — no ticket is allocated, no document is edited, no mail " +
+        "leaves any mailbox. The ticket number is invented on the spot so the acknowledgement can " +
+        "show what substitution looks like.") +
+      card("Not built yet", "The application has no navigation like this: today it is a CLI and a " +
+        "read-only web view of stored reports. The two actions have no server endpoint, the Zoho " +
+        "and Graph adapters have never run against a live portal or mailbox, and the status list " +
+        "is a placeholder until the portal's real one is supplied.") +
+      '</div></div>';
+  }
+  function card(title, body) {
+    return '<div class="glass-soft card"><h3>' + escapeHtml(title) + '</h3>' +
+      '<p class="small muted">' + escapeHtml(body) + '</p></div>';
+  }
+
+  function show(key) {
+    current = key;
+    var view = ALL.filter(function (item) { return item.key === key; })[0];
+    $("crumb").textContent = view.name;
+    $("cadence").textContent = view.cadence;
+    $("clock").textContent = view.generated ? "Last run " + view.generated : "";
+    $("run").hidden = key.indexOf("__") === 0;
+    if (key === "__schedule") { $("view").innerHTML = scheduleView(); }
+    else if (key === "__about") { $("view").innerHTML = aboutView(); }
+    else { $("view").innerHTML = view.html; if (view.actions) { attachActions(); } }
+    renderNav();
+    window.scrollTo(0, 0);
+  }
+
+  /* Rows are rendered by the product's own renderer, which knows nothing about
+     these actions, so they are attached afterwards by matching each row's
+     citation link back to the message it came from. */
+  function attachActions() {
+    APP.mail.forEach(function (mail, index) {
+      if (!mail.url) { return; }
+      var link = $("view").querySelector('a[href="' + mail.url + '"]');
+      if (!link) { return; }
+      var row = link.closest(".row") || link.parentElement;
+      if (!row || row.querySelector(".row-actions")) { return; }
+      var bar = document.createElement("div");
+      bar.className = "row-actions";
+      bar.innerHTML =
+        '<button type="button" class="btn btn-sm btn-ticket" data-open="ticket" data-mail="' + index + '">' +
+          '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
+          'Create ticket</button>' +
+        '<button type="button" class="btn btn-sm btn-reply" data-open="reply" data-mail="' + index + '">' +
+          '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>' +
+          'Ask for context</button>';
+      row.appendChild(bar);
+    });
+  }
+
+  /* ---------------- composed text ---------------- */
+  function composeDescription(state) {
+    var unknown = "(not stated in the email — ask, or fill in before creating)";
+    var lines = ["Type: " + (state.kind === "bug" ? "Bug report" : "Feature / change request"),
+                 "Requested by: " + (state.requested || unknown)];
+    if (state.kind === "bug") {
+      lines.push("Reported by: " + (state.reported || unknown));
+      lines.push("Reported on: " + (state.reportedOn || unknown));
+    }
+    if (state.record) { lines.push("Project / record: " + state.record); }
+    lines.push("", "Context", "-------", state.context || "(the email carried no description)");
+    lines.push("", "Supporting documents", "--------------------");
+    if (state.links.length) { state.links.forEach(function (l) { lines.push("- " + l); }); }
+    else { lines.push("- none shared in the email"); }
+    lines.push("", "--- Raised from email ---", "From: " + state.fromName,
+               "Received: " + state.when, "Subject: " + state.subject, "Source: " + state.url);
+    return lines.join("\n");
+  }
+
+  function composeAcknowledgement(reference, releaseDate, tag, isBug) {
+    return ["Hi all,", "",
+      "Thanks — this is now raised as ticket #" + reference + ", and we are looking into it.", "",
+      "You are welcome to follow it directly. The development work, the release it goes into and " +
+      "the change log are all recorded against that ticket number, so you can check progress " +
+      "there at any time rather than waiting for an update from me.", "",
+      "Expected release date: " + longDate(releaseDate) + " (the " + tag + ").",
+      "That is when we are aiming to have this " + (isBug ? "resolved" : "delivered") +
+      " at the very latest. If it lands sooner, the ticket will show it before I do.", "",
+      "Thanks,", APP.signature].join("\n");
+  }
+
+  /* ---------------- dialog A ---------------- */
+  var ticket = { mail: null, titleTouched: false, descTouched: false, ackTouched: false };
+
+  function badge(el, text, cls) {
+    el.hidden = !text;
+    el.textContent = text || "";
+    el.className = "tag " + (cls || "tag-auto");
+  }
+  function suggestTitle(subject) {
+    var text = String(subject || "").replace(/^\s*(re|fw|fwd|aw|tr)\s*:\s*/i, "");
+    while (/^\s*[[(][^\])]{0,40}[\])]\s*/.test(text)) {
+      text = text.replace(/^\s*[[(][^\])]{0,40}[\])]\s*/, "");
+    }
+    var stop = ["the","a","an","for","and","to","of","on","in","please","request",
+                "regarding","re","about","with","your","our","this","that"];
+    var kept = [], seen = false;
+    text.trim().split(/\s+/).forEach(function (word) {
+      if (kept.length >= 6) { return; }
+      if (!seen && stop.indexOf(word.toLowerCase()) !== -1) { return; }
+      seen = true; kept.push(word);
+    });
+    while (kept.length && stop.indexOf(kept[kept.length - 1].toLowerCase()) !== -1) { kept.pop(); }
+    var out = kept.join(" ").replace(/^[\s\-–—:·,.]+|[\s\-–—:·,.]+$/g, "");
+    return out ? out.charAt(0).toUpperCase() + out.slice(1) : "";
+  }
+
+  function fillSelect(el, values, selected, suffix) {
+    el.innerHTML = "";
+    values.forEach(function (value) {
+      var opt = document.createElement("option");
+      opt.value = value;
+      opt.textContent = value + (value === selected && suffix ? suffix : "");
+      el.appendChild(opt);
+    });
+    if (selected) { el.value = selected; }
+  }
+
+  function ticketState() {
+    return {
+      kind: $("t-kind-bug").getAttribute("aria-pressed") === "true" ? "bug" : "request",
+      requested: $("t-requested").value.trim(),
+      reported: $("t-reported").value.trim(),
+      reportedOn: $("t-when").value.trim(),
+      record: $("t-record").value.trim(),
+      context: ticket.mail.context, links: ticket.mail.links,
+      fromName: ticket.mail.fromName, when: ticket.mail.when,
+      subject: ticket.mail.subject, url: ticket.mail.url
+    };
+  }
+
+  function fillSprints() {
+    var options = upcoming(today(), 4), current = $("t-sprint").value;
+    $("t-sprint").innerHTML = "";
+    options.forEach(function (d, i) {
+      var opt = document.createElement("option");
+      opt.value = iso(d);
+      opt.textContent = sprintName(d) + (i === 0 ? "  (next)" : "");
+      $("t-sprint").appendChild(opt);
+    });
+    $("t-sprint").value = (current && $("t-sprint").querySelector('option[value="' + current + '"]'))
+      ? current : iso(options[0]);
+    $("t-release").value = $("t-sprint").value;
+  }
+
+  function describeSprint() {
+    var base = today(), day = DAYS[base.getDay()], first = nextSprint(base);
+    var chosen = parse($("t-sprint").value);
+    $("t-sprint-why").textContent = chosen.getTime() === first.getTime()
+      ? (base.getDay() === 2 ? "Today is Tuesday — developers pick this up tomorrow."
+                             : "The next sprint after " + day + ".")
+      : "Deferred past the next sprint.";
+    if ($("t-release").value === $("t-sprint").value) {
+      $("t-release-why").textContent = "Matches the sprint.";
+      $("t-release-why").style.color = "";
+    } else {
+      $("t-release-why").textContent = "Does not match " + sprintName(parse($("t-sprint").value)) + ".";
+      $("t-release-why").style.color = "var(--cov)";
+    }
+  }
+
+  function renderTicket() {
+    var state = ticketState(), isBug = state.kind === "bug";
+    Array.prototype.forEach.call(document.querySelectorAll("#t-form [data-bug-only]"), function (el) {
+      el.hidden = !isBug;
+    });
+    $("t-kind-bug").setAttribute("aria-pressed", String(isBug));
+    $("t-kind-req").setAttribute("aria-pressed", String(!isBug));
+    $("t-kind-why").textContent = isBug
+      ? "A bug needs a reporter and a report date. Both are required before it can be created."
+      : "A change request needs only the requester.";
+
+    badge($("t-reported-badge"),
+          state.reported ? (ticket.mail.reportedGuessed ? "guessed" : "") : "required",
+          state.reported ? "tag-gue" : "tag-req");
+    badge($("t-when-badge"),
+          state.reportedOn ? (ticket.mail.reportedOnGuessed ? "guessed" : "") : "required",
+          state.reportedOn ? "tag-gue" : "tag-req");
+    badge($("t-record-badge"),
+          state.record ? (ticket.mail.recordGuessed ? "guessed" : "") : "optional",
+          state.record ? "tag-gue" : "tag-auto");
+
+    if (!ticket.descTouched) { $("t-desc").value = composeDescription(state); }
+    $("t-desc-badge").textContent = ticket.descTouched
+      ? "edited by you — no longer re-composed" : "composed from the fields above";
+    $("t-desc-badge").className = "tag " + (ticket.descTouched ? "tag-gue" : "tag-auto");
+    $("t-desc-reset").hidden = !ticket.descTouched;
+
+    $("t-ack-field").hidden = !$("t-ack").checked;
+    if (!ticket.ackTouched) {
+      $("t-ack-body").value = composeAcknowledgement(
+        "•••••••",
+        parse($("t-release").value || $("t-sprint").value),
+        sprintName(parse($("t-sprint").value)), isBug);
+    }
+    $("t-ack-badge").textContent = ticket.ackTouched
+      ? "edited by you — no longer re-composed" : "number filled in after creation";
+    $("t-ack-badge").className = "tag " + (ticket.ackTouched ? "tag-gue" : "tag-auto");
+    $("t-ack-reset").hidden = !ticket.ackTouched;
+
+    var title = $("t-title").value.trim();
+    var missing = [];
+    if (!title) { missing.push("title"); }
+    if (!state.requested) { missing.push("requested by"); }
+    if (isBug && !state.reported) { missing.push("reported by"); }
+    if (isBug && !state.reportedOn) { missing.push("reported on"); }
+
+    $("t-tracker").innerHTML = "Under <b>" + sprintName(parse($("t-sprint").value)) + "</b>\n" +
+      "####&nbsp;-&nbsp;" + (title ? escapeHtml(title) : "&lt;title&gt;");
+    $("t-create").disabled = missing.length > 0;
+    var bits = missing.length ? ["waiting on: " + missing.join(", ")]
+                              : ["ready",
+                                 $("t-owner").value.split(" \u2014 ")[0].toLowerCase(),
+                                 $("t-status").value];
+    $("t-why").innerHTML = bits.map(function (b, i) {
+      return (i ? '<span class="dot"></span>' : "") + escapeHtml(b);
+    }).join("");
+    if (missing.length && missing.indexOf("title") === -1) {
+      $("t-why").innerHTML += '<span class="dot"></span>ask for it with “Ask for context”';
+    }
+
+    $("t-title-badge").hidden = ticket.titleTouched && title;
+    if (!title) {
+      $("t-title-badge").hidden = false;
+      $("t-title-badge").textContent = "required";
+      $("t-title-badge").className = "tag tag-req";
+    } else if (!ticket.titleTouched) {
+      $("t-title-badge").textContent = "suggested";
+      $("t-title-badge").className = "tag tag-sug";
+    }
+  }
+
+  function openTicket(mail) {
+    ticket = { mail: mail, titleTouched: false, descTouched: false, ackTouched: false };
+    $("t-form").hidden = false; $("t-done").hidden = true;
+    $("t-create").hidden = false; $("t-cancel").hidden = false; $("t-done-btn").hidden = true;
+    $("t-head").innerHTML = APP.project
+      ? escapeHtml(APP.project)
+      : 'Zoho project <span class="tag tag-req" style="vertical-align:3px">not configured</span>';
+    $("t-source").innerHTML = "From <b>" + escapeHtml(mail.fromName) + "</b> · " +
+      escapeHtml(mail.subject) + " · " + escapeHtml(mail.when);
+    $("t-title").value = suggestTitle(mail.subject);
+    $("t-requested").value = mail.requested;
+    $("t-reported").value = mail.reported;
+    $("t-when").value = mail.reportedOn;
+    $("t-record").value = mail.record;
+    $("t-kind-bug").setAttribute("aria-pressed", String(mail.kind === "bug"));
+    $("t-kind-req").setAttribute("aria-pressed", String(mail.kind !== "bug"));
+    $("t-kind-badge").textContent = "detected";
+    fillSelect($("t-status"), APP.statuses, APP.defaultStatus, "  (default)");
+    fillSelect($("t-owner"), ["Unassigned \u2014 the sprint is the queue"].concat(APP.owners),
+               "Unassigned \u2014 the sprint is the queue", "");
+    fillSprints(); describeSprint(); renderTicket();
+    $("ticket-dialog").showModal();
+    $("t-title").focus(); $("t-title").select();
+  }
+
+  function createTicket() {
+    var number = String(4501000 + Math.floor(Math.random() * 999));
+    var title = $("t-title").value.trim();
+    $("t-form").hidden = true; $("t-done").hidden = false;
+    $("t-create").hidden = true; $("t-cancel").hidden = true; $("t-done-btn").hidden = false;
+    $("t-done-sub").textContent = "Task #" + number + " · nothing was actually created";
+    $("t-done-detail").innerHTML =
+      "<b>Zoho task</b>\n#" + number + " · " + escapeHtml(title) + "\n" +
+      "status: " + escapeHtml($("t-status").value) + "\n" +
+      "tag: " + sprintName(parse($("t-sprint").value)) + "\n" +
+      "release: " + $("t-release").value + "\n" +
+      "owner: " + escapeHtml($("t-owner").value.split(" \u2014 ")[0]) +
+      "\n\n<b>Sprint tracker</b>\nunder " + sprintName(parse($("t-sprint").value)) + "\n" +
+      number.slice(-4) + " - " + escapeHtml(title);
+    $("t-done-ack").hidden = !$("t-ack").checked;
+    if ($("t-ack").checked) {
+      $("t-done-ack-body").textContent = $("t-ack-body").value.replace(/•+/g, number);
+    }
+    $("t-why").textContent = "";
+  }
+
+  /* ---------------- dialog B ---------------- */
+  var reply = { mail: null, to: [], cc: [], bodyTouched: false, questions: [] };
+
+  function questionsFor(mail) {
+    var isBug = mail.kind === "bug";
+    var list = [
+      { key: "who", label: isBug ? "Reported by" : "Requested by",
+        text: "The full name of the person who " + (isBug ? "reported it." : "requested it."),
+        answered: isBug ? !!mail.reported : !!mail.requested,
+        known: isBug ? mail.reported : mail.requested },
+      { key: "record", label: "Project / record",
+        text: "The project name or record title where it was " + (isBug ? "encountered." : "needed."),
+        answered: !!mail.record, known: mail.record }
+    ];
+    if (isBug) {
+      list.push({ key: "when", label: "Reported on",
+                  text: "The date it was first reported or noticed.",
+                  answered: !!mail.reportedOn, known: mail.reportedOn });
+    }
+    list.push({ key: "docs", label: "Documents",
+                text: "If you have any documentation, scope, screenshots or specifications, " +
+                      "please attach those as well.",
+                answered: mail.links.length > 0,
+                known: mail.links.length ? mail.links.length + " link(s) already shared" : "" });
+    return list.map(function (q) {
+      return { key: q.key, label: q.label, text: q.text, answered: q.answered,
+               known: q.known, checked: !q.answered };
+    });
+  }
+
+  function composeReply() {
+    var asked = reply.questions.filter(function (q) { return q.checked; });
+    var numbered = asked.filter(function (q) { return q.key !== "docs"; });
+    var isBug = reply.mail.kind === "bug";
+    var lines = ["Hi all,", ""];
+    if (numbered.length) {
+      lines.push(isBug
+        ? "Thanks for flagging this. Before I raise it as a ticket, could you fill in a few details for me?"
+        : "Thanks for this. Before I raise it as a ticket, could you fill in a few details for me?");
+      lines.push("");
+      numbered.forEach(function (q, i) { lines.push((i + 1) + ". " + q.text); });
+      if (asked.length !== numbered.length) {
+        lines.push("", asked.filter(function (q) { return q.key === "docs"; })[0].text);
+      }
+    } else {
+      lines.push("Thanks — I think I have everything I need to raise this as a ticket. " +
+                 "Can you confirm I have it right?", "");
+      reply.questions.forEach(function (q) {
+        if (q.key !== "docs" && q.known) { lines.push("- " + q.label + ": " + q.known); }
+      });
+      lines.push("", "If anything else is documented — scope, screenshots, specifications — " +
+                     "please attach that as well.");
+    }
+    lines.push("", "Once I have that, I will raise the ticket and send you the number.", "");
+    lines.push("Thanks,", APP.signature);
+    return lines.join("\n");
+  }
+
+  function renderChips(host, list, removable) {
+    host.innerHTML = list.length ? list.map(function (address, index) {
+      return '<span class="chip">' + escapeHtml(address) +
+        (removable ? '<button type="button" data-remove="' + index + '" aria-label="Remove">' +
+          '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>' +
+          '</button>' : "") + '</span>';
+    }).join("") : '<span class="hint">nobody</span>';
+  }
+
+  function originalRecipients(mail) {
+    var seen = {}, primary = [];
+    [mail.from].concat(mail.to).forEach(function (address) {
+      var key = String(address || "").toLowerCase();
+      if (!key || key === APP.you.toLowerCase() || seen[key]) { return; }
+      seen[key] = true; primary.push(address);
+    });
+    return primary;
+  }
+
+  function renderReply() {
+    renderChips($("r-to"), reply.to, true);
+    renderChips($("r-cc"), reply.cc, false);
+    var edited = reply.to.join(",") !== originalRecipients(reply.mail).join(",");
+    $("r-to-badge").hidden = !edited;
+    $("r-to-hint").textContent = edited
+      ? "You changed the recipient list. Sending an edited list needs Mail.ReadWrite as well as Mail.Send — Milou says so rather than failing at send time."
+      : "Everyone on the thread except you. Sending this list as-is needs only Mail.Send.";
+    $("r-to-hint").style.color = edited ? "var(--cov)" : "";
+
+    $("r-questions").innerHTML = reply.questions.map(function (q, index) {
+      return '<label class="check"><input type="checkbox" data-question="' + index + '"' +
+        (q.checked ? " checked" : "") + '><span>' + escapeHtml(q.text) +
+        '<span class="sub">' + (q.answered
+          ? "the email already gave this" + (q.known ? ": " + escapeHtml(q.known) : "")
+          : "missing — this is why the ticket cannot be created yet") +
+        '</span></span></label>';
+    }).join("");
+
+    if (!reply.bodyTouched) { $("r-body").value = composeReply(); }
+    $("r-body-badge").textContent = reply.bodyTouched
+      ? "edited by you — no longer re-composed" : "composed from the ticks above";
+    $("r-body-badge").className = "tag " + (reply.bodyTouched ? "tag-gue" : "tag-auto");
+    $("r-body-reset").hidden = !reply.bodyTouched;
+
+    var asking = reply.questions.filter(function (q) { return q.checked; }).length;
+    $("r-send").disabled = reply.to.length === 0 || !$("r-body").value.trim();
+    $("r-why").innerHTML = [
+      reply.to.length + " recipient" + (reply.to.length === 1 ? "" : "s"),
+      asking ? "asking for " + asking : "confirming what you have"
+    ].map(function (b, i) {
+      return (i ? '<span class="dot"></span>' : "") + escapeHtml(b);
+    }).join("");
+  }
+
+  function openReply(mail) {
+    reply = { mail: mail, to: originalRecipients(mail),
+              cc: mail.cc.filter(function (a) { return a.toLowerCase() !== APP.you.toLowerCase(); }),
+              bodyTouched: false, questions: questionsFor(mail) };
+    $("r-form").hidden = false; $("r-done").hidden = true;
+    $("r-send").hidden = false; $("r-cancel").hidden = false; $("r-done-btn").hidden = true;
+    $("r-source").innerHTML = "Replying to <b>" + escapeHtml(mail.fromName) + "</b> · " +
+      escapeHtml(mail.subject) + " · " + escapeHtml(mail.when);
+    $("r-subject").value = /^re\s*:/i.test(mail.subject) ? mail.subject : "Re: " + mail.subject;
+    renderReply();
+    $("reply-dialog").showModal();
+  }
+
+  function sendReply() {
+    $("r-form").hidden = true; $("r-done").hidden = false;
+    $("r-send").hidden = true; $("r-cancel").hidden = true; $("r-done-btn").hidden = false;
+    $("r-done-sub").textContent = "To " + reply.to.join(", ") +
+      (reply.cc.length ? " · cc " + reply.cc.join(", ") : "") + " · nothing was actually sent";
+    var asked = reply.questions.filter(function (q) { return q.checked; });
+    $("r-done-detail").textContent =
+      $("r-subject").value + "\n" +
+      (asked.length ? "asked for: " + asked.map(function (q) { return q.label; }).join(", ")
+                    : "asked them to confirm what you already have") +
+      "\nfollow-up starts counting in 2 business days";
+    $("r-why").textContent = "";
+  }
+
+  /* ---------------- wiring ---------------- */
+  document.addEventListener("click", function (event) {
+    var nav = event.target.closest("[data-view]");
+    if (nav) { show(nav.getAttribute("data-view")); return; }
+    var opener = event.target.closest("[data-open]");
+    if (opener) {
+      var mail = APP.mail[+opener.getAttribute("data-mail")];
+      if (opener.getAttribute("data-open") === "ticket") { openTicket(mail); } else { openReply(mail); }
+      return;
+    }
+    var closer = event.target.closest("[data-close]");
+    if (closer) { $(closer.getAttribute("data-close")).close(); return; }
+    var remove = event.target.closest("[data-remove]");
+    if (remove) { reply.to.splice(+remove.getAttribute("data-remove"), 1); renderReply(); }
+  });
+
+  ["t-status", "t-owner", "t-requested", "t-reported", "t-when", "t-record"].forEach(function (id) {
+    $(id).addEventListener("input", renderTicket);
+    $(id).addEventListener("change", renderTicket);
+  });
+  $("t-title").addEventListener("input", function () { ticket.titleTouched = true; renderTicket(); });
+  $("t-desc").addEventListener("input", function () { ticket.descTouched = true; renderTicket(); });
+  $("t-desc-reset").addEventListener("click", function () { ticket.descTouched = false; renderTicket(); });
+  $("t-ack").addEventListener("change", renderTicket);
+  $("t-ack-body").addEventListener("input", function () { ticket.ackTouched = true; renderTicket(); });
+  $("t-ack-reset").addEventListener("click", function () { ticket.ackTouched = false; renderTicket(); });
+  $("t-sprint").addEventListener("change", function () {
+    $("t-release").value = $("t-sprint").value; describeSprint(); renderTicket();
+  });
+  $("t-release").addEventListener("change", function () { describeSprint(); renderTicket(); });
+  $("t-kind-bug").addEventListener("click", function () {
+    $("t-kind-bug").setAttribute("aria-pressed", "true");
+    $("t-kind-req").setAttribute("aria-pressed", "false");
+    $("t-kind-badge").textContent = "set by you"; renderTicket();
+  });
+  $("t-kind-req").addEventListener("click", function () {
+    $("t-kind-bug").setAttribute("aria-pressed", "false");
+    $("t-kind-req").setAttribute("aria-pressed", "true");
+    $("t-kind-badge").textContent = "set by you"; renderTicket();
+  });
+  $("t-create").addEventListener("click", createTicket);
+
+  $("r-questions").addEventListener("change", function (event) {
+    var box = event.target.closest("[data-question]");
+    if (!box) { return; }
+    reply.questions[+box.getAttribute("data-question")].checked = box.checked;
+    renderReply();
+  });
+  $("r-body").addEventListener("input", function () { reply.bodyTouched = true; renderReply(); });
+  $("r-body-reset").addEventListener("click", function () { reply.bodyTouched = false; renderReply(); });
+  $("r-add-btn").addEventListener("click", function () {
+    var value = $("r-add").value.trim();
+    if (value) { reply.to.push(value); $("r-add").value = ""; renderReply(); }
+  });
+  $("r-add").addEventListener("keydown", function (event) {
+    if (event.key === "Enter") { event.preventDefault(); $("r-add-btn").click(); }
+  });
+  $("r-send").addEventListener("click", sendReply);
+  $("run").addEventListener("click", function () {
+    var label = $("run");
+    label.disabled = true;
+    label.textContent = "Ran just now";
+    setTimeout(function () {
+      label.disabled = false;
+      label.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" ' +
+        'stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" ' +
+        'aria-hidden="true"><polyline points="23 4 23 10 17 10"/>' +
+        '<path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> Run now';
+    }, 1400);
+  });
+
+  $("who").textContent = APP.you;
+  $("initials").textContent = (APP.you[0] || "D").toUpperCase();
+  show(current);
+})();
+</script>
+</body>
+</html>
