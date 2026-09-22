@@ -13,6 +13,7 @@ unapproved or incomplete, and the writers require their own write-scoped
 credentials so a read token can never perform a write.
 """
 
+import base64
 import json
 import os
 import re
@@ -26,6 +27,7 @@ from typing import Dict, List, Mapping, Sequence, Tuple
 from .intake import (Intake, compose_acknowledgement, compose_description, compose_reply,
                      context_questions, intake_from_mapping, long_date, read_email,
                      reply_all_recipients, reply_subject)
+from . import worddoc
 from .report import Kpi, Report, Row, Signal, Tier
 from .sprints import sprint_for
 
@@ -37,7 +39,14 @@ ZOHO_API_ROOT = "https://projectsapi.zoho.com"
 #: Sending mail is a second, narrower privilege again: the inbox monitor's read
 #: token must never be able to send in the user's name.
 OUTLOOK_WRITE_TOKEN_ENV = "MILOU_OUTLOOK_WRITE_TOKEN"
+#: And a third: editing the sprint tracker needs Files.ReadWrite, which reaches
+#: every file the user can reach. It shares a token with nothing.
+DOCUMENT_WRITE_TOKEN_ENV = "MILOU_DOCUMENT_WRITE_TOKEN"
 GRAPH_API_ROOT = "https://graph.microsoft.com/v1.0"
+
+#: A placeholder until the portal's real status list is configured. Zoho custom
+#: statuses are per-portal, so this is deliberately not a guess at yours.
+DEFAULT_STATUSES = ("Ready for Development",)
 
 #: Narrative fields that are carried into the description; editing any of them
 #: re-composes it, so the two can never disagree.
@@ -70,7 +79,10 @@ class TicketConfig:
     project: str = ""
     project_name: str = ""
     ready_status: str = "Ready for Development"
+    #: Every status the portal offers, in the order the picker should show them.
+    statuses: Tuple[str, ...] = DEFAULT_STATUSES
     document: str = ""
+    document_url: str = ""
     document_heading: str = "{sprint}"
     #: Left empty on purpose. At "Ready for Development" the sprint is the
     #: queue, and pre-assigning makes someone accountable for work they have
@@ -86,12 +98,23 @@ class TicketConfig:
     @classmethod
     def from_mapping(cls, value: Mapping) -> "TicketConfig":
         value = value or {}
+        ready = str(value.get("ready_status") or "Ready for Development")
+        statuses = tuple(str(item).strip() for item in (value.get("statuses") or ())
+                         if str(item).strip())
+        if statuses and ready not in statuses:
+            # Sending Zoho a status its portal does not have fails at write time
+            # with an unhelpful error. Catching it in configuration is cheaper.
+            raise ValueError(
+                "ready_status %r is not in the configured statuses: %s"
+                % (ready, ", ".join(statuses)))
         return cls(
             portal=str(value.get("portal") or ""),
             project=str(value.get("project") or ""),
             project_name=str(value.get("project_name") or ""),
-            ready_status=str(value.get("ready_status") or "Ready for Development"),
+            ready_status=ready,
+            statuses=statuses or (ready,),
             document=str(value.get("document") or ""),
+            document_url=str(value.get("document_url") or ""),
             document_heading=str(value.get("document_heading") or "{sprint}"),
             default_owner=str(value.get("default_owner") or ""),
             signature=str(value.get("signature") or ""),
@@ -181,8 +204,26 @@ class ActionPlan:
         missing = self.missing()
         if missing:
             raise IncompleteAction("still missing: %s" % ", ".join(missing))
+        invalid = self.invalid()
+        if invalid:
+            raise IncompleteAction("; ".join(invalid))
         stamp = (when or datetime.now(timezone.utc)).astimezone(timezone.utc)
         return replace(self, approved_by=who, approved_at=stamp.isoformat())
+
+    def invalid(self) -> List[str]:
+        """Values that are present but cannot be right.
+
+        Only the status so far. It is worth catching here rather than at write
+        time, because Zoho rejects an unknown custom status with an error that
+        says nothing about which statuses it does have.
+        """
+        problems = []
+        for action in self.actions:
+            options = _split_lines(action.fields.get("status_options", ""))
+            status = str(action.fields.get("status", "")).strip()
+            if options and status and status not in options:
+                problems.append("status %r is not one of: %s" % (status, ", ".join(options)))
+        return problems
 
 
 @dataclass
@@ -225,6 +266,13 @@ def shorten(subject: str, words: int = 6) -> str:
     return suggestion[:1].upper() + suggestion[1:] if suggestion else ""
 
 
+def _split_lines(value) -> Tuple[str, ...]:
+    """One value per line. Statuses contain spaces, so nothing else will do."""
+    if isinstance(value, (list, tuple)):
+        return tuple(str(item).strip() for item in value if str(item).strip())
+    return tuple(part.strip() for part in str(value or "").splitlines() if part.strip())
+
+
 def _split_links(value) -> Tuple[str, ...]:
     """Links survive a round trip through the dialog as one newline-joined field."""
     if isinstance(value, (list, tuple)):
@@ -265,6 +313,7 @@ def draft_ticket(config: TicketConfig, today: date, subject: str, sender: str = 
             "project": config.project,
             "title": title or "",
             "status": config.ready_status,
+            "status_options": "\n".join(config.statuses),
             "owner": config.default_owner,
             "tag": tag,
             "release_date": start.isoformat(),
@@ -531,6 +580,90 @@ class DryRunMailWriter:
         return ExecutionResult("outlook.create_draft", True,
                                "dry run: would leave a draft on %s"
                                % (fields.get("subject") or "the thread"))
+
+
+class SharePointWordWriter:
+    """Appends one line to a Word document stored in SharePoint or OneDrive.
+
+    Scoped to its own credential again. Editing a document is a third kind of
+    privilege — ``Files.ReadWrite`` can read and overwrite every file the user
+    can reach — and it has no business sharing a token with the mailbox or the
+    ticket system.
+
+    The document is downloaded, edited in memory, and uploaded back. The
+    original bytes are handed to ``keep_backup`` first when one is supplied, so
+    a bad edit to a hand-maintained tracker is recoverable.
+    """
+
+    def __init__(self, share_url: str = "", token=None, environ=None, timeout=30,
+                 root=GRAPH_API_ROOT, keep_backup=None):
+        self.share_url = share_url
+        self.token = token if token is not None else (environ or os.environ).get(
+            DOCUMENT_WRITE_TOKEN_ENV)
+        self.timeout = timeout
+        self.root = root
+        self.keep_backup = keep_backup
+
+    @staticmethod
+    def share_id(url: str) -> str:
+        """Graph's encoding for a sharing link: ``u!`` plus unpadded base64url."""
+        encoded = base64.urlsafe_b64encode(url.encode("utf-8")).decode("ascii")
+        return "u!" + encoded.rstrip("=")
+
+    def _request(self, path: str, method="GET", data=None, content_type=None):
+        headers = {"Authorization": "Bearer " + self.token, "Accept": "application/json"}
+        if content_type:
+            headers["Content-Type"] = content_type
+        request = urllib.request.Request(self.root + path, data=data, method=method,
+                                         headers=headers)
+        with urllib.request.urlopen(request, timeout=self.timeout) as response:
+            return response.read()
+
+    def _locate(self):
+        payload = json.loads(self._request(
+            "/shares/%s/driveItem?$select=id,name,parentReference"
+            % urllib.parse.quote(self.share_id(self.share_url), safe="!")).decode("utf-8"))
+        parent = payload.get("parentReference") or {}
+        drive, item = str(parent.get("driveId") or ""), str(payload.get("id") or "")
+        name = str(payload.get("name") or "")
+        if not drive or not item:
+            raise WriteNotConfigured("that link does not resolve to a file Milou can open")
+        if not name.lower().endswith(".docx"):
+            # A .doc, or a page that merely looks like one, would be destroyed
+            # by writing .docx bytes over it.
+            raise WriteNotConfigured(
+                "%r is not a .docx; open it in Word and save it as .docx first" % name)
+        return drive, item, name
+
+    def append_under_heading(self, document: str, heading: str, line: str) -> ExecutionResult:
+        if not self.token:
+            raise WriteNotConfigured(
+                "%s is not set; the tracker update fails closed" % DOCUMENT_WRITE_TOKEN_ENV)
+        if not self.share_url:
+            raise WriteNotConfigured(
+                "no document link configured; set document_url to the Word file's share link")
+        try:
+            drive, item, name = self._locate()
+            path = "/drives/%s/items/%s/content" % (urllib.parse.quote(drive, safe=""),
+                                                    urllib.parse.quote(item, safe=""))
+            original = self._request(path)
+            if self.keep_backup:
+                self.keep_backup(original, name)
+            updated, detail = worddoc.append_to_docx(original, heading, line)
+            if updated == original:
+                return ExecutionResult("document.append_line", True, detail)
+            self._request(path, method="PUT", data=updated,
+                          content_type="application/vnd.openxmlformats-officedocument."
+                                       "wordprocessingml.document")
+        except worddoc.DocumentError as exc:
+            return ExecutionResult("document.append_line", False, str(exc))
+        except urllib.error.HTTPError as exc:
+            return ExecutionResult("document.append_line", False,
+                                   "Graph returned HTTP %s %s" % (exc.code, exc.reason))
+        except (urllib.error.URLError, ValueError, TimeoutError) as exc:
+            return ExecutionResult("document.append_line", False,
+                                   "the tracker could not be updated: %s" % type(exc).__name__)
+        return ExecutionResult("document.append_line", True, "%s in %s" % (detail, name))
 
 
 class DryRunDocumentWriter:

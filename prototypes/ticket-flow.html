@@ -1,0 +1,1213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Two actions on every email</title>
+<style>
+  :root{
+    color-scheme: light;
+    --ground:#F2F2F6;
+    --glass:rgba(255,255,255,.60);
+    --glass-raised:rgba(255,255,255,.80);
+    --glass-soft:rgba(255,255,255,.44);
+    --hair:rgba(0,0,0,.06); --hair-2:rgba(0,0,0,.04);
+    --edge:rgba(255,255,255,.72);
+    --spec:inset 0 1px 0 rgba(255,255,255,.95),inset 0 0 0 1px rgba(255,255,255,.38),inset 0 -1px 0 rgba(255,255,255,.28);
+    --lift:0 1px 2px rgba(16,24,40,.05),0 14px 34px -12px rgba(16,24,40,.17),0 36px 68px -28px rgba(16,24,40,.15);
+    --lift-sm:0 1px 2px rgba(16,24,40,.04),0 6px 18px -10px rgba(16,24,40,.12);
+    --ink-1:#1D1D1F; --ink-2:#5C5C61; --ink-3:#6E6E73;
+    --crit:#A5232B; --crit-tint:rgba(208,59,59,.10); --crit-edge:rgba(165,35,43,.22);
+    --note:#7A5A05; --note-tint:rgba(250,178,25,.16); --note-edge:rgba(122,90,5,.20);
+    --cov:#8A421D; --cov-tint:rgba(236,131,90,.14); --cov-edge:rgba(138,66,29,.22);
+    --pos:#0E6B33; --pos-tint:rgba(12,163,12,.12); --pos-edge:rgba(14,107,51,.24);
+    --c1:#1657D9; --c1-tint:rgba(22,87,217,.10); --c1-edge:rgba(22,87,217,.26);
+    --c4:#A0479B; --c4-tint:rgba(160,71,155,.12); --c4-edge:rgba(160,71,155,.28);
+    --sans:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Helvetica Neue",system-ui,sans-serif;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --blur:blur(30px) saturate(205%);
+  }
+  *{box-sizing:border-box}
+  /* Several containers below set display:flex, which otherwise wins over the
+     user agent's [hidden] rule and renders both states of a dialog at once. */
+  [hidden]{display:none !important}
+  body{
+    margin:0;background-color:var(--ground);
+    background-image:
+      radial-gradient(52% 40% at 8% 2%,rgba(22,87,217,.17),transparent 64%),
+      radial-gradient(48% 34% at 94% 0%,rgba(160,71,155,.15),transparent 62%),
+      radial-gradient(46% 38% at 86% 44%,rgba(0,145,95,.14),transparent 62%),
+      radial-gradient(44% 34% at 4% 60%,rgba(210,96,10,.13),transparent 60%),
+      radial-gradient(54% 34% at 52% 99%,rgba(22,87,217,.12),transparent 64%);
+    background-attachment:fixed;color:var(--ink-1);font-family:var(--sans);
+    font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--ink-1)} code{font-family:var(--mono);font-size:.9em}
+  .wrap{max-width:1180px;margin:0 auto;padding:52px 24px 100px}
+  @media(max-width:640px){.wrap{padding:32px 16px 64px}}
+  .glass{background:var(--glass);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+    border:1px solid var(--edge);border-radius:26px;box-shadow:var(--spec),var(--lift)}
+  .glass-soft{background:var(--glass-soft);backdrop-filter:blur(20px) saturate(165%);
+    -webkit-backdrop-filter:blur(20px) saturate(165%);border:1px solid rgba(255,255,255,.72);
+    box-shadow:var(--spec),var(--lift-sm)}
+  h1{margin:8px 0 0;font-size:38px;line-height:1.08;font-weight:600;letter-spacing:-.025em}
+  h2{margin:0;font-size:22px;font-weight:600;letter-spacing:-.02em}
+  h3{margin:0;font-size:15.5px;font-weight:600;letter-spacing:-.01em}
+  p{margin:0}
+  .eyebrow{margin:0;font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+  .lede{margin:14px 0 0;font-size:16px;line-height:1.6;color:var(--ink-2);max-width:74ch}
+  .small{font-size:12.5px}.xsmall{font-size:11.5px}.muted{color:var(--ink-2)}.mut3{color:var(--ink-3)}
+  section{margin-top:52px}
+  .sec-head{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+  .sec-head .num{font-size:12px;font-weight:700;color:var(--ink-3)}
+  .kpi-label{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:600;
+    letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
+
+  /* ---------- inbox rows, the entry point ---------- */
+  .report{padding:24px 26px;display:flex;flex-direction:column;gap:14px}
+  .tier-head{display:flex;align-items:center;gap:9px;padding:0 4px;flex-wrap:wrap}
+  .tier-ico{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;
+    border-radius:999px;flex:0 0 auto;background:var(--crit-tint);color:var(--crit)}
+  .rows{border-radius:20px;overflow:hidden;display:flex;flex-direction:column;
+    background:var(--glass-raised);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+    border:1px solid var(--edge);box-shadow:var(--spec),0 10px 26px -16px rgba(0,0,0,.16)}
+  .row{display:flex;align-items:stretch;border-bottom:1px solid var(--hair-2)}
+  .row:last-child{border-bottom:0}
+  .rail{width:3px;flex:0 0 auto;background:var(--crit)}
+  .cells{flex:1 1 auto;min-width:0;padding:13px 18px;display:flex;align-items:center;gap:16px}
+  .c-time{flex:0 0 88px;display:flex;flex-direction:column;gap:2px}
+  .t-rel{font-size:13px;font-weight:600;font-variant-numeric:tabular-nums}
+  .t-abs{font-size:11px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+  .c-chg{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:3px}
+  .chg-title{font-size:13.5px;font-weight:600;letter-spacing:-.005em}
+  .chg-by{font-size:11.5px;color:var(--ink-3)}
+  .c-act{flex:0 0 auto;display:flex;align-items:center;gap:8px}
+  .quote{margin:0 0 6px;padding-left:10px;border-left:2px solid rgba(0,0,0,.12);
+    font-size:12.5px;line-height:1.5;color:var(--ink-2)}
+  .flag{display:block;font-size:11.5px;line-height:1.45;color:var(--ink-3)}
+  @media(max-width:860px){.cells{flex-wrap:wrap;gap:8px 12px}.c-time,.c-chg{flex:1 1 100%}
+    .c-act{flex:1 1 100%}}
+
+  /* ---------- buttons ---------- */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:34px;padding:0 14px;
+    border-radius:999px;background:rgba(255,255,255,.88);border:1px solid var(--hair);
+    font:inherit;font-size:12.5px;font-weight:500;color:var(--ink-1);cursor:pointer;white-space:nowrap}
+  .btn:hover{background:#fff}
+  .btn:focus-visible{outline:2px solid var(--c1);outline-offset:2px}
+  .btn-primary{background:var(--ink-1);border-color:var(--ink-1);color:#fff}
+  .btn-primary:hover{background:#000}
+  .btn-primary:disabled{background:#C7C7CC;border-color:#C7C7CC;color:#fff;cursor:not-allowed}
+  .btn-icon{width:32px;height:32px;padding:0;border-radius:9px}
+  .btn-ticket{border-color:var(--c1-edge);color:var(--c1);font-weight:600;background:var(--c1-tint)}
+  .btn-ticket:hover{background:rgba(22,87,217,.16)}
+  .btn-reply{border-color:var(--c4-edge);color:var(--c4);font-weight:600;background:var(--c4-tint)}
+  .btn-reply:hover{background:rgba(160,71,155,.2)}
+  .btn-sm{height:28px;padding:0 11px;font-size:11.5px}
+
+  /* ---------- dialog ---------- */
+  dialog{border:0;padding:0;background:transparent;max-width:min(720px,94vw);width:100%}
+  dialog::backdrop{background:rgba(16,24,40,.34);backdrop-filter:blur(3px)}
+  .sheet{background:rgba(255,255,255,.88);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+    border:1px solid var(--edge);border-radius:24px;box-shadow:var(--spec),0 32px 70px -20px rgba(16,24,40,.42);
+    display:flex;flex-direction:column;max-height:88vh}
+  .sheet-head{padding:22px 24px 16px;border-bottom:1px solid var(--hair);display:flex;
+    align-items:flex-start;gap:16px}
+  .sheet-body{padding:20px 24px;overflow-y:auto;display:flex;flex-direction:column;gap:16px}
+  .sheet-foot{padding:16px 24px 20px;border-top:1px solid var(--hair);display:flex;
+    align-items:center;gap:12px;flex-wrap:wrap}
+  .field{display:flex;flex-direction:column;gap:6px;min-width:0}
+  .field-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .field-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+  @media(max-width:560px){.field-row,.field-row-3{grid-template-columns:1fr}}
+  label{font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);
+    display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  input[type=text],input[type=date],select,textarea{
+    font:inherit;font-size:14px;color:var(--ink-1);background:rgba(255,255,255,.92);
+    border:1px solid var(--hair);border-radius:12px;padding:10px 12px;width:100%}
+  input:focus,select:focus,textarea:focus{outline:2px solid var(--c1);outline-offset:-1px;border-color:transparent}
+  textarea{min-height:132px;resize:vertical;line-height:1.55;font-size:13px}
+  textarea.tall{min-height:210px}
+  .hint{font-size:11.5px;color:var(--ink-3)}
+  .tag{display:inline-flex;align-items:center;height:18px;padding:0 7px;border-radius:999px;
+    font-size:9.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
+  .tag-sug{background:var(--note-tint);border:1px solid var(--note-edge);color:var(--note)}
+  .tag-req{background:var(--crit-tint);border:1px solid var(--crit-edge);color:var(--crit)}
+  .tag-gue{background:var(--cov-tint);border:1px solid var(--cov-edge);color:var(--cov)}
+  .tag-ok{background:var(--pos-tint);border:1px solid var(--pos-edge);color:var(--pos)}
+  .tag-auto{background:rgba(0,0,0,.05);border:1px solid var(--hair);color:var(--ink-3)}
+  .banner{display:flex;align-items:flex-start;gap:11px;padding:12px 15px;border-radius:14px;
+    background:rgba(255,255,255,.74);border:1px solid var(--note-edge)}
+  .banner-ok{border-color:var(--pos-edge)}
+  .banner-warn{border-color:var(--cov-edge)}
+  .banner-ico{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;
+    width:26px;height:26px;border-radius:999px;background:var(--note-tint);color:var(--note)}
+  .banner-ok .banner-ico{background:var(--pos-tint);color:var(--pos)}
+  .banner-warn .banner-ico{background:var(--cov-tint);color:var(--cov)}
+  .preview{padding:12px 14px;border-radius:12px;background:rgba(16,24,40,.045);
+    border:1px solid var(--hair);font-family:var(--mono);font-size:12px;color:var(--ink-2);
+    overflow-wrap:anywhere}
+  .preview b{color:var(--ink-1);font-weight:600}
+  .why{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--ink-3);flex-wrap:wrap}
+  .dot{width:4px;height:4px;border-radius:999px;background:var(--ink-3);flex:0 0 auto}
+  .seg{display:inline-flex;padding:3px;border-radius:999px;background:rgba(0,0,0,.05);gap:2px}
+  .seg button{border:0;background:transparent;font:inherit;font-size:12px;font-weight:600;
+    padding:5px 13px;border-radius:999px;cursor:pointer;color:var(--ink-3)}
+  .seg button[aria-pressed=true]{background:#fff;color:var(--ink-1);box-shadow:var(--lift-sm)}
+  .checks{display:flex;flex-direction:column;gap:9px;padding:13px 15px;border-radius:14px;
+    background:rgba(255,255,255,.66);border:1px solid var(--hair)}
+  /* These are labels too, but they are sentences, not field captions. */
+  label.check{display:flex;align-items:flex-start;gap:10px;font-size:13px;line-height:1.45;
+    color:var(--ink-1);font-weight:400;letter-spacing:0;text-transform:none;flex-wrap:nowrap}
+  .check input{margin:2px 0 0;flex:0 0 auto;accent-color:var(--c1);width:15px;height:15px}
+  .check .sub{display:block;font-size:11px;color:var(--ink-3);margin-top:2px;text-transform:none;
+    letter-spacing:0;font-weight:400}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 6px 0 11px;border-radius:999px;
+    background:rgba(255,255,255,.9);border:1px solid var(--hair);font-size:12px;color:var(--ink-2)}
+  .chip button{border:0;background:transparent;cursor:pointer;color:var(--ink-3);font:inherit;
+    line-height:1;padding:3px;border-radius:999px}
+  .chip button:hover{color:var(--crit);background:var(--crit-tint)}
+
+  /* ---------- rules ---------- */
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}
+  @media(max-width:860px){.grid2{grid-template-columns:1fr}}
+  .card{padding:22px 24px;border-radius:20px;display:flex;flex-direction:column;gap:13px}
+  table{border-collapse:collapse;width:100%;font-size:12.5px}
+  th{text-align:left;font-size:10.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;
+    color:var(--ink-3);padding:0 10px 8px 0;border-bottom:1px solid var(--hair)}
+  td{padding:8px 10px 8px 0;border-bottom:1px solid var(--hair-2);color:var(--ink-2);vertical-align:top}
+  td b{color:var(--ink-1);font-weight:600}
+  tr:last-child td{border-bottom:0}
+  .prov{display:flex;align-items:flex-start;gap:10px}
+  .prov-k{flex:0 0 104px;font-size:11px;font-weight:600;color:var(--c1);font-family:var(--mono)}
+  .prov-v{flex:1 1 auto;min-width:0;font-size:11.5px;line-height:1.45;color:var(--ink-2)}
+  .demo-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 18px;border-radius:16px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <p class="eyebrow">Milou · flow prototype</p>
+    <h1>Two actions on every email</h1>
+    <p class="lede">
+      Every actionable line in the inbox monitor carries the same two buttons: raise it as a Zoho
+      ticket, or reply to the whole thread asking for what a ticket needs. Both open a dialog with
+      every field already filled in and every field editable. This page is clickable, and nothing on
+      it contacts Zoho or your mailbox.
+    </p>
+  </header>
+
+  <!-- ============ 01 ENTRY POINT ============ -->
+  <section>
+    <div class="sec-head">
+      <span class="num">01</span>
+      <h2>The entry point</h2>
+      <span class="small muted">Both actions sit on the row, beside the citation link</span>
+    </div>
+
+    <div class="glass report">
+      <div class="tier-head">
+        <span class="tier-ico">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </span>
+        <h3 style="color:var(--crit)">Waiting on your reply</h3>
+        <span class="small mut3">2</span>
+      </div>
+
+      <div class="rows" id="rows"></div>
+
+      <div class="glass-soft demo-bar">
+        <span class="kpi-label">Pretend today is</span>
+        <select id="today" style="width:auto;min-width:210px">
+          <option value="2026-09-28">Monday 28 Sep</option>
+          <option value="2026-09-29" selected>Tuesday 29 Sep</option>
+          <option value="2026-09-30">Wednesday 30 Sep</option>
+          <option value="2026-10-01">Thursday 1 Oct</option>
+          <option value="2026-10-03">Saturday 3 Oct</option>
+        </select>
+        <span class="xsmall mut3" id="today-note"></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 02 WHAT THE TWO DIALOGS ARE FOR ============ -->
+  <section>
+    <div class="sec-head">
+      <span class="num">02</span>
+      <h2>The two dialogs</h2>
+      <span class="small muted">Open them from either row above</span>
+    </div>
+    <div class="grid2">
+      <div class="glass card" style="border-color:var(--c1-edge)">
+        <h3 style="color:var(--c1)">Create ticket</h3>
+        <p class="small muted">
+          Status, title, tag, release date, owner and description, all pre-filled. The description is
+          <b>composed</b> rather than pasted: type, who asked, who reported it, when, the scope, and
+          the documents. Correct a name in the dialog and the description rewrites itself — the two
+          can never disagree.
+        </p>
+        <p class="small muted">
+          Three things happen in order, and the plan stops at the first failure: the Zoho task, one
+          line in the sprint tracker, then an acknowledgement <b>left in your Drafts</b> telling the
+          thread the ticket number and the release date.
+        </p>
+        <div><button type="button" class="btn btn-ticket" data-open="ticket" data-mail="0">Open it for the bug report</button></div>
+      </div>
+      <div class="glass card" style="border-color:var(--c4-edge)">
+        <h3 style="color:var(--c4)">Ask for context</h3>
+        <p class="small muted">
+          A reply to everyone on the thread, pre-composed, asking for the full name of whoever
+          reported it, the project or record it happened in, the date, and any documentation. It
+          asks only for what the email did not already say.
+        </p>
+        <div><button type="button" class="btn btn-reply" data-open="reply" data-mail="1">Open it for the drawings request</button></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 03 RULES ============ -->
+  <section>
+    <div class="sec-head">
+      <span class="num">03</span>
+      <h2>What fills each field, and why</h2>
+    </div>
+
+    <div class="grid2">
+      <div style="display:flex;flex-direction:column;gap:20px">
+        <div class="glass card">
+          <h3>The ticket</h3>
+          <div style="display:flex;flex-direction:column;gap:9px">
+            <div class="prov"><span class="prov-k">title</span><span class="prov-v"><b>Suggested</b> from the subject, stripped of <code>RE:</code> and bracket noise. Never chosen for you — a title is read by people who never saw the email.</span></div>
+            <div class="prov"><span class="prov-k">status</span><span class="prov-v">Your portal's full list, with <b>Ready for Development</b> selected. The list is configuration; a status that is not on it is refused before anything is sent, because Zoho rejects an unknown status with an error that names no alternatives.</span></div>
+            <div class="prov"><span class="prov-k">tag</span><span class="prov-v">The computed sprint. Changing it moves the release date with it.</span></div>
+            <div class="prov"><span class="prov-k">release date</span><span class="prov-v">The sprint's Wednesday. Editable, but a date that no longer matches its sprint is flagged.</span></div>
+            <div class="prov"><span class="prov-k">owner</span><span class="prov-v">Defaults to <b>Unassigned</b> — see below.</span></div>
+            <div class="prov"><span class="prov-k">description</span><span class="prov-v">Composed to the fixed shape on the right.</span></div>
+          </div>
+        </div>
+
+        <div class="glass card">
+          <h3>The sprint rule</h3>
+          <p class="small muted">A ticket belongs to the next Wednesday <b>strictly after</b> the day it is created.</p>
+          <table>
+            <thead><tr><th>Created</th><th>Sprint</th><th>Why</th></tr></thead>
+            <tbody>
+              <tr><td><b>Monday</b></td><td>that Wed</td><td>not started yet</td></tr>
+              <tr><td><b>Tuesday</b></td><td>next morning</td><td>picked up tomorrow</td></tr>
+              <tr><td><b>Wednesday</b></td><td>following week</td><td>began without it</td></tr>
+              <tr><td><b>Thu–Sun</b></td><td>following week</td><td>same</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="glass card" style="border-color:var(--note-edge)">
+          <h3 style="color:var(--note)">On owner — my recommendation</h3>
+          <p class="small muted">
+            Default to <b>Unassigned</b>, not to you and not to the sender. At
+            <code>Ready for Development</code> the sprint is the queue: whoever picks it up owns it.
+            Pre-assigning quietly makes that person accountable for work they have not seen, and it is
+            the one field where a wrong default causes an argument rather than an edit.
+          </p>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:20px">
+        <div class="glass card">
+          <h3>How the description is composed</h3>
+          <p class="small muted">Same shape on every ticket, so nobody has to read it end to end to find one fact.</p>
+          <table>
+            <thead><tr><th>Line</th><th>Feature / change</th><th>Bug</th></tr></thead>
+            <tbody>
+              <tr><td><b>Type</b></td><td colspan="2">Detected from the wording; you can flip it</td></tr>
+              <tr><td><b>Requested by</b></td><td colspan="2">The person who made the request — the sender, unless the email says otherwise</td></tr>
+              <tr><td><b>Reported by</b></td><td class="mut3">not shown</td><td>The person who <i>hit</i> the bug, usually not the sender</td></tr>
+              <tr><td><b>Reported on</b></td><td class="mut3">not shown</td><td>When it was reported; "Monday" is resolved to a date</td></tr>
+              <tr><td><b>Project / record</b></td><td colspan="2">Where it was encountered, when the email names it</td></tr>
+              <tr><td><b>Context</b></td><td colspan="2">Short, but every load-bearing sentence kept</td></tr>
+              <tr><td><b>Documents</b></td><td colspan="2">Every link shared in the thread, listed in full</td></tr>
+              <tr><td><b>Citation</b></td><td colspan="2">From / Received / Subject, and a link back to the email</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="glass card" style="border-color:var(--crit-edge)">
+          <h3 style="color:var(--crit)">A bug ticket will not be created half-blind</h3>
+          <p class="small muted">
+            <b>Reported by</b> and <b>Reported on</b> are required on a bug, and almost never stated
+            in the email. Milou guesses them from the wording and marks the guess; if it finds
+            nothing, the field stays empty and the Create button stays disabled. That is what the
+            second action is for — it goes and asks.
+          </p>
+          <p class="small muted">
+            The alternative is a description that reads <i>"Reported by: (unknown)"</i>, which is a
+            question nobody will ever go back and answer.
+          </p>
+        </div>
+
+        <div class="glass card" style="border-color:var(--cov-edge)">
+          <h3 style="color:var(--cov)">The tracker is the most dangerous thing here</h3>
+          <p class="small muted">
+            It is a Word document you maintain by hand. A ticket can be deleted and a mail can be
+            recalled; quietly mangling a document you have been editing for months cannot be undone
+            from here.
+          </p>
+          <p class="small muted">
+            So Milou splices in <b>one paragraph</b> and copies every other byte across unchanged —
+            no re-saving the file through a library that would reformat it. The new line is cloned
+            from the line above it, so it keeps that section's bullets and numbering. If the sprint
+            heading is not in the document, <b>nothing is written</b>: a line filed under the wrong
+            sprint is harder to notice than a line that was never added. Running it twice adds
+            nothing the second time.
+          </p>
+          <p class="small muted">
+            Editing it needs <code>Files.ReadWrite</code> on its own credential, and the previous
+            version of the file is kept before anything is uploaded.
+          </p>
+        </div>
+
+        <div class="glass card" style="border-color:var(--pos-edge)">
+          <h3 style="color:var(--pos)">The acknowledgement is a draft, on purpose</h3>
+          <p class="small muted">
+            Once the ticket exists, its number is a better status channel than you are — so the
+            draft points them at it, and gives the release date as <b>the latest</b> they should
+            expect. A date stated without that qualifier gets read as a promise for that exact day,
+            and chased on it.
+          </p>
+          <p class="small muted">
+            It is saved to Drafts and never sent. That is a deliberate asymmetry: a draft is
+            reversible and a sent mail is not, and this one goes out immediately after a ticket
+            number was allocated a second ago. Creating it needs
+            <code>Mail.ReadWrite</code> — wider than <code>Mail.Send</code>, and worth knowing,
+            because the same grant can modify and delete mail.
+          </p>
+        </div>
+
+        <div class="glass card" style="border-color:var(--c4-edge)">
+          <h3 style="color:var(--c4)">The reply is a write, and is bounded like one</h3>
+          <p class="small muted">
+            Sending needs <code>MILOU_OUTLOOK_WRITE_TOKEN</code> with <code>Mail.Send</code> — a
+            separate credential from the read-only token the monitor uses, which cannot send.
+            Approval is bound to the exact recipients and the exact wording; editing either clears it.
+          </p>
+          <p class="small muted">
+            Adding or removing a recipient is the one edit that needs a wider Graph grant, so the
+            dialog flags it rather than failing at send time.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="glass-soft card" style="margin-top:52px">
+    <p class="small muted">
+      <b>Nothing on this page is real.</b> No ticket number is allocated, no mail is sent, and the
+      tracker line is not written anywhere. The two sample emails, the portal and the people are the
+      same fixtures the test suite runs against.
+    </p>
+  </div>
+</div>
+
+<!-- ============ DIALOG A — CREATE TICKET ============ -->
+<dialog id="ticket-dialog" aria-labelledby="ticket-dialog-title">
+  <form method="dialog" class="sheet">
+    <div class="sheet-head">
+      <div style="flex:1 1 auto;min-width:0">
+        <p class="eyebrow">New Zoho ticket</p>
+        <h2 id="ticket-dialog-title" style="margin-top:6px">Bldg 4 Fabrication</h2>
+        <p class="xsmall mut3" style="margin-top:6px" id="t-source"></p>
+      </div>
+      <button type="button" class="btn btn-icon" data-close="ticket-dialog" aria-label="Close without creating">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+      </button>
+    </div>
+
+    <div class="sheet-body" id="t-form">
+      <div class="banner">
+        <span class="banner-ico">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </span>
+        <div>
+          <p class="small" style="font-weight:600;color:var(--note)">Nothing is created until you press Create</p>
+          <p class="xsmall mut3" style="margin-top:2px">Three things will happen: a Zoho task, one line in the sprint tracker, then an unsent draft reply.</p>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="t-title">Title <span class="tag tag-sug" id="t-title-badge">suggested</span></label>
+        <input type="text" id="t-title" autocomplete="off">
+        <span class="hint">Keep it extremely brief. Read by people who never saw the email.</span>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="t-status">Status <span class="tag tag-auto">default selected</span></label>
+          <select id="t-status"></select>
+          <span class="hint">Your portal's full status list, from configuration.</span>
+        </div>
+        <div class="field">
+          <label for="t-owner">Owner <span class="tag tag-auto">default: unassigned</span></label>
+          <select id="t-owner">
+            <option value="" selected>Unassigned — the sprint is the queue</option>
+            <option value="Deven Blackburn">Deven Blackburn (you)</option>
+            <option value="A. Rivera">A. Rivera</option>
+            <option value="D. Nguyen">D. Nguyen</option>
+            <option value="S. Okafor">S. Okafor</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="t-sprint">Sprint tag</label>
+          <select id="t-sprint"></select>
+          <span class="hint" id="t-sprint-why"></span>
+        </div>
+        <div class="field">
+          <label for="t-release">Expected release date</label>
+          <input type="date" id="t-release">
+          <span class="hint" id="t-release-why">Matches the sprint.</span>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Type <span class="tag tag-gue" id="t-kind-badge">detected</span></label>
+        <div class="seg" role="group" aria-label="Ticket type">
+          <button type="button" id="t-kind-bug" aria-pressed="false">Bug report</button>
+          <button type="button" id="t-kind-req" aria-pressed="false">Feature / change</button>
+        </div>
+        <span class="hint" id="t-kind-why"></span>
+      </div>
+
+      <div class="field-row-3">
+        <div class="field">
+          <label for="t-requested">Requested by <span class="tag tag-auto">sender</span></label>
+          <input type="text" id="t-requested" autocomplete="off">
+        </div>
+        <div class="field" data-bug-only>
+          <label for="t-reported">Reported by <span class="tag" id="t-reported-badge"></span></label>
+          <input type="text" id="t-reported" autocomplete="off" placeholder="not stated in the email">
+        </div>
+        <div class="field" data-bug-only>
+          <label for="t-when">Reported on <span class="tag" id="t-when-badge"></span></label>
+          <input type="text" id="t-when" autocomplete="off" placeholder="not stated in the email">
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="t-record">Project / record <span class="tag" id="t-record-badge"></span></label>
+        <input type="text" id="t-record" autocomplete="off" placeholder="not stated in the email">
+      </div>
+
+      <div class="field">
+        <label for="t-desc">Description
+          <span class="tag tag-auto" id="t-desc-badge">composed from the fields above</span>
+          <button type="button" class="btn btn-sm" id="t-desc-reset" hidden>Re-compose</button>
+        </label>
+        <textarea id="t-desc" class="tall"></textarea>
+        <span class="hint" id="t-desc-hint">Edit a field above and this rewrites itself. Type in it directly and it stops, so your wording is never overwritten.</span>
+      </div>
+
+      <div class="field">
+        <label>Also adds to the sprint tracker</label>
+        <div class="preview" id="t-tracker"></div>
+        <span class="hint">Appended to the online Word document, under that sprint's heading, at the
+          end of the lines already there. Nothing else in the document is touched, and if the
+          heading is not found nothing is written at all.</span>
+      </div>
+
+      <div class="field">
+        <div class="checks">
+          <label class="check">
+            <input type="checkbox" id="t-ack" checked>
+            <span>Leave a draft reply once the ticket exists
+              <span class="sub">Tells them the number, where to follow it, and the release date.
+                Saved to Drafts — never sent.</span></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="field" id="t-ack-field">
+        <label for="t-ack-body">Acknowledgement draft
+          <span class="tag tag-auto" id="t-ack-badge">composed · number filled in after creation</span>
+          <button type="button" class="btn btn-sm" id="t-ack-reset" hidden>Re-compose</button>
+        </label>
+        <textarea id="t-ack-body"></textarea>
+        <span class="hint">The number does not exist yet, so it is a placeholder here and is
+          substituted the moment Zoho allocates one.</span>
+      </div>
+    </div>
+
+    <div class="sheet-body" id="t-done" hidden>
+      <div class="banner banner-ok">
+        <span class="banner-ico">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+        </span>
+        <div>
+          <p class="small" style="font-weight:600;color:var(--pos)">Ticket created</p>
+          <p class="xsmall mut3" style="margin-top:2px" id="t-done-sub"></p>
+        </div>
+      </div>
+      <div class="field">
+        <label>What was written</label>
+        <div class="preview" id="t-done-detail"></div>
+      </div>
+      <div class="field" id="t-done-ack">
+        <label>Waiting in your Drafts <span class="tag tag-ok">not sent</span></label>
+        <div class="preview" id="t-done-ack-body"></div>
+        <span class="hint">Open it in Outlook, read it once, press Send. Milou will not send it for you.</span>
+      </div>
+      <p class="xsmall mut3">
+        If the ticket had failed, none of this would have happened — no tracker line, no draft. An
+        entry naming a ticket that does not exist is worse than none, and so is telling six people
+        to follow one.
+      </p>
+    </div>
+
+    <div class="sheet-foot">
+      <span class="why" id="t-why"></span>
+      <span style="flex:1 1 auto"></span>
+      <button type="button" class="btn" data-close="ticket-dialog" id="t-cancel">Cancel</button>
+      <button type="button" class="btn btn-primary" id="t-create">Create ticket</button>
+      <button type="button" class="btn btn-primary" data-close="ticket-dialog" id="t-done-btn" hidden>Done</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- ============ DIALOG B — ASK FOR CONTEXT ============ -->
+<dialog id="reply-dialog" aria-labelledby="reply-dialog-title">
+  <form method="dialog" class="sheet">
+    <div class="sheet-head">
+      <div style="flex:1 1 auto;min-width:0">
+        <p class="eyebrow">Reply to the thread</p>
+        <h2 id="reply-dialog-title" style="margin-top:6px">Ask for the missing context</h2>
+        <p class="xsmall mut3" style="margin-top:6px" id="r-source"></p>
+      </div>
+      <button type="button" class="btn btn-icon" data-close="reply-dialog" aria-label="Close without sending">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+      </button>
+    </div>
+
+    <div class="sheet-body" id="r-form">
+      <div class="banner">
+        <span class="banner-ico">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </span>
+        <div>
+          <p class="small" style="font-weight:600;color:var(--note)">Nothing is sent until you press Send</p>
+          <p class="xsmall mut3" style="margin-top:2px">This goes out from your mailbox, in your name, to everyone listed below.</p>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>To <span class="tag tag-auto">reply-all, minus you</span>
+          <span class="tag tag-gue" id="r-to-badge" hidden>edited — wider grant</span></label>
+        <div class="chips" id="r-to"></div>
+        <div style="display:flex;gap:8px">
+          <input type="text" id="r-add" placeholder="add a recipient" autocomplete="off">
+          <button type="button" class="btn" id="r-add-btn">Add</button>
+        </div>
+        <span class="hint" id="r-to-hint"></span>
+      </div>
+
+      <div class="field">
+        <label>Cc</label>
+        <div class="chips" id="r-cc"></div>
+      </div>
+
+      <div class="field">
+        <label for="r-subject">Subject</label>
+        <input type="text" id="r-subject" autocomplete="off">
+      </div>
+
+      <div class="field">
+        <label>What to ask for <span class="tag tag-auto">ticked = still missing</span></label>
+        <div class="checks" id="r-questions"></div>
+        <span class="hint">Unticked items are ones the email already answered. Asking anyway is how a
+          standard reply teaches everyone to skim it.</span>
+      </div>
+
+      <div class="field">
+        <label for="r-body">Message
+          <span class="tag tag-auto" id="r-body-badge">composed from the ticks above</span>
+          <button type="button" class="btn btn-sm" id="r-body-reset" hidden>Re-compose</button>
+        </label>
+        <textarea id="r-body" class="tall"></textarea>
+      </div>
+    </div>
+
+    <div class="sheet-body" id="r-done" hidden>
+      <div class="banner banner-ok">
+        <span class="banner-ico">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+        </span>
+        <div>
+          <p class="small" style="font-weight:600;color:var(--pos)">Reply sent</p>
+          <p class="xsmall mut3" style="margin-top:2px" id="r-done-sub"></p>
+        </div>
+      </div>
+      <div class="field">
+        <label>The thread now waits on them, not on you</label>
+        <div class="preview" id="r-done-detail"></div>
+      </div>
+      <p class="xsmall mut3">
+        The monitor stops chasing you about this thread and starts counting business days against
+        their reply instead.
+      </p>
+    </div>
+
+    <div class="sheet-foot">
+      <span class="why" id="r-why"></span>
+      <span style="flex:1 1 auto"></span>
+      <button type="button" class="btn" data-close="reply-dialog" id="r-cancel">Cancel</button>
+      <button type="button" class="btn btn-primary" id="r-send">Send reply</button>
+      <button type="button" class="btn btn-primary" data-close="reply-dialog" id="r-done-btn" hidden>Done</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+(function () {
+  "use strict";
+  var MONTHS = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
+  var DAYS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  var YOU = "deven@alliedbuildings.com";
+  var SIGNATURE = "Deven";
+
+  /* Zoho custom statuses are per-portal, so this list is configuration, not
+     code. These are placeholders until the real list is supplied; the only
+     thing fixed is which one is selected when the dialog opens. */
+  var STATUSES = ["Open", "Ready for Development", "In Progress", "In Review",
+                  "Blocked", "Ready for Release", "Released", "On Hold", "Closed"];
+  var DEFAULT_STATUS = "Ready for Development";
+
+  /* The two sample emails. Everything the dialogs pre-fill comes from here, so
+     the page shows the real derivation rather than a hand-written mock-up. */
+  var MAIL = [
+    {
+      id: "m10", kind: "bug",
+      subject: "Takeoff weight rollup is wrong on Bldg 4",
+      fromName: "T. Brennan", from: "t.brennan@example.test",
+      to: [YOU, "ops@example.test"], cc: ["pm@example.test"],
+      when: "Sep 29, 07:15 UTC", ago: "3h ago", abs: "Sep 29, 07:15",
+      line: "T. Brennan is waiting on your reply",
+      quote: "Our estimator Jane Kowalski reported that the weight rollup on the takeoff screen is wrong — it shows 0 lbs for any nested assembly.",
+      requested: "T. Brennan",
+      reported: "Jane Kowalski", reportedGuessed: true,
+      reportedOn: "Monday (2026-09-28)", reportedOnGuessed: true,
+      record: "Bldg 4 Fabrication", recordGuessed: true,
+      context: "We have a problem on the Bldg 4 Fabrication project. Our estimator Jane Kowalski reported that the weight rollup on the takeoff screen is wrong — it shows 0 lbs for any assembly with a nested sub-assembly. She hit it on Monday and it is still happening today. Steps: open the takeoff, add a nested assembly, save. The total must include the nested weights before we can quote. The agreed behaviour is written up here [doc 1].",
+      links: ["https://example.test/sites/eng/takeoff-spec.docx"],
+      title: "Takeoff weight rollup is wrong",
+      url: "https://outlook.office365.com/mail/id/m10"
+    },
+    {
+      id: "m2", kind: "request",
+      subject: "Warehouse drawings for Bldg 4",
+      fromName: "M. Castillo", from: "m.castillo@example.test",
+      to: [YOU], cc: [],
+      when: "Sep 29, 09:40 UTC", ago: "22h ago", abs: "Sep 29, 09:40",
+      line: "M. Castillo is waiting on your reply",
+      quote: "Could you send the stamped drawings for Building 4 when you get a moment? The fabricator is asking.",
+      requested: "M. Castillo",
+      reported: "", reportedGuessed: false,
+      reportedOn: "", reportedOnGuessed: false,
+      record: "", recordGuessed: false,
+      context: "Could you send the stamped drawings for Building 4 when you get a moment? The fabricator is asking, and they cannot cut until the stamped set is issued. Scope is unchanged from the drawing register at [doc 1].",
+      links: ["https://example.test/sites/eng/bldg4-register.xlsx"],
+      title: "Warehouse drawings for Bldg 4",
+      url: "https://outlook.office365.com/mail/id/m2"
+    }
+  ];
+
+  var $ = function (id) { return document.getElementById(id); };
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c];
+    });
+  }
+  function parse(iso) { var p = iso.split("-"); return new Date(+p[0], +p[1] - 1, +p[2]); }
+  function iso(d) {
+    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") +
+           "-" + String(d.getDate()).padStart(2, "0");
+  }
+  /* The rule: the next Wednesday strictly after the given day. */
+  function nextSprint(d) {
+    var ahead = (3 - d.getDay() + 7) % 7;
+    var out = new Date(d.getTime());
+    out.setDate(out.getDate() + (ahead || 7));
+    return out;
+  }
+  function sprintName(d) { return d.getDate() + " " + MONTHS[d.getMonth()] + " SPRINT"; }
+  function upcoming(d, n) {
+    var list = [], cursor = d;
+    for (var i = 0; i < n; i++) { cursor = nextSprint(cursor); list.push(new Date(cursor.getTime())); }
+    return list;
+  }
+  function today() { return parse($("today").value); }
+
+  /* ---------- 01 the rows ---------- */
+  function renderRows() {
+    $("rows").innerHTML = MAIL.map(function (mail, index) {
+      return '' +
+        '<div class="row"><div class="rail"></div>' +
+        '<div style="flex:1 1 auto;min-width:0"><div class="cells">' +
+          '<div class="c-time"><span class="t-rel">' + mail.ago + '</span>' +
+          '<span class="t-abs">' + mail.abs + '</span></div>' +
+          '<div class="c-chg"><span class="chg-title">' + escapeHtml(mail.line) + '</span>' +
+          '<span class="chg-by">' + escapeHtml(mail.fromName) + ' · ' + escapeHtml(mail.subject) + '</span></div>' +
+          '<div class="c-act">' +
+            '<button type="button" class="btn btn-ticket" data-open="ticket" data-mail="' + index + '">' +
+              '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
+              'Create ticket</button>' +
+            '<button type="button" class="btn btn-reply" data-open="reply" data-mail="' + index + '">' +
+              '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>' +
+              'Ask for context</button>' +
+            '<a class="btn btn-icon" href="#01" aria-label="Open the email">' +
+              '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>' +
+            '</a>' +
+          '</div></div>' +
+          '<div style="padding:0 18px 12px">' +
+            '<p class="quote">' + escapeHtml(mail.quote) + '</p>' +
+            '<span class="flag">addressed directly to you · request language detected · no reply from you</span>' +
+          '</div>' +
+        '</div></div>';
+    }).join("");
+  }
+
+  /* ---------- the composed description ---------- */
+  function composeDescription(state) {
+    var unknown = "(not stated in the email — ask, or fill in before creating)";
+    var lines = [];
+    lines.push("Type: " + (state.kind === "bug" ? "Bug report" : "Feature / change request"));
+    lines.push("Requested by: " + (state.requested || unknown));
+    if (state.kind === "bug") {
+      lines.push("Reported by: " + (state.reported || unknown));
+      lines.push("Reported on: " + (state.reportedOn || unknown));
+    }
+    if (state.record) { lines.push("Project / record: " + state.record); }
+    lines.push("", "Context", "-------", state.context || "(the email carried no description)");
+    lines.push("", "Supporting documents", "--------------------");
+    if (state.links.length) {
+      state.links.forEach(function (link) { lines.push("- " + link); });
+    } else {
+      lines.push("- none shared in the email");
+    }
+    lines.push("", "--- Raised from email ---");
+    lines.push("From: " + state.fromName);
+    lines.push("Received: " + state.when);
+    lines.push("Subject: " + state.subject);
+    lines.push("Source: " + state.url);
+    return lines.join("\n");
+  }
+
+  var LONG_MONTHS = ["January","February","March","April","May","June","July","August",
+                     "September","October","November","December"];
+  function longDate(d) { return d.getDate() + " " + LONG_MONTHS[d.getMonth()] + " " + d.getFullYear(); }
+
+  /* The acknowledgement that goes out once the ticket exists. The number is a
+     placeholder until Zoho allocates one, exactly as it is in the plan. */
+  function composeAcknowledgement(reference, releaseDate, tag, isBug) {
+    return [
+      "Hi all,",
+      "",
+      "Thanks — this is now raised as ticket #" + reference + ", and we are looking into it.",
+      "",
+      "You are welcome to follow it directly. The development work, the release it goes into and " +
+      "the change log are all recorded against that ticket number, so you can check progress " +
+      "there at any time rather than waiting for an update from me.",
+      "",
+      "Expected release date: " + longDate(releaseDate) + " (the " + tag + ").",
+      "That is when we are aiming to have this " + (isBug ? "resolved" : "delivered") +
+      " at the very latest. If it lands sooner, the ticket will show it before I do.",
+      "",
+      "Thanks,",
+      SIGNATURE
+    ].join("\n");
+  }
+
+  /* ---------- DIALOG A ---------- */
+  var ticket = { mail: null, titleTouched: false, descTouched: false, ackTouched: false };
+
+  function badge(el, text, cls) {
+    el.hidden = !text;
+    el.textContent = text || "";
+    el.className = "tag " + (cls || "tag-auto");
+  }
+
+  function ticketState() {
+    return {
+      kind: $("t-kind-bug").getAttribute("aria-pressed") === "true" ? "bug" : "request",
+      requested: $("t-requested").value.trim(),
+      reported: $("t-reported").value.trim(),
+      reportedOn: $("t-when").value.trim(),
+      record: $("t-record").value.trim(),
+      context: ticket.mail.context, links: ticket.mail.links,
+      fromName: ticket.mail.fromName, when: ticket.mail.when,
+      subject: ticket.mail.subject, url: ticket.mail.url
+    };
+  }
+
+  function fillStatuses() {
+    $("t-status").innerHTML = "";
+    STATUSES.forEach(function (name) {
+      var opt = document.createElement("option");
+      opt.value = name;
+      opt.textContent = name + (name === DEFAULT_STATUS ? "  (default)" : "");
+      $("t-status").appendChild(opt);
+    });
+    $("t-status").value = DEFAULT_STATUS;
+  }
+
+  function fillSprints() {
+    var options = upcoming(today(), 4), current = $("t-sprint").value;
+    $("t-sprint").innerHTML = "";
+    options.forEach(function (d, i) {
+      var opt = document.createElement("option");
+      opt.value = iso(d);
+      opt.textContent = sprintName(d) + (i === 0 ? "  (next)" : "");
+      $("t-sprint").appendChild(opt);
+    });
+    $("t-sprint").value = (current && $("t-sprint").querySelector('option[value="' + current + '"]'))
+      ? current : iso(options[0]);
+    $("t-release").value = $("t-sprint").value;
+  }
+
+  function describeSprint() {
+    var base = today(), day = DAYS[base.getDay()], first = nextSprint(base);
+    var chosen = parse($("t-sprint").value);
+    $("t-sprint-why").textContent = chosen.getTime() === first.getTime()
+      ? (base.getDay() === 2 ? "Today is Tuesday — developers pick this up tomorrow."
+                             : "The next sprint after " + day + ".")
+      : "Deferred past the next sprint.";
+    if ($("t-release").value === $("t-sprint").value) {
+      $("t-release-why").textContent = "Matches the sprint.";
+      $("t-release-why").style.color = "";
+    } else {
+      $("t-release-why").textContent = "Does not match " + sprintName(parse($("t-sprint").value)) + ".";
+      $("t-release-why").style.color = "var(--cov)";
+    }
+    $("today-note").textContent = day + " → next sprint is " + sprintName(first) +
+      (base.getDay() >= 3 || base.getDay() === 0 ? " (that week's sprint already began)" : "");
+  }
+
+  function renderTicket() {
+    var state = ticketState(), isBug = state.kind === "bug";
+    Array.prototype.forEach.call(document.querySelectorAll("#t-form [data-bug-only]"), function (el) {
+      el.hidden = !isBug;
+    });
+    $("t-kind-bug").setAttribute("aria-pressed", String(isBug));
+    $("t-kind-req").setAttribute("aria-pressed", String(!isBug));
+    $("t-kind-why").textContent = isBug
+      ? "A bug needs a reporter and a report date. Both are required before it can be created."
+      : "A change request needs only the requester.";
+
+    badge($("t-reported-badge"),
+          state.reported ? (ticket.mail.reportedGuessed ? "guessed" : "") : "required",
+          state.reported ? "tag-gue" : "tag-req");
+    badge($("t-when-badge"),
+          state.reportedOn ? (ticket.mail.reportedOnGuessed ? "guessed" : "") : "required",
+          state.reportedOn ? "tag-gue" : "tag-req");
+    badge($("t-record-badge"),
+          state.record ? (ticket.mail.recordGuessed ? "guessed" : "") : "optional",
+          state.record ? "tag-gue" : "tag-auto");
+
+    if (!ticket.descTouched) { $("t-desc").value = composeDescription(state); }
+    $("t-desc-badge").textContent = ticket.descTouched
+      ? "edited by you — no longer re-composed" : "composed from the fields above";
+    $("t-desc-badge").className = "tag " + (ticket.descTouched ? "tag-gue" : "tag-auto");
+    $("t-desc-reset").hidden = !ticket.descTouched;
+
+    var title = $("t-title").value.trim();
+    var missing = [];
+    if (!title) { missing.push("title"); }
+    if (!state.requested) { missing.push("requested by"); }
+    if (isBug && !state.reported) { missing.push("reported by"); }
+    if (isBug && !state.reportedOn) { missing.push("reported on"); }
+
+    $("t-ack-field").hidden = !$("t-ack").checked;
+    if (!ticket.ackTouched) {
+      $("t-ack-body").value = composeAcknowledgement(
+        "•••••••", parse($("t-release").value || $("t-sprint").value),
+        sprintName(parse($("t-sprint").value)), isBug);
+    }
+    $("t-ack-badge").textContent = ticket.ackTouched
+      ? "edited by you — no longer re-composed" : "composed · number filled in after creation";
+    $("t-ack-badge").className = "tag " + (ticket.ackTouched ? "tag-gue" : "tag-auto");
+    $("t-ack-reset").hidden = !ticket.ackTouched;
+
+    $("t-tracker").innerHTML = "Under <b>" + sprintName(parse($("t-sprint").value)) + "</b><br>" +
+      "####&nbsp;-&nbsp;" + (title ? escapeHtml(title) : "&lt;title&gt;");
+    $("t-create").disabled = missing.length > 0;
+    var bits = missing.length
+      ? ["waiting on: " + missing.join(", ")]
+      : ["ready", $("t-owner").value || "unassigned", $("t-status").value];
+    $("t-why").innerHTML = bits.map(function (b, i) {
+      return (i ? '<span class="dot"></span>' : "") + escapeHtml(b);
+    }).join("");
+    if (missing.length && missing.indexOf("title") === -1) {
+      $("t-why").innerHTML += '<span class="dot"></span>ask for it with “Ask for context”';
+    }
+
+    $("t-title-badge").hidden = ticket.titleTouched && title;
+    if (!title) {
+      $("t-title-badge").hidden = false;
+      $("t-title-badge").textContent = "required";
+      $("t-title-badge").className = "tag tag-req";
+    } else if (!ticket.titleTouched) {
+      $("t-title-badge").textContent = "suggested";
+      $("t-title-badge").className = "tag tag-sug";
+    }
+  }
+
+  function openTicket(mail) {
+    ticket = { mail: mail, titleTouched: false, descTouched: false, ackTouched: false };
+    $("t-form").hidden = false; $("t-done").hidden = true;
+    $("t-create").hidden = false; $("t-cancel").hidden = false; $("t-done-btn").hidden = true;
+    $("t-source").innerHTML = "From <b>" + escapeHtml(mail.fromName) + "</b> · " +
+      escapeHtml(mail.subject) + " · " + mail.when;
+    $("t-title").value = mail.title;
+    $("t-requested").value = mail.requested;
+    $("t-reported").value = mail.reported;
+    $("t-when").value = mail.reportedOn;
+    $("t-record").value = mail.record;
+    $("t-kind-bug").setAttribute("aria-pressed", String(mail.kind === "bug"));
+    $("t-kind-req").setAttribute("aria-pressed", String(mail.kind !== "bug"));
+    fillStatuses(); fillSprints(); describeSprint(); renderTicket();
+    $("ticket-dialog").showModal();
+    $("t-title").focus(); $("t-title").select();
+  }
+
+  function createTicket() {
+    var number = String(4501000 + Math.floor(Math.random() * 999));
+    var title = $("t-title").value.trim();
+    $("t-form").hidden = true; $("t-done").hidden = false;
+    $("t-create").hidden = true; $("t-cancel").hidden = true; $("t-done-btn").hidden = false;
+    $("t-done-sub").textContent = "Task #" + number + " in Bldg 4 Fabrication";
+    $("t-done-detail").innerHTML =
+      "<b>Zoho task</b><br>#" + number + " &middot; " + escapeHtml(title) + "<br>" +
+      "status: " + escapeHtml($("t-status").value) + "<br>" +
+      "tag: " + sprintName(parse($("t-sprint").value)) + "<br>" +
+      "release: " + $("t-release").value + "<br>" +
+      "owner: " + escapeHtml($("t-owner").value || "Unassigned") +
+      "<br><br><b>Sprint tracker</b><br>under " + sprintName(parse($("t-sprint").value)) + "<br>" +
+      number.slice(-4) + " - " + escapeHtml(title);
+    $("t-done-ack").hidden = !$("t-ack").checked;
+    if ($("t-ack").checked) {
+      $("t-done-ack-body").innerHTML = escapeHtml(
+        $("t-ack-body").value.replace(/•+/g, number)).replace(/\n/g, "<br>");
+    }
+    $("t-why").textContent = "";
+  }
+
+  /* ---------- DIALOG B ---------- */
+  var reply = { mail: null, to: [], cc: [], bodyTouched: false, questions: [] };
+
+  function questionsFor(mail) {
+    var isBug = mail.kind === "bug";
+    var list = [
+      { key: "who",
+        text: "The full name of the person who " + (isBug ? "reported it." : "requested it."),
+        answered: isBug ? !!mail.reported : !!mail.requested,
+        known: isBug ? mail.reported : mail.requested,
+        label: isBug ? "Reported by" : "Requested by" },
+      { key: "record",
+        text: "The project name or record title where it was " + (isBug ? "encountered." : "needed."),
+        answered: !!mail.record, known: mail.record, label: "Project / record" }
+    ];
+    if (isBug) {
+      list.push({ key: "when", text: "The date it was first reported or noticed.",
+                  answered: !!mail.reportedOn, known: mail.reportedOn, label: "Reported on" });
+    }
+    list.push({ key: "docs",
+                text: "If you have any documentation, scope, screenshots or specifications, " +
+                      "please attach those as well.",
+                answered: mail.links.length > 0,
+                known: mail.links.length ? mail.links.length + " link(s) already shared" : "",
+                label: "Documents" });
+    return list.map(function (q) { return Object.assign({}, q, { checked: !q.answered }); });
+  }
+
+  function composeReply() {
+    var asked = reply.questions.filter(function (q) { return q.checked; });
+    var numbered = asked.filter(function (q) { return q.key !== "docs"; });
+    var isBug = reply.mail.kind === "bug";
+    var lines = ["Hi all,", ""];
+    if (numbered.length) {
+      lines.push(isBug
+        ? "Thanks for flagging this. Before I raise it as a ticket, could you fill in a few details for me?"
+        : "Thanks for this. Before I raise it as a ticket, could you fill in a few details for me?");
+      lines.push("");
+      numbered.forEach(function (q, i) { lines.push((i + 1) + ". " + q.text); });
+      if (asked.length !== numbered.length) {
+        lines.push("", asked.filter(function (q) { return q.key === "docs"; })[0].text);
+      }
+    } else {
+      lines.push("Thanks — I think I have everything I need to raise this as a ticket. " +
+                 "Can you confirm I have it right?", "");
+      reply.questions.forEach(function (q) {
+        if (q.key !== "docs" && q.known) { lines.push("- " + q.label + ": " + q.known); }
+      });
+      lines.push("", "If anything else is documented — scope, screenshots, specifications — " +
+                     "please attach that as well.");
+    }
+    lines.push("", "Once I have that, I will raise the ticket and send you the number.", "");
+    lines.push("Thanks,", SIGNATURE);
+    return lines.join("\n");
+  }
+
+  function renderChips(host, list, removable) {
+    host.innerHTML = list.length ? list.map(function (address, index) {
+      return '<span class="chip">' + escapeHtml(address) +
+        (removable ? '<button type="button" data-remove="' + index + '" aria-label="Remove ' +
+          escapeHtml(address) + '">' +
+          '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>' +
+          '</button>' : "") + '</span>';
+    }).join("") : '<span class="hint">nobody</span>';
+  }
+
+  function originalRecipients(mail) {
+    var seen = {}, primary = [];
+    [mail.from].concat(mail.to).forEach(function (address) {
+      var key = address.toLowerCase();
+      if (key !== YOU && !seen[key]) { seen[key] = true; primary.push(address); }
+    });
+    return primary;
+  }
+
+  function renderReply() {
+    renderChips($("r-to"), reply.to, true);
+    renderChips($("r-cc"), reply.cc, false);
+    var original = originalRecipients(reply.mail);
+    var edited = reply.to.join(",") !== original.join(",");
+    $("r-to-badge").hidden = !edited;
+    $("r-to-hint").textContent = edited
+      ? "You changed the recipient list. Sending an edited list needs Mail.ReadWrite as well as Mail.Send — Milou will say so rather than fail at send time."
+      : "Everyone on the thread except you. Sending this list as-is needs only Mail.Send.";
+    $("r-to-hint").style.color = edited ? "var(--cov)" : "";
+
+    $("r-questions").innerHTML = reply.questions.map(function (q, index) {
+      return '<label class="check"><input type="checkbox" data-question="' + index + '"' +
+        (q.checked ? " checked" : "") + '><span>' + escapeHtml(q.text) +
+        '<span class="sub">' + (q.answered
+          ? "the email already gave this" + (q.known ? ": " + escapeHtml(q.known) : "")
+          : "missing — this is why the ticket cannot be created yet") +
+        '</span></span></label>';
+    }).join("");
+
+    if (!reply.bodyTouched) { $("r-body").value = composeReply(); }
+    $("r-body-badge").textContent = reply.bodyTouched
+      ? "edited by you — no longer re-composed" : "composed from the ticks above";
+    $("r-body-badge").className = "tag " + (reply.bodyTouched ? "tag-gue" : "tag-auto");
+    $("r-body-reset").hidden = !reply.bodyTouched;
+
+    var asking = reply.questions.filter(function (q) { return q.checked; }).length;
+    $("r-send").disabled = reply.to.length === 0 || !$("r-body").value.trim();
+    $("r-why").innerHTML = [
+      reply.to.length + " recipient" + (reply.to.length === 1 ? "" : "s"),
+      asking ? "asking for " + asking : "confirming what you have"
+    ].map(function (b, i) {
+      return (i ? '<span class="dot"></span>' : "") + escapeHtml(b);
+    }).join("");
+  }
+
+  function openReply(mail) {
+    reply = { mail: mail, to: originalRecipients(mail), cc: mail.cc.slice(),
+              bodyTouched: false, questions: questionsFor(mail) };
+    $("r-form").hidden = false; $("r-done").hidden = true;
+    $("r-send").hidden = false; $("r-cancel").hidden = false; $("r-done-btn").hidden = true;
+    $("r-source").innerHTML = "Replying to <b>" + escapeHtml(mail.fromName) + "</b> · " +
+      escapeHtml(mail.subject) + " · " + mail.when;
+    $("r-subject").value = /^re\s*:/i.test(mail.subject) ? mail.subject : "Re: " + mail.subject;
+    renderReply();
+    $("reply-dialog").showModal();
+  }
+
+  function sendReply() {
+    $("r-form").hidden = true; $("r-done").hidden = false;
+    $("r-send").hidden = true; $("r-cancel").hidden = true; $("r-done-btn").hidden = false;
+    $("r-done-sub").textContent = "To " + reply.to.join(", ") +
+      (reply.cc.length ? " · cc " + reply.cc.join(", ") : "");
+    var asked = reply.questions.filter(function (q) { return q.checked; });
+    $("r-done-detail").innerHTML =
+      "<b>" + escapeHtml($("r-subject").value) + "</b><br>" +
+      (asked.length ? "asked for: " + escapeHtml(asked.map(function (q) { return q.label; }).join(", "))
+                    : "asked them to confirm what you already have") +
+      "<br>follow-up starts counting in 2 business days";
+    $("r-why").textContent = "";
+  }
+
+  /* ---------- wiring ---------- */
+  document.addEventListener("click", function (event) {
+    var opener = event.target.closest("[data-open]");
+    if (opener) {
+      var mail = MAIL[+opener.getAttribute("data-mail")];
+      if (opener.getAttribute("data-open") === "ticket") { openTicket(mail); } else { openReply(mail); }
+      return;
+    }
+    var closer = event.target.closest("[data-close]");
+    if (closer) { $(closer.getAttribute("data-close")).close(); return; }
+    var remove = event.target.closest("[data-remove]");
+    if (remove) { reply.to.splice(+remove.getAttribute("data-remove"), 1); renderReply(); }
+  });
+
+  ["t-status", "t-owner", "t-requested", "t-reported", "t-when", "t-record"].forEach(function (id) {
+    $(id).addEventListener("input", renderTicket);
+    $(id).addEventListener("change", renderTicket);
+  });
+  $("t-title").addEventListener("input", function () { ticket.titleTouched = true; renderTicket(); });
+  $("t-desc").addEventListener("input", function () { ticket.descTouched = true; renderTicket(); });
+  $("t-desc-reset").addEventListener("click", function () { ticket.descTouched = false; renderTicket(); });
+  $("t-ack").addEventListener("change", renderTicket);
+  $("t-ack-body").addEventListener("input", function () { ticket.ackTouched = true; renderTicket(); });
+  $("t-ack-reset").addEventListener("click", function () { ticket.ackTouched = false; renderTicket(); });
+  $("t-sprint").addEventListener("change", function () {
+    $("t-release").value = $("t-sprint").value; describeSprint(); renderTicket();
+  });
+  $("t-release").addEventListener("change", describeSprint);
+  $("t-kind-bug").addEventListener("click", function () {
+    $("t-kind-bug").setAttribute("aria-pressed", "true");
+    $("t-kind-req").setAttribute("aria-pressed", "false");
+    $("t-kind-badge").textContent = "set by you";
+    renderTicket();
+  });
+  $("t-kind-req").addEventListener("click", function () {
+    $("t-kind-bug").setAttribute("aria-pressed", "false");
+    $("t-kind-req").setAttribute("aria-pressed", "true");
+    $("t-kind-badge").textContent = "set by you";
+    renderTicket();
+  });
+  $("t-create").addEventListener("click", createTicket);
+  $("today").addEventListener("change", function () {
+    if (ticket.mail) { fillSprints(); }
+    describeSprint();
+    if (!$("ticket-dialog").open) { return; }
+    renderTicket();
+  });
+
+  $("r-questions").addEventListener("change", function (event) {
+    var box = event.target.closest("[data-question]");
+    if (!box) { return; }
+    reply.questions[+box.getAttribute("data-question")].checked = box.checked;
+    renderReply();
+  });
+  $("r-body").addEventListener("input", function () { reply.bodyTouched = true; renderReply(); });
+  $("r-body-reset").addEventListener("click", function () { reply.bodyTouched = false; renderReply(); });
+  $("r-add-btn").addEventListener("click", function () {
+    var value = $("r-add").value.trim();
+    if (value) { reply.to.push(value); $("r-add").value = ""; renderReply(); }
+  });
+  $("r-add").addEventListener("keydown", function (event) {
+    if (event.key === "Enter") { event.preventDefault(); $("r-add-btn").click(); }
+  });
+  $("r-send").addEventListener("click", sendReply);
+
+  renderRows();
+  ticket.mail = MAIL[0];
+  fillSprints();
+  describeSprint();
+})();
+</script>
+</body>
+</html>

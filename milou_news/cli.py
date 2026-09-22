@@ -19,9 +19,9 @@ from .supervisor import SupervisorDispatcher
 from .github_radar import (FixtureApi, GhApi, RadarConfig, build_radar_report,
                            generate_github_radar, prepare as prepare_radar)
 from .actions import (ApprovalRequired, DryRunDocumentWriter, DryRunMailWriter, IncompleteAction,
-                      OutlookReplyWriter, TicketConfig, WriteNotConfigured, ZohoWriter,
-                      draft_context_reply, draft_ticket, execute, plan_report, reply_plan_report,
-                      shorten)
+                      OutlookReplyWriter, SharePointWordWriter, TicketConfig, WriteNotConfigured,
+                      ZohoWriter, draft_context_reply, draft_ticket, execute, plan_report,
+                      reply_plan_report, shorten)
 from .outlook import (FixtureGraph, GraphApi, InboxConfig, build_outlook_report,
                       fetch_body, generate_outlook_monitor, locate_message)
 from .zoho import (FixtureZoho, ZohoApi, ZohoConfig, build_zoho_report, coverage_from,
@@ -125,7 +125,11 @@ def _draft_ticket(parser, args, api, inbox_config, now) -> int:
 
     try:
         approved = plan.approve(args.approve, now)
-        results = execute(approved, ZohoWriter(), DryRunDocumentWriter(),
+        # The tracker is a Word document somebody maintains by hand, so the live
+        # writer is used only once a link to it is actually configured.
+        document = DryRunDocumentWriter() if (args.dry_run or not config.document_url) \
+            else SharePointWordWriter(config.document_url)
+        results = execute(approved, ZohoWriter(), document,
                           mail_writer=DryRunMailWriter() if args.dry_run else OutlookReplyWriter())
     except (ApprovalRequired, IncompleteAction, WriteNotConfigured) as exc:
         parser.error(str(exc))

@@ -45,11 +45,20 @@ locale-dependent and would silently produce a different tag on another machine.
 | Field | Value |
 |---|---|
 | Title | **supplied by the user** |
-| Status | `Ready for Development` (configurable) |
+| Status | a picker of the portal's statuses, `Ready for Development` selected |
 | Owner | **unassigned** by default — see below |
 | Tag | the sprint tag, e.g. `2 OCT SPRINT` |
 | Expected release date | the sprint start date, matching the tag |
 | Description | composed to the fixed shape below |
+
+### Status
+
+Zoho custom statuses are per-portal, so the list is **configuration**, not code.
+`statuses` is the full list in picker order and `ready_status` is the one
+selected by default. A `ready_status` that is not in the list is a configuration
+error, and a status outside the list cannot be approved — Zoho rejects an
+unknown custom status with an error that names no alternatives, so it is far
+cheaper to catch before the write.
 
 ### Owner
 
@@ -126,6 +135,36 @@ has actually been created.
 If ticket creation fails, **no document line is written**. A tracker entry
 pointing at a ticket that does not exist is worse than no entry.
 
+### Editing the document
+
+The tracker is a **Word document (`.docx`) stored online**, maintained by hand.
+That makes it the most dangerous thing here: a ticket can be deleted and a mail
+can be recalled, but silently mangling a document somebody has been editing for
+months is not recoverable from this side.
+
+So the edit is as small as it can be. A `.docx` is a zip containing
+`word/document.xml`, and rather than parsing that into a tree and
+re-serialising it — which reorders attributes, drops namespace declarations Word
+put there deliberately, and rewrites parts nobody asked it to touch — Milou
+works on the raw markup as text and **splices in one paragraph**:
+
+- The new line is **cloned from the line above it** in the same section, so it
+  inherits that section's bullet, indent and numbering.
+- Every other byte of `document.xml`, and every other file in the zip, is
+  carried across unchanged, in its original order and compression.
+- **If the sprint heading is not found, nothing is written.** A line filed under
+  the wrong sprint is harder to notice than a line that was never added.
+- A styled heading wins over a sentence that happens to read the same, because a
+  sprint tag turns up in prose easily.
+- Running the same append twice does nothing the second time.
+- The document's previous bytes are kept before the upload.
+
+Set `document_url` to the file's share link; the writer resolves it through
+`/shares/{id}/driveItem`. Until a link is configured, a dry-run writer reports
+the exact line and heading it would add. A target that is not a `.docx` is
+refused before anything is uploaded, because writing `.docx` bytes over a `.doc`
+would destroy it.
+
 ## The acknowledgement draft
 
 Once the ticket exists, a third action leaves a reply-all **in Outlook's Drafts**
@@ -163,8 +202,10 @@ who does not want that grant should turn the acknowledgement off and keep
   "project": "5001",
   "project_name": "Bldg 4 Fabrication",
   "ready_status": "Ready for Development",
+  "statuses": ["Open", "Ready for Development", "In Progress", "Released"],
   "default_owner": "",
   "document": "Sprint Ticket Tracker",
+  "document_url": "https://contoso.sharepoint.com/:w:/s/eng/EaBc...",
   "document_heading": "{sprint}",
   "signature": "Your Name",
   "acknowledge": true
@@ -188,10 +229,9 @@ who does not want that grant should turn the acknowledgement off and keep
 
 ## Not implemented
 
-- **The live document adapter.** Appending to a shared Microsoft document needs
-  to know whether it is a Word file, a OneNote page, or a Loop component; each
-  requires a different Graph call, and guessing risks corrupting a manually
-  maintained tracker. A dry-run writer reports the exact line and heading it
-  would add.
+- The document writer has been exercised against constructed `.docx` files, not
+  against the real tracker; it is inactive until `document_url` is set.
+- The status list ships with `Ready for Development` alone, as a placeholder. The
+  portal's real statuses are configuration and have not been supplied yet.
 - Zoho task creation is written against the documented REST shape but has not
   been run against a live portal.

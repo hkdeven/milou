@@ -7,6 +7,24 @@ the detailed reasoning and decisions behind each change.
 
 ### Added
 
+- Added the live sprint tracker writer (`milou_news/worddoc.py`), now that the
+  tracker is known to be a Word document stored online. A `.docx` is a zip
+  containing `word/document.xml`, and the edit works on that markup as text,
+  splicing in one paragraph cloned from the line above it so it inherits the
+  section's numbering. Every other byte, and every other file in the zip, is
+  carried across unchanged — parsing and re-serialising the XML would reorder
+  attributes and drop namespace declarations Word put there deliberately. A
+  missing sprint heading writes nothing, a repeat run writes nothing, a target
+  that is not a `.docx` is refused before upload, and the previous bytes are kept
+  first. It needs `MILOU_DOCUMENT_WRITE_TOKEN` (`Files.ReadWrite`), separate
+  again from the mail and Zoho credentials, and stays inactive until
+  `document_url` is configured.
+- Made the ticket status a picker over the portal's own statuses. Zoho custom
+  statuses are per-portal, so `statuses` is configuration and `ready_status`
+  (default `Ready for Development`) is the one selected. A default outside the
+  list is a configuration error, and a status outside the list cannot be
+  approved: Zoho rejects an unknown status with an error that names no
+  alternatives.
 - Added a composed ticket description (`milou_news/intake.py`) with a fixed shape
   on every ticket: type, who requested it, who reported it, when it was reported,
   the project or record, a summarised context, and every document link shared in
