@@ -13,6 +13,8 @@ from .routines import (build_routine_report, generate_commitments_tracker,
                        generate_travel_logistics_tracker)
 from .github_radar import (FixtureApi, RadarConfig, build_radar_report,
                            generate_github_radar, prepare as prepare_radar)
+from .outlook import (FixtureGraph, InboxConfig, build_outlook_report,
+                      generate_outlook_monitor)
 
 
 def _generate_github_radar_fixture(payload):
@@ -23,6 +25,13 @@ def _generate_github_radar_fixture(payload):
     prepared = prepare_radar(api, config, now)
     return (generate_github_radar(api, config, now, prepared=prepared),
             build_radar_report(api, config, now, prepared=prepared))
+
+
+def _generate_outlook_fixture(payload):
+    config = InboxConfig.from_mapping(payload.get("config", {}))
+    api = FixtureGraph(payload.get("responses", {}), payload.get("errors", {}))
+    report = build_outlook_report(api, config)
+    return generate_outlook_monitor(api, config, report=report), report
 
 
 def _fixture_handler(generate, routine):
@@ -60,6 +69,7 @@ _HANDLERS = {
     )
 }
 _HANDLERS["github-change-radar"] = _generate_github_radar_fixture
+_HANDLERS["outlook-inbox-monitor"] = _generate_outlook_fixture
 
 
 class SupervisorPlanner:

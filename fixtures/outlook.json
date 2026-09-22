@@ -1,0 +1,108 @@
+{
+  "config": {
+    "follow_up_days": 2,
+    "max_items": 8,
+    "lookback_days": 14
+  },
+  "responses": {
+    "/me": {"mail": "deven@example.test", "userPrincipalName": "deven@example.test"},
+
+    "/me/mailFolders/inbox/messages?%24select=id%2CconversationId%2Csubject%2Cfrom%2CtoRecipients%2CccRecipients%2CreceivedDateTime%2CsentDateTime%2CbodyPreview%2CisRead%2Cimportance%2CinferenceClassification%2CwebLink&%24top=200&%24orderby=receivedDateTime+desc": {
+      "value": [
+        {
+          "id": "m1", "conversationId": "c1", "subject": "Q3 pricing sheet sign-off",
+          "from": {"emailAddress": {"address": "a.rivera@example.test", "name": "A. Rivera"}},
+          "toRecipients": [{"emailAddress": {"address": "deven@example.test"}}],
+          "receivedDateTime": "2026-09-21T14:10:00Z",
+          "bodyPreview": "We cannot proceed without your approval on the revised tier pricing. Everything downstream is on hold until you confirm.",
+          "isRead": false, "importance": "high", "inferenceClassification": "focused",
+          "webLink": "https://outlook.office365.com/mail/id/m1"
+        },
+        {
+          "id": "m2", "conversationId": "c2", "subject": "Warehouse drawings for Bldg 4",
+          "from": {"emailAddress": {"address": "m.castillo@example.test", "name": "M. Castillo"}},
+          "toRecipients": [{"emailAddress": {"address": "deven@example.test"}}],
+          "receivedDateTime": "2026-09-21T09:40:00Z",
+          "bodyPreview": "Could you send the stamped drawings for Building 4 when you get a moment? The fabricator is asking.",
+          "isRead": false, "importance": "normal", "inferenceClassification": "focused",
+          "webLink": "https://outlook.office365.com/mail/id/m2"
+        },
+        {
+          "id": "m3", "conversationId": "c3", "subject": "Re: Site visit notes",
+          "from": {"emailAddress": {"address": "s.okafor@example.test", "name": "S. Okafor"}},
+          "toRecipients": [{"emailAddress": {"address": "deven@example.test"}}],
+          "receivedDateTime": "2026-09-19T16:05:00Z",
+          "bodyPreview": "Thanks, that covers it. No action needed from your side.",
+          "isRead": true, "importance": "normal", "inferenceClassification": "focused",
+          "webLink": "https://outlook.office365.com/mail/id/m3"
+        },
+        {
+          "id": "m4", "conversationId": "c4", "subject": "Purchase order 88213 acknowledgement",
+          "from": {"emailAddress": {"address": "no-reply@supplier.example.test", "name": "Supplier Portal"}},
+          "toRecipients": [{"emailAddress": {"address": "deven@example.test"}}],
+          "receivedDateTime": "2026-09-21T06:00:00Z",
+          "bodyPreview": "Your purchase order has been received. Please do not reply to this message.",
+          "isRead": false, "importance": "normal", "inferenceClassification": "focused",
+          "webLink": "https://outlook.office365.com/mail/id/m4"
+        },
+        {
+          "id": "m5", "conversationId": "c5", "subject": "Steel market weekly digest",
+          "from": {"emailAddress": {"address": "newsletter@marketwatch.example.test", "name": "Market Watch"}},
+          "toRecipients": [{"emailAddress": {"address": "deven@example.test"}}],
+          "receivedDateTime": "2026-09-21T05:30:00Z",
+          "bodyPreview": "This week in steel: mill capacity, scrap pricing, and what to watch. Could you spare two minutes?",
+          "isRead": false, "importance": "normal", "inferenceClassification": "other",
+          "webLink": "https://outlook.office365.com/mail/id/m5"
+        },
+        {
+          "id": "m6", "conversationId": "c6", "subject": "FYI: crane scheduling thread",
+          "from": {"emailAddress": {"address": "d.nguyen@example.test", "name": "D. Nguyen"}},
+          "toRecipients": [{"emailAddress": {"address": "ops@example.test"}}],
+          "ccRecipients": [{"emailAddress": {"address": "deven@example.test"}}],
+          "receivedDateTime": "2026-09-21T11:00:00Z",
+          "bodyPreview": "Can you all confirm the crane window for Thursday?",
+          "isRead": false, "importance": "normal", "inferenceClassification": "focused",
+          "webLink": "https://outlook.office365.com/mail/id/m6"
+        },
+        {
+          "id": "m7", "conversationId": "c7", "subject": "Insurance certificate",
+          "from": {"emailAddress": {"address": "broker@example.test", "name": "Broker"}},
+          "toRecipients": [{"emailAddress": {"address": "deven@example.test"}}],
+          "receivedDateTime": "2026-09-18T08:00:00Z",
+          "bodyPreview": "Please send the updated certificate of insurance when you can.",
+          "isRead": true, "importance": "normal", "inferenceClassification": "focused",
+          "webLink": "https://outlook.office365.com/mail/id/m7"
+        }
+      ]
+    },
+
+    "/me/mailFolders/sentitems/messages?%24select=id%2CconversationId%2Csubject%2Cfrom%2CtoRecipients%2CccRecipients%2CreceivedDateTime%2CsentDateTime%2CbodyPreview%2CisRead%2Cimportance%2CinferenceClassification%2CwebLink&%24top=200&%24orderby=sentDateTime+desc": {
+      "value": [
+        {
+          "id": "s1", "conversationId": "c7", "subject": "RE: Insurance certificate",
+          "from": {"emailAddress": {"address": "deven@example.test", "name": "Deven"}},
+          "toRecipients": [{"emailAddress": {"address": "broker@example.test"}}],
+          "sentDateTime": "2026-09-18T09:15:00Z",
+          "bodyPreview": "I'll send the updated certificate over once underwriting confirms the endorsement.",
+          "importance": "normal", "webLink": "https://outlook.office365.com/mail/id/s1"
+        },
+        {
+          "id": "s2", "conversationId": "c8", "subject": "Revised quote for the Tulsa job",
+          "from": {"emailAddress": {"address": "deven@example.test", "name": "Deven"}},
+          "toRecipients": [{"emailAddress": {"address": "j.park@example.test"}}],
+          "sentDateTime": "2026-09-16T15:00:00Z",
+          "bodyPreview": "Attached is the revised quote with the updated freight allowance. Let me know if the schedule still works.",
+          "importance": "normal", "webLink": "https://outlook.office365.com/mail/id/s2"
+        },
+        {
+          "id": "s3", "conversationId": "c3", "subject": "RE: Site visit notes",
+          "from": {"emailAddress": {"address": "deven@example.test", "name": "Deven"}},
+          "toRecipients": [{"emailAddress": {"address": "s.okafor@example.test"}}],
+          "sentDateTime": "2026-09-19T17:30:00Z",
+          "bodyPreview": "Noted, thanks for writing these up.",
+          "importance": "normal", "webLink": "https://outlook.office365.com/mail/id/s3"
+        }
+      ]
+    }
+  }
+}

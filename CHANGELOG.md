@@ -7,6 +7,21 @@ the detailed reasoning and decisions behind each change.
 
 ### Added
 
+- Added the read-only `outlook-inbox-monitor` routine, its contract, a sample
+  mailbox fixture, and a Microsoft Graph adapter. It is built to replace opening
+  the inbox rather than summarise it: output is capped (default 8 items), most
+  mail is excluded by explicit rules, and exclusions are counted rather than
+  listed so the reader can calibrate trust. Four things earn a line — a sender
+  who states they are blocked, a request addressed directly to the user and
+  unanswered, a promise in the user's own sent mail, and sent mail that asked
+  something and has had no reply after a configurable number of business days.
+  Each line states an action, quotes the sentence that triggered it, and says
+  why it surfaced.
+- Added `--follow-up-days` and `--max-items` so the monitor's thresholds are
+  configuration rather than constants, overridable per run.
+- Added a quoted-sentence line to rendered record rows, so a row can show the
+  evidence that produced it rather than only naming it.
+
 - Added report persistence to scheduled runs. `Scheduler.run_due` now accepts a
   report store and `run` accepts `--store`; the report is saved with its
   structure and its path recorded in the ledger's previously unused

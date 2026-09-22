@@ -968,3 +968,52 @@ Implementation/build log:
 - Validation: `python3 -m unittest discover -s tests` passes with 73 tests
   (2 added), and the fixture-backed radar again renders the authenticated user's
   activity with zero warnings.
+
+### September 22, 2026 — An inbox monitor that refuses to summarise
+
+- The user asked for an Outlook monitor so they could stop opening email, and
+  described a previous attempt that failed: it produced a multi-page summary of
+  the whole inbox, which was harder to read than the inbox itself.
+- Took that as the design constraint rather than a complaint. A report that
+  covers everything is isomorphic to the inbox — the same volume, less
+  scannable, and less trustworthy, because the reader cannot tell what was
+  dropped. Reading the original mail is strictly better than reading that. The
+  only way a monitor beats an inbox is by discarding most of it under a rule the
+  reader trusts, so **the value of this routine is what it refuses to show**.
+- Every rule follows from that: output is capped rather than proportional, a
+  quiet mailbox is a success state and produces a short report, exclusions are
+  counted but never listed, each line is an action rather than a topic, and each
+  line states why it surfaced so a wrong call is diagnosable.
+- Confirmed the design with the user before building. They chose Microsoft Graph
+  as the eventual backend, a two-business-day follow-up threshold that must be
+  easy to change, and two extra signals beyond new requests and follow-ups:
+  senders explicitly blocked on them, and their own commitments.
+- "Easy to change" was taken literally: every threshold is `InboxConfig`, and
+  `--follow-up-days` and `--max-items` override per run. No threshold is a
+  constant in the classifier.
+- Building the fixture surfaced two false positives worth more than the feature
+  itself. A thread the user had closed with "Noted, thanks" was being chased for
+  a reply, and a thread where the user had promised something was being reported
+  as the recipient's silence. Both come from the same confusion: who owes whom.
+  A promise means the user owes the recipient and belongs only in "You
+  promised"; only mail that actually asked something is chased. Nagging about a
+  closed courtesy thread is exactly what makes follow-up reminders get ignored.
+- The tests then caught a real recall gap. The blocked-sender pattern matched
+  "can't proceed" but not "cannot proceed", which is the more natural phrasing;
+  the committed fixture had masked it by matching a different phrase in the same
+  message. Since missing a blocked colleague is the highest-cost miss this
+  routine can make, the pattern was widened and six common phrasings are now
+  asserted.
+- Rendered rows gained a quoted-sentence line, so a row shows the sentence that
+  triggered it. Knowing what someone actually asked is most of the value of not
+  opening the email.
+- Honest limitation: the Graph adapter is written and unit-tested but has never
+  run against a live mailbox. That needs an Azure app registration with
+  read-only `Mail.Read` consent, which cannot be done from here. The fixture
+  path is complete and the live path is a credential away.
+- Lesson: when a user says a previous attempt gave them too much, the fix is
+  usually not better prose. It is a smaller promise, kept exactly, with the
+  omissions made visible so the reader can trust the smaller thing.
+- Validation: `python3 -m unittest discover -s tests` passes with 101 tests
+  (28 added), `python3 -m compileall milou_news` passes, and the committed
+  fixture turns ten messages into four actionable lines in both formats.

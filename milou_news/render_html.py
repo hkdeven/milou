@@ -179,6 +179,8 @@ font-variant-numeric:tabular-nums;color:var(--ink-2)}
 .meter i:first-child{border-radius:999px 2px 2px 999px}
 .meter i.tex{background-color:#7A5A05;background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.45) 0 3px,transparent 3px 6px)}
 .flags{display:flex;flex-direction:column;gap:5px}
+.quote{margin:0 0 6px;padding-left:10px;border-left:2px solid rgba(0,0,0,.12);
+font-size:12.5px;line-height:1.5;color:var(--ink-2)}
 .flag{display:inline-flex;align-items:flex-start;gap:6px;font-size:11.5px;line-height:1.45;color:var(--ink-3)}
 .flag svg{flex:0 0 auto;margin-top:2px}
 .empty{padding:22px;border-radius:16px;background:rgba(255,255,255,.7);border:1px solid var(--hair);
@@ -322,6 +324,8 @@ def _event_row(row: Row) -> str:
                   % ('<span class="r-own">%s/</span>' % _e(row.owner) if row.owner else "",
                      '<span class="r-nm">%s</span>' % _e(row.source) if row.source else ""))
     flags = _flags(row.flags)
+    quoted = ('<p class="quote">%s</p>' % _e(row.summary)) if row.summary else ""
+    below = quoted + flags
     return ('<div class="row%s"><div class="rail" style="background:%s"></div>'
             '<div style="flex:1 1 auto;min-width:0"><div class="cells">'
             '%s%s%s'
@@ -339,7 +343,7 @@ def _event_row(row: Row) -> str:
                '<span class="chg-by">%s</span>' % _e(row.byline) if row.byline else "",
                '<div class="c-sig">%s</div>' % _chips(row.signals) if row.signals else "",
                _link(row.url),
-               '<div style="padding:0 18px 12px">%s</div>' % flags if flags else ""))
+               '<div style="padding:0 18px 12px">%s</div>' % below if below else ""))
 
 
 def _ranked_row(row: Row) -> str:

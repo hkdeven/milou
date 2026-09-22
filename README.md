@@ -39,6 +39,11 @@ The documented initial capabilities are:
 - a deterministic supervisor planner/dispatcher with read-only permissions,
   routing metadata, and visible failures; and
 - a vetted initial global AI news source set; and
+- an implemented fixture-backed `outlook-inbox-monitor` that exists to replace
+  opening the inbox rather than summarise it: bounded output, most mail excluded
+  by explicit counted rules, and only four things surfaced — senders blocked on
+  you, unanswered requests addressed to you, promises in your own sent mail, and
+  sent mail with no reply after a configurable number of business days; and
 - a durable local scheduler with timezone-aware daily/weekly cadence,
   idempotent run ledger, bounded visible retries, and authenticated health
   reporting.
@@ -50,10 +55,14 @@ and report evidence within a declared routine scope. Sending messages,
 changing calendar events, approving or merging code, publishing reports, or
 modifying production systems requires a separate explicit approval boundary.
 
-Live integrations, feeds, APIs, scrapers, and external write actions are not
-implemented. Local report persistence, scheduled-generation callable/CLI
-support, and private authenticated archive delivery are implemented; deployment
-still requires an operator-managed private host and reverse proxy.
+External **write** actions are not implemented anywhere, and no routine can
+perform one. Two read-only live adapters exist: authenticated `gh api` GET for
+the GitHub Change Radar, and Microsoft Graph GET for the Outlook inbox monitor.
+Both fail closed without an operator-supplied credential, and neither stores it.
+Every other routine remains fixture-backed. Local report persistence,
+scheduled-generation callable/CLI support, and private authenticated archive
+delivery are implemented; deployment still requires an operator-managed private
+host and reverse proxy.
 
 ## Execution rule
 
@@ -87,6 +96,9 @@ that makes further work unsafe or misleading.
   — launch and travel contracts
 - [`routines/github-change-radar.md`](routines/github-change-radar.md) —
   bounded authenticated repository-change contract
+- [`routines/outlook-inbox-monitor.md`](routines/outlook-inbox-monitor.md) and
+  [`milou_news/outlook.py`](milou_news/outlook.py) — the read-only Microsoft
+  Graph inbox monitor, its exclusion rules, and its output caps
 - [`CHANGELOG.md`](CHANGELOG.md) — notable project changes
 - [`milou_news/`](milou_news/) — read-only standard-library news-brief runtime
 - [`milou_news/report.py`](milou_news/report.py) and
@@ -108,6 +120,8 @@ that makes further work unsafe or misleading.
 - [`fixtures/github-radar.json`](fixtures/github-radar.json) and
   [`fixtures/github-radar-config.json`](fixtures/github-radar-config.json) —
   deterministic radar demo inputs
+- [`fixtures/outlook.json`](fixtures/outlook.json) — a sample mailbox covering
+  every tier and every exclusion path
 
 ## Status and next steps
 
@@ -160,7 +174,10 @@ so a run can be traced to its output. Without `--store` a scheduled run reports
 only that it happened. A storage failure is recorded as a run failure rather
 than passing silently.
 
-**Status:** Daily Wins, Morning Brief/Meeting Prep, Commitments/Follow-Up,
+**Status:** The Outlook inbox monitor is implemented and fixture-backed; its
+Microsoft Graph adapter is written but has not been run against a live mailbox,
+which needs an Azure app registration with read-only `Mail.Read` consent.
+Daily Wins, Morning Brief/Meeting Prep, Commitments/Follow-Up,
 Stale Work Finder, Dependabot PR Triage, Launch Decoder, Launch Radar, and
 Travel Logistics Tracker are implemented as read-only fixture-backed routines.
 The deterministic supervisor layer plans and dispatches registered routines.
@@ -177,6 +194,48 @@ real local report with
 `python3 -m milou_news --routine github-change-radar --config path/to/radar.json`
 and optionally persist it with `--store reports`. No server is started by this
 command and no credentials are committed.
+
+## Outlook inbox monitor
+
+The point of this routine is what it refuses to show. A report that covers the
+whole inbox is the inbox again — same volume, less scannable, and untrustworthy
+because you cannot tell what it dropped. So the output is capped (default 8
+items), most mail is excluded by explicit rules, and **the exclusions are
+counted rather than listed** so you can calibrate how much to trust it. A quiet
+mailbox produces a three-line report, not a padded one.
+
+Four things earn a line: someone who says they are blocked on you, a request
+addressed directly to you that you have not answered, a promise in your own sent
+mail, and sent mail that asked something and has had no reply. Each line states
+the action, quotes the sentence that triggered it, and says why it surfaced, so
+a wrong call is diagnosable.
+
+Try it against the committed sample mailbox:
+
+```sh
+python3 -m milou_news --routine inbox --fixture fixtures/outlook.json
+python3 -m milou_news --routine inbox --fixture fixtures/outlook.json --format html
+```
+
+Thresholds are configuration, not constants. Override them per run:
+
+```sh
+python3 -m milou_news --routine inbox --follow-up-days 5 --max-items 5
+```
+
+A live run reads Microsoft Graph with an operator-supplied token:
+
+```sh
+export MILOU_OUTLOOK_TOKEN="$(cat "$HOME/.config/milou/outlook-token")"
+python3 -m milou_news --routine inbox --config path/to/inbox.json --format html
+```
+
+Only HTTP `GET` is issued and `Mail.Read` is sufficient — do not grant
+`Mail.ReadWrite`. The routine never sends, replies, flags, moves, archives, or
+marks anything read, so it cannot change mailbox state. The token is read from
+the environment and is never logged, stored, or written into a report; an absent
+token fails closed. Message bodies are not stored — only the short preview
+needed to explain why an item surfaced.
 
 For a local authenticated archive, keep the token outside the repository in a
 permission-restricted file such as `$HOME/.config/milou/report-token` (or use

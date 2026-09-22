@@ -180,6 +180,34 @@ required user decision, or a correctness dependency that makes further work
 unsafe or misleading. Deployment-provider selection and credentials do not
 block local report persistence, UI, tests, or authentication-boundary work.
 
+## Outlook inbox monitor
+
+This routine inverts the usual summarisation goal. A report covering the whole
+inbox is the inbox again — same volume, less scannable, and untrustworthy
+because the reader cannot see what was dropped. Its value is therefore in what
+it refuses to show, and the architecture enforces that:
+
+- **Output is bounded, not proportional.** A hard item cap means a busier
+  mailbox produces the same report length; overflow is a count, not more lines.
+- **Exclusions are counted, never listed.** The report states how many messages
+  were scanned and why each excluded group was dropped, so the reader can
+  calibrate trust without the excluded mail reappearing as content.
+- **Only four things earn a line**: a sender who states they are blocked, an
+  unanswered request addressed directly to the user, a promise in the user's own
+  sent mail, and sent mail that asked something and has had no reply.
+- **The user's own obligations and other people's are kept apart.** A promise
+  means the user owes the recipient, so it is never also chased as unanswered
+  mail; a thread the user closed with an acknowledgement is not chased at all.
+- **Thresholds are configuration.** Follow-up delay, item cap, lookback window
+  and muted senders are all operator-set, and follow-up delay counts business
+  days so Friday mail is not chased on Sunday.
+
+Access is read-only Microsoft Graph `GET` with `Mail.Read`. The routine cannot
+send, reply, flag, move, archive or mark read, so it cannot change mailbox
+state. The token is read from the environment, never logged, stored or written
+into a report, and an absent token fails closed. Message bodies are not stored —
+only the short preview needed to explain why an item surfaced.
+
 ## Durable scheduling and health
 
 The local `Scheduler` persists configuration and an idempotent run ledger in

@@ -18,6 +18,8 @@ from .models import default_registry
 from .supervisor import SupervisorDispatcher
 from .github_radar import (FixtureApi, GhApi, RadarConfig, build_radar_report,
                            generate_github_radar, prepare as prepare_radar)
+from .outlook import (FixtureGraph, GraphApi, InboxConfig, build_outlook_report,
+                      generate_outlook_monitor)
 
 
 #: CLI alias -> canonical routine name, used for storage labels and builders.
@@ -34,6 +36,8 @@ CANONICAL_LABELS = {
     "travel-logistics": "travel-logistics-tracker",
     "github-radar": "github-change-radar",
     "change-radar": "github-change-radar",
+    "inbox": "outlook-inbox-monitor",
+    "outlook": "outlook-inbox-monitor",
 }
 
 
@@ -96,6 +100,9 @@ def main(argv=None) -> int:
             "github-change-radar",
             "github-radar",
             "change-radar",
+            "outlook-inbox-monitor",
+            "inbox",
+            "outlook",
         ),
         default="news",
     )
@@ -105,11 +112,36 @@ def main(argv=None) -> int:
     parser.add_argument("--store", help="dated archive directory; persist the generated report")
     parser.add_argument("--format", choices=("markdown", "html"), default="markdown",
                         help="markdown keeps the plain report; html renders the structured layout")
+    parser.add_argument("--follow-up-days", type=int, default=None,
+                        help="inbox monitor: business days of silence before a sent email is chased")
+    parser.add_argument("--max-items", type=int, default=None,
+                        help="inbox monitor: hard cap on actionable lines")
     args = parser.parse_args(argv)
     now = datetime.now(timezone.utc)
     structured = None
     radar_names = ("github-change-radar", "github-radar", "change-radar")
-    if args.routine in radar_names:
+    inbox_names = ("outlook-inbox-monitor", "inbox", "outlook")
+    if args.routine in inbox_names:
+        # A fixture carries its own config; a live run reads Graph with the
+        # operator's token from the environment and never writes.
+        if args.fixture:
+            with open(args.fixture, encoding="utf-8") as handle:
+                fixture = json.load(handle)
+            api = FixtureGraph(fixture.get("responses", fixture), fixture.get("errors", {}))
+            settings = fixture.get("config", {})
+        else:
+            api, settings = GraphApi(), {}
+        if args.config:
+            with open(args.config, encoding="utf-8") as handle:
+                settings = json.load(handle)
+        if args.follow_up_days is not None:
+            settings = dict(settings, follow_up_days=args.follow_up_days)
+        if args.max_items is not None:
+            settings = dict(settings, max_items=args.max_items)
+        inbox_config = InboxConfig.from_mapping(settings)
+        structured = build_outlook_report(api, inbox_config, now)
+        report = generate_outlook_monitor(api, inbox_config, now, report=structured)
+    elif args.routine in radar_names:
         if not args.config:
             parser.error("--config is required for the GitHub Change Radar")
         with open(args.config, encoding="utf-8") as handle:
@@ -157,7 +189,7 @@ def main(argv=None) -> int:
     elif args.routine in ("travel-logistics", "travel-logistics-tracker"):
         report = generate_travel_logistics_tracker(payload)
     canonical = CANONICAL_LABELS.get(args.routine, args.routine)
-    if structured is None and args.routine not in radar_names:
+    if structured is None and args.routine not in radar_names + inbox_names:
         # Every fixture-backed routine builds its report from the same payload.
         structured = build_routine_report(canonical, payload)
     if args.store:
