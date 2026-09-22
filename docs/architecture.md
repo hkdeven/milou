@@ -180,6 +180,42 @@ required user decision, or a correctness dependency that makes further work
 unsafe or misleading. Deployment-provider selection and credentials do not
 block local report persistence, UI, tests, or authentication-boundary work.
 
+## Cross-routine coverage
+
+When one routine watches a system directly and that system also emails a
+notification, the user is told the same thing twice. Silencing the notification
+channel by sender would fix the duplication and introduce a worse failure: it
+would also hide alerts the direct routine never saw.
+
+So de-duplication is evidence-based. A routine publishes a `Coverage` record —
+the record identifiers and titles it *actually collected*, plus the notification
+sender domains it makes redundant — and a consuming routine suppresses a message
+only when both the sender and the content match. The suppression is counted
+under its own reason, naming the routine responsible, so it is traceable rather
+than silent.
+
+Anything from a covered sender that cannot be matched is never dropped quietly.
+It is counted separately and raised as a coverage gap, because an unmatched
+notification usually means the direct routine is missing a project, a
+permission, or a window. The duplicate-suppression mechanism therefore doubles
+as a detector for the direct routine's own blind spots.
+
+Coverage is checked before the generic automated-sender rule, since a
+notification would otherwise disappear as "automated" whether or not the
+covering routine saw the event.
+
+## Zoho Projects radar
+
+Most work arrives as tickets rather than GitHub changes. `zoho-projects-radar`
+reads the portal directly and applies the same output discipline as the inbox
+monitor — capped output, counted exclusions, a short report when quiet.
+
+Its one deliberate departure: **comments are the top tier unconditionally**. A
+comment usually needs a response whether or not it is phrased as a question, so
+the request-detection used for email is not applied to it. Zoho's REST surface
+differs across portal API versions, so endpoint paths are configuration with
+documented defaults rather than constants.
+
 ## Outlook inbox monitor
 
 This routine inverts the usual summarisation goal. A report covering the whole

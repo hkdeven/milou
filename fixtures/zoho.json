@@ -1,0 +1,78 @@
+{
+  "config": {
+    "portal": "alliedsteel",
+    "me": "deven@example.test",
+    "window_hours": 72,
+    "max_items": 10
+  },
+  "responses": {
+    "/restapi/portal/alliedsteel/projects/": {
+      "projects": [
+        {"id_string": "5001", "name": "Bldg 4 Fabrication"},
+        {"id_string": "5002", "name": "Tulsa Erection"}
+      ]
+    },
+
+    "/restapi/portal/alliedsteel/projects/5001/activities/": {
+      "activities": [
+        {
+          "id": "9001", "activity_for": "Task", "activity_type": "Comment added",
+          "activity_by": "a.rivera@example.test", "time_long": 1790000000000,
+          "item_id": "4501001", "item_name": "Stamp and issue Building 4 drawings",
+          "content": "Fabricator is asking whether the revised base plate detail is approved. Can you confirm before Thursday?",
+          "assignee": "deven@example.test",
+          "link": {"self": {"url": "https://projects.zoho.com/portal/alliedsteel#taskdetail/5001/4501001"}}
+        },
+        {
+          "id": "9002", "activity_for": "Bug", "activity_type": "Comment added",
+          "activity_by": "m.castillo@example.test", "time_long": 1789990000000,
+          "item_id": "4501044", "item_name": "Anchor bolt layout mismatch",
+          "content": "Adding the surveyor notes here for the record.",
+          "owner": "s.okafor@example.test",
+          "link": {"self": {"url": "https://projects.zoho.com/portal/alliedsteel#bugdetail/5001/4501044"}}
+        },
+        {
+          "id": "9003", "activity_for": "Task", "activity_type": "Assignee changed",
+          "activity_by": "s.okafor@example.test", "time_long": 1789980000000,
+          "item_id": "4501077", "item_name": "Reconcile shipping list for sequence 3",
+          "assignee": "deven@example.test",
+          "link": {"self": {"url": "https://projects.zoho.com/portal/alliedsteel#taskdetail/5001/4501077"}}
+        },
+        {
+          "id": "9004", "activity_for": "Task", "activity_type": "Status changed to In Progress",
+          "activity_by": "d.nguyen@example.test", "time_long": 1789970000000,
+          "item_id": "4501077", "item_name": "Reconcile shipping list for sequence 3",
+          "assignee": "deven@example.test",
+          "link": {"self": {"url": "https://projects.zoho.com/portal/alliedsteel#taskdetail/5001/4501077"}}
+        },
+        {
+          "id": "9005", "activity_for": "Task", "activity_type": "Status changed to Closed",
+          "activity_by": "deven@example.test", "time_long": 1789960000000,
+          "item_id": "4501080", "item_name": "Confirm crane window",
+          "assignee": "deven@example.test",
+          "link": {"self": {"url": "https://projects.zoho.com/portal/alliedsteel#taskdetail/5001/4501080"}}
+        }
+      ]
+    },
+
+    "/restapi/portal/alliedsteel/projects/5002/activities/": {
+      "activities": [
+        {
+          "id": "9010", "activity_for": "Task", "activity_type": "Status changed to Closed",
+          "activity_by": "j.park@example.test", "time_long": 1789950000000,
+          "item_id": "4502010", "item_name": "Submit erection sequence for review",
+          "assignee": "j.park@example.test",
+          "link": {"self": {"url": "https://projects.zoho.com/portal/alliedsteel#taskdetail/5002/4502010"}}
+        },
+        {
+          "id": "9011", "activity_for": "Task", "activity_type": "Comment added",
+          "activity_by": "j.park@example.test", "time_long": 1789600000000,
+          "item_id": "4502044", "item_name": "Stale item outside the window",
+          "content": "This one is older than the configured window.",
+          "assignee": "deven@example.test",
+          "link": {"self": {"url": "https://projects.zoho.com/portal/alliedsteel#taskdetail/5002/4502044"}}
+        }
+      ]
+    }
+  }
+}

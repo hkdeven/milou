@@ -15,6 +15,8 @@ from .github_radar import (FixtureApi, RadarConfig, build_radar_report,
                            generate_github_radar, prepare as prepare_radar)
 from .outlook import (FixtureGraph, InboxConfig, build_outlook_report,
                       generate_outlook_monitor)
+from .zoho import (FixtureZoho, ZohoConfig, build_zoho_report, coverage_from,
+                   generate_zoho_radar, prepare as prepare_zoho)
 
 
 def _generate_github_radar_fixture(payload):
@@ -27,11 +29,33 @@ def _generate_github_radar_fixture(payload):
             build_radar_report(api, config, now, prepared=prepared))
 
 
+def _zoho_coverage(payload):
+    """Coverage published by a Zoho payload attached to another routine's fixture.
+
+    This is how a scheduled inbox run avoids reporting a Zoho event the radar
+    already reported, without blindly silencing the notification channel.
+    """
+    nested = (payload.get("coverage") or {}).get("zoho")
+    if not isinstance(nested, Mapping):
+        return []
+    config = ZohoConfig.from_mapping(nested.get("config", {}))
+    _now, activities, _errors, _count = prepare_zoho(
+        FixtureZoho(nested.get("responses", {}), nested.get("errors", {})), config)
+    return [coverage_from(activities, config)]
+
+
 def _generate_outlook_fixture(payload):
     config = InboxConfig.from_mapping(payload.get("config", {}))
     api = FixtureGraph(payload.get("responses", {}), payload.get("errors", {}))
-    report = build_outlook_report(api, config)
+    report = build_outlook_report(api, config, coverages=_zoho_coverage(payload))
     return generate_outlook_monitor(api, config, report=report), report
+
+
+def _generate_zoho_fixture(payload):
+    config = ZohoConfig.from_mapping(payload.get("config", {}))
+    api = FixtureZoho(payload.get("responses", {}), payload.get("errors", {}))
+    report = build_zoho_report(api, config)
+    return generate_zoho_radar(api, config, report=report), report
 
 
 def _fixture_handler(generate, routine):
@@ -70,6 +94,7 @@ _HANDLERS = {
 }
 _HANDLERS["github-change-radar"] = _generate_github_radar_fixture
 _HANDLERS["outlook-inbox-monitor"] = _generate_outlook_fixture
+_HANDLERS["zoho-projects-radar"] = _generate_zoho_fixture
 
 
 class SupervisorPlanner:

@@ -20,6 +20,8 @@ from .github_radar import (FixtureApi, GhApi, RadarConfig, build_radar_report,
                            generate_github_radar, prepare as prepare_radar)
 from .outlook import (FixtureGraph, GraphApi, InboxConfig, build_outlook_report,
                       generate_outlook_monitor)
+from .zoho import (FixtureZoho, ZohoApi, ZohoConfig, build_zoho_report, coverage_from,
+                   generate_zoho_radar, prepare as prepare_zoho)
 
 
 #: CLI alias -> canonical routine name, used for storage labels and builders.
@@ -38,6 +40,8 @@ CANONICAL_LABELS = {
     "change-radar": "github-change-radar",
     "inbox": "outlook-inbox-monitor",
     "outlook": "outlook-inbox-monitor",
+    "zoho": "zoho-projects-radar",
+    "projects": "zoho-projects-radar",
 }
 
 
@@ -103,6 +107,9 @@ def main(argv=None) -> int:
             "outlook-inbox-monitor",
             "inbox",
             "outlook",
+            "zoho-projects-radar",
+            "zoho",
+            "projects",
         ),
         default="news",
     )
@@ -115,13 +122,37 @@ def main(argv=None) -> int:
     parser.add_argument("--follow-up-days", type=int, default=None,
                         help="inbox monitor: business days of silence before a sent email is chased")
     parser.add_argument("--max-items", type=int, default=None,
-                        help="inbox monitor: hard cap on actionable lines")
+                        help="inbox/zoho: hard cap on actionable lines")
+    parser.add_argument("--zoho-coverage", metavar="PATH",
+                        help="inbox monitor: a Zoho config or fixture; notification mail the "
+                             "Zoho radar already reported is suppressed, and anything "
+                             "unmatched is reported as a coverage gap")
     args = parser.parse_args(argv)
     now = datetime.now(timezone.utc)
     structured = None
     radar_names = ("github-change-radar", "github-radar", "change-radar")
     inbox_names = ("outlook-inbox-monitor", "inbox", "outlook")
-    if args.routine in inbox_names:
+    zoho_names = ("zoho-projects-radar", "zoho", "projects")
+
+    def _zoho(path, live_settings=None):
+        """Build a Zoho api/config pair from a fixture or a live config."""
+        if path:
+            with open(path, encoding="utf-8") as handle:
+                payload = json.load(handle)
+            if payload.get("responses"):
+                return (FixtureZoho(payload["responses"], payload.get("errors", {})),
+                        ZohoConfig.from_mapping(payload.get("config", payload)))
+            return ZohoApi(), ZohoConfig.from_mapping(payload.get("config", payload))
+        return ZohoApi(), ZohoConfig.from_mapping(live_settings or {})
+
+    if args.routine in zoho_names:
+        api, zoho_config = _zoho(args.fixture or args.config)
+        if args.max_items is not None:
+            zoho_config = ZohoConfig.from_mapping(
+                dict(vars(zoho_config), max_items=args.max_items, endpoints=zoho_config.endpoints))
+        structured = build_zoho_report(api, zoho_config, now)
+        report = generate_zoho_radar(api, zoho_config, now, report=structured)
+    elif args.routine in inbox_names:
         # A fixture carries its own config; a live run reads Graph with the
         # operator's token from the environment and never writes.
         if args.fixture:
@@ -139,7 +170,12 @@ def main(argv=None) -> int:
         if args.max_items is not None:
             settings = dict(settings, max_items=args.max_items)
         inbox_config = InboxConfig.from_mapping(settings)
-        structured = build_outlook_report(api, inbox_config, now)
+        coverages = []
+        if args.zoho_coverage:
+            zoho_api, zoho_config = _zoho(args.zoho_coverage)
+            _n, activities, _errors, _count = prepare_zoho(zoho_api, zoho_config, now)
+            coverages.append(coverage_from(activities, zoho_config))
+        structured = build_outlook_report(api, inbox_config, now, coverages=coverages)
         report = generate_outlook_monitor(api, inbox_config, now, report=structured)
     elif args.routine in radar_names:
         if not args.config:
@@ -189,7 +225,7 @@ def main(argv=None) -> int:
     elif args.routine in ("travel-logistics", "travel-logistics-tracker"):
         report = generate_travel_logistics_tracker(payload)
     canonical = CANONICAL_LABELS.get(args.routine, args.routine)
-    if structured is None and args.routine not in radar_names + inbox_names:
+    if structured is None and args.routine not in radar_names + inbox_names + zoho_names:
         # Every fixture-backed routine builds its report from the same payload.
         structured = build_routine_report(canonical, payload)
     if args.store:

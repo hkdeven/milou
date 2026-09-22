@@ -7,6 +7,25 @@ the detailed reasoning and decisions behind each change.
 
 ### Added
 
+- Added the read-only `zoho-projects-radar` routine, its contract, a sample
+  portal fixture, and a Zoho Projects adapter. Comments are its top tier by
+  design: a comment usually needs a response whether or not it is a direct
+  question, so it is never demoted for lacking one. Endpoint paths are
+  configuration with documented defaults, because Zoho's REST surface differs
+  across portal API versions.
+- Added cross-routine coverage (`milou_news/coverage.py`), so the same event is
+  never reported by two routines. A routine publishes the record identifiers and
+  titles it demonstrably reported plus the notification domains it makes
+  redundant; the inbox monitor suppresses a notification only when it matches
+  that evidence, counting it as `already reported by <routine>`. A notification
+  from a covered domain that cannot be matched is counted separately and raised
+  as a coverage gap rather than dropped, because that usually means the covering
+  routine is missing a project, a permission, or a window.
+- Added `--zoho-coverage` to the inbox monitor, and a `coverage.zoho` payload
+  section so scheduled inbox runs de-duplicate the same way.
+- Added `milou_news/render_text.py`, a shared Markdown renderer for any
+  structured report, replacing the copy that lived in the inbox monitor.
+
 - Added the read-only `outlook-inbox-monitor` routine, its contract, a sample
   mailbox fixture, and a Microsoft Graph adapter. It is built to replace opening
   the inbox rather than summarise it: output is capped (default 8 items), most
@@ -153,6 +172,9 @@ the detailed reasoning and decisions behind each change.
   behind that choice, and any signal the dropped account still leads on.
 
 ### Fixed
+
+- Stopped describing a coverage gap as a mailbox access problem in the inbox
+  monitor's alert; the two are now counted and named separately.
 
 - Requested the authenticated user's activity from `/users/{username}/events`
   instead of `/user/events`. GitHub does not serve the latter, so every run

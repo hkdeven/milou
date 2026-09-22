@@ -22,6 +22,8 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Mapping, Optional, Sequence, Tuple
 
+from .coverage import Coverage, find_owner
+from .render_text import render_markdown
 from .report import Bar, Kpi, Report, Row, Segment, Signal, Tier, humanize_age
 
 ROUTINE_NAME = "outlook-inbox-monitor"
@@ -276,24 +278,36 @@ def _collect(api, config: InboxConfig) -> Tuple[str, List[Message], List[Message
 
 
 def _excluded(message: Message, mailbox: str, config: InboxConfig,
-              replied: Mapping, cutoff: datetime) -> str:
-    """Why this message earns no line. Empty string means it is a candidate."""
+              replied: Mapping, cutoff: datetime,
+              coverages: Sequence[Coverage] = ()) -> Tuple[str, bool]:
+    """Why this message earns no line, and whether it is an unmatched notification.
+
+    Coverage is checked before the automated-sender rule on purpose. A Zoho or
+    GitHub notification would otherwise disappear as "automated sender" whether
+    or not the routine watching that system actually saw the event, which is
+    not de-duplication — it is a silent drop.
+    """
     if message.when < cutoff:
-        return "older than the %d-day window" % config.lookback_days
+        return "older than the %d-day window" % config.lookback_days, False
     if mailbox and message.sender == mailbox:
-        return "sent by you"
+        return "sent by you", False
+    owner = find_owner(coverages, message.sender)
+    if owner is not None:
+        if owner.matches(message.subject, message.preview, message.url):
+            return "already reported by %s" % owner.routine, False
+        return "notification from %s not matched to a tracked item" % owner.routine, True
     if _AUTOMATED.search(message.sender):
-        return "automated sender"
+        return "automated sender", False
     if message.sender in config.mute_senders:
-        return "muted sender"
+        return "muted sender", False
     if message.classification.lower() == "other" and not config.include_other:
-        return "Focused Inbox: other"
+        return "Focused Inbox: other", False
     if mailbox and mailbox not in message.to:
-        return "you were only CC'd"
+        return "you were only CC'd", False
     replied_at = replied.get(message.conversation)
     if replied_at is not None and replied_at > message.when:
-        return "you already replied"
-    return ""
+        return "you already replied", False
+    return "", False
 
 
 def _reasons(message: Message, blocked: bool) -> List[Signal]:
@@ -317,7 +331,20 @@ def _row(message: Message, action: str, ago: str, reasons: Sequence[Signal], ton
         url=message.url, tone=tone, flags=list(reasons))
 
 
-def build_outlook_report(api, config: InboxConfig = None, now=None) -> Report:
+def _alert(errors: Sequence[str], gaps: Sequence[str]) -> str:
+    """Name the kind of problem: a coverage gap is not an access failure."""
+    parts = []
+    if errors:
+        parts.append("%d mailbox access problem%s" % (len(errors), "" if len(errors) == 1 else "s"))
+    if gaps:
+        parts.append("%d coverage gap%s" % (len(gaps), "" if len(gaps) == 1 else "s"))
+    if not parts:
+        return ""
+    return " and ".join(parts) + " — this report may be incomplete"
+
+
+def build_outlook_report(api, config: InboxConfig = None, now=None,
+                        coverages: Sequence[Coverage] = ()) -> Report:
     """Build the inbox monitor report.
 
     Ordering is by consequence: someone blocked on the user, then unanswered
@@ -336,11 +363,14 @@ def build_outlook_report(api, config: InboxConfig = None, now=None) -> Report:
             replied[message.conversation] = message.when
 
     skipped: Counter = Counter()
+    unmatched: Counter = Counter()
     candidates: Dict[str, Message] = {}
     for message in sorted(inbox, key=lambda m: m.when, reverse=True):
-        reason = _excluded(message, mailbox, config, replied, cutoff)
+        reason, gap = _excluded(message, mailbox, config, replied, cutoff, coverages)
         if reason:
             skipped[reason] += 1
+            if gap:
+                unmatched[message.sender.split("@")[-1]] += 1
             continue
         candidates.setdefault(message.conversation, message)
 
@@ -432,6 +462,9 @@ def build_outlook_report(api, config: InboxConfig = None, now=None) -> Report:
     if truncated:
         errors.append("the mailbox returned more messages than the %d-message cap; "
                       "older mail in this window was not examined" % config.max_messages)
+    gaps = ["%d notification(s) from %s did not match anything the covering routine "
+            "reported; it may be missing a project, a permission, or a window"
+            % (count, domain) for domain, count in sorted(unmatched.items())]
 
     return Report(
         title="Outlook inbox monitor", routine=ROUTINE_NAME,
@@ -447,13 +480,11 @@ def build_outlook_report(api, config: InboxConfig = None, now=None) -> Report:
                 "%d+ business days" % config.follow_up_days, "notable" if follow_ups else ""),
             Kpi("Scanned", str(scanned), "messages"),
             Kpi("Excluded", str(excluded), "not shown", "coverage" if excluded else ""),
-            Kpi("Warnings", str(len(errors)), "access or coverage",
-                "coverage" if errors else ""),
+            Kpi("Warnings", str(len(errors) + len(gaps)), "access or coverage",
+                "coverage" if (errors or gaps) else ""),
         ],
         bars=bars, tiers=tiers,
-        alert=("%d mailbox access problem%s — this report is incomplete"
-               % (len(errors), "" if len(errors) == 1 else "s")) if errors else "",
-        alert_detail="; ".join(errors),
+        alert=_alert(errors, gaps), alert_detail="; ".join(errors + gaps),
         boundary=("Read-only Microsoft Graph GET only · never sends, replies, flags, moves, "
                   "archives or marks read · %d of at most %d items shown%s · message bodies "
                   "are not stored."
@@ -462,39 +493,6 @@ def build_outlook_report(api, config: InboxConfig = None, now=None) -> Report:
         empty_note=("Nothing in the last %d days needs you. %d messages scanned, %d excluded."
                     % (config.lookback_days, scanned, excluded)),
     )
-
-
-def render_markdown(report: Report) -> str:
-    """Plain-text record of the same report, for the stored archive."""
-    lines = ["# %s" % report.title, "",
-             "- **Generated:** %s" % report.generated,
-             "- **Window:** %s" % report.window,
-             "- **Mailbox:** %s" % (report.scopes[0] if report.scopes else "unknown"), ""]
-    lines.extend("- **%s:** %s%s" % (kpi.label, kpi.value, " (%s)" % kpi.sub if kpi.sub else "")
-                 for kpi in report.kpis)
-    lines.append("")
-    if report.alert:
-        lines.extend(["## Access and coverage", "- %s" % report.alert,
-                      "- %s" % report.alert_detail, ""])
-    if not report.populated_tiers():
-        lines.extend(["No action needed.", "", "- %s" % report.empty_note, ""])
-    for tier in report.populated_tiers():
-        lines.append("## %s (%d)" % (tier.label, tier.count))
-        for row in tier.rows:
-            lines.append("- **%s** — %s [%s]%s" % (
-                row.title, row.byline, row.ago,
-                " ([open](%s))" % row.url if row.url.startswith("http") else ""))
-            if row.flags:
-                lines.append("  - why: %s" % "; ".join(flag.label for flag in row.flags))
-        if tier.footnote:
-            lines.append("- %s" % tier.footnote)
-        lines.append("")
-    for bar in report.bars:
-        lines.append("## %s" % bar.label)
-        lines.extend("- %s: %d" % (segment.label, int(segment.value)) for segment in bar.segments)
-        lines.append("")
-    lines.extend(["## Safety boundary", "- %s" % report.boundary])
-    return "\n".join(lines) + "\n"
 
 
 def generate_outlook_monitor(api, config: InboxConfig = None, now=None,

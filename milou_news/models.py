@@ -103,6 +103,12 @@ TRAVEL_LOGISTICS_ROUTINE = Routine(
     "Turn structured conference and travel messages/calendar fixtures into a dated logistics brief.",
     aliases=("travel-logistics",), schedule="on-demand",
 )
+ZOHO_ROUTINE = Routine(
+    "zoho-projects-radar", "0.1.0",
+    "Report bounded recent Zoho Projects activity, with comments first, and publish "
+    "what it covered so duplicate notification mail can be suppressed.",
+    aliases=("zoho", "projects"), schedule="daily", input_kind="authenticated-zoho-api",
+)
 OUTLOOK_ROUTINE = Routine(
     "outlook-inbox-monitor", "0.1.0",
     "Surface only mail that needs the user: blocked senders, unanswered requests, "
@@ -129,4 +135,5 @@ def default_registry() -> RoutineRegistry:
     registry.register(TRAVEL_LOGISTICS_ROUTINE)
     registry.register(GITHUB_RADAR_ROUTINE)
     registry.register(OUTLOOK_ROUTINE)
+    registry.register(ZOHO_ROUTINE)
     return registry

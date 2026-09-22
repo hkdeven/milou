@@ -39,6 +39,10 @@ The documented initial capabilities are:
 - a deterministic supervisor planner/dispatcher with read-only permissions,
   routing metadata, and visible failures; and
 - a vetted initial global AI news source set; and
+- an implemented fixture-backed `zoho-projects-radar` that watches Zoho Projects
+  activity directly with comments as its top tier, and publishes what it
+  reported so the matching notification email can be suppressed instead of
+  arriving twice; and
 - an implemented fixture-backed `outlook-inbox-monitor` that exists to replace
   opening the inbox rather than summarise it: bounded output, most mail excluded
   by explicit counted rules, and only four things surfaced — senders blocked on
@@ -56,8 +60,9 @@ changing calendar events, approving or merging code, publishing reports, or
 modifying production systems requires a separate explicit approval boundary.
 
 External **write** actions are not implemented anywhere, and no routine can
-perform one. Two read-only live adapters exist: authenticated `gh api` GET for
-the GitHub Change Radar, and Microsoft Graph GET for the Outlook inbox monitor.
+perform one. Three read-only live adapters exist: authenticated `gh api` GET for the GitHub
+Change Radar, Microsoft Graph GET for the Outlook inbox monitor, and Zoho
+Projects GET for the ticket radar.
 Both fail closed without an operator-supplied credential, and neither stores it.
 Every other routine remains fixture-backed. Local report persistence,
 scheduled-generation callable/CLI support, and private authenticated archive
@@ -96,6 +101,10 @@ that makes further work unsafe or misleading.
   — launch and travel contracts
 - [`routines/github-change-radar.md`](routines/github-change-radar.md) —
   bounded authenticated repository-change contract
+- [`routines/zoho-projects-radar.md`](routines/zoho-projects-radar.md),
+  [`milou_news/zoho.py`](milou_news/zoho.py), and
+  [`milou_news/coverage.py`](milou_news/coverage.py) — the Zoho Projects radar
+  and the cross-routine coverage that prevents duplicate reporting
 - [`routines/outlook-inbox-monitor.md`](routines/outlook-inbox-monitor.md) and
   [`milou_news/outlook.py`](milou_news/outlook.py) — the read-only Microsoft
   Graph inbox monitor, its exclusion rules, and its output caps
@@ -121,7 +130,9 @@ that makes further work unsafe or misleading.
   [`fixtures/github-radar-config.json`](fixtures/github-radar-config.json) —
   deterministic radar demo inputs
 - [`fixtures/outlook.json`](fixtures/outlook.json) — a sample mailbox covering
-  every tier and every exclusion path
+  every tier and every exclusion path, including two Zoho notifications
+- [`fixtures/zoho.json`](fixtures/zoho.json) — a sample portal whose activity
+  the mailbox fixture's notifications refer to
 
 ## Status and next steps
 
@@ -174,9 +185,11 @@ so a run can be traced to its output. Without `--store` a scheduled run reports
 only that it happened. A storage failure is recorded as a run failure rather
 than passing silently.
 
-**Status:** The Outlook inbox monitor is implemented and fixture-backed; its
-Microsoft Graph adapter is written but has not been run against a live mailbox,
-which needs an Azure app registration with read-only `Mail.Read` consent.
+**Status:** The Outlook inbox monitor and the Zoho Projects radar are
+implemented and fixture-backed, and they de-duplicate against each other. Both
+live adapters are written but unrun: Graph needs an Azure app registration with
+read-only `Mail.Read` consent, and Zoho needs an OAuth token plus confirmation
+of its endpoint paths for the portal's API version.
 Daily Wins, Morning Brief/Meeting Prep, Commitments/Follow-Up,
 Stale Work Finder, Dependabot PR Triage, Launch Decoder, Launch Radar, and
 Travel Logistics Tracker are implemented as read-only fixture-backed routines.
@@ -236,6 +249,52 @@ marks anything read, so it cannot change mailbox state. The token is read from
 the environment and is never logged, stored, or written into a report; an absent
 token fails closed. Message bodies are not stored — only the short preview
 needed to explain why an item surfaced.
+
+## Zoho Projects, without being told twice
+
+Most tickets live in Zoho Projects, and Zoho emails a notification for nearly
+everything it does. `zoho-projects-radar` reads the portal directly so the mail
+stops being the way work is discovered. **Comments are the top tier**, because a
+comment usually needs a response whether or not it is a direct question — the
+request-detection used for email is deliberately not applied here.
+
+```sh
+python3 -m milou_news --routine zoho --fixture fixtures/zoho.json
+python3 -m milou_news --routine zoho --fixture fixtures/zoho.json --format html
+```
+
+The radar publishes what it actually collected, so the inbox monitor can
+suppress the matching notification mail:
+
+```sh
+python3 -m milou_news --routine inbox --fixture fixtures/outlook.json \
+    --zoho-coverage fixtures/zoho.json
+```
+
+Suppression is evidence-based, never a blanket mute on the sender. A Zoho
+notification is dropped only when the radar demonstrably reported that item, and
+the exclusion is counted under its own reason — `already reported by
+zoho-projects-radar` — rather than disappearing into "automated sender". A
+notification the radar did **not** report is not dropped silently: it is counted
+separately and raised as a coverage gap, because that usually means the radar is
+missing a project, a permission, or a window. Muting the sender wholesale would
+hide precisely that case.
+
+A scheduled run gets the same de-duplication by attaching the Zoho payload under
+`coverage.zoho` in the inbox routine's fixture.
+
+Live access reads the portal with an operator-supplied OAuth token:
+
+```sh
+export MILOU_ZOHO_TOKEN="$(cat "$HOME/.config/milou/zoho-token")"
+python3 -m milou_news --routine zoho --config path/to/zoho.json --format html
+```
+
+Only HTTP `GET` is issued and a read scope is sufficient; the routine never
+comments, closes, reassigns, or logs time. Zoho's REST surface differs across
+portal API versions, so the endpoint paths are configuration with documented
+defaults — **they have not been confirmed against a live portal**, and a wrong
+path is corrected in config rather than in code.
 
 For a local authenticated archive, keep the token outside the repository in a
 permission-restricted file such as `$HOME/.config/milou/report-token` (or use

@@ -1017,3 +1017,54 @@ Implementation/build log:
 - Validation: `python3 -m unittest discover -s tests` passes with 101 tests
   (28 added), `python3 -m compileall milou_news` passes, and the committed
   fixture turns ten messages into four actionable lines in both formats.
+
+### September 22, 2026 — Watching Zoho, and not being told twice
+
+- The user reported that most tickets live in Zoho Projects rather than GitHub,
+  and that Zoho emails a notification for nearly everything, flooding the inbox.
+  They asked not to be notified twice about the same alert, and said comments
+  are the notification that matters most, because a comment usually needs a
+  response whether or not it is a direct question.
+- Built `zoho-projects-radar` with the same output discipline as the inbox
+  monitor — capped output, counted exclusions, a short report when quiet — with
+  one deliberate departure: comments are the top tier unconditionally. The
+  request-detection used for email is explicitly not applied to them, because
+  the user responds to comments regardless of phrasing.
+- The de-duplication was the interesting part. Zoho notification mail was
+  already being dropped by the inbox monitor, but only because
+  `notifications@zohoprojects.com` matched the generic automated-sender rule.
+  That is not de-duplication; it is a coincidence that would also hide a Zoho
+  alert the radar had never seen.
+- Rejected the blunt fix of muting the sender domain. It removes the duplication
+  and introduces a worse failure: a notification for a project the radar is not
+  configured for would vanish silently, and the user would never learn the radar
+  had a blind spot.
+- Decided instead that a routine publishes what it *demonstrably* reported — the
+  record identifiers and titles it actually collected, plus the domains it makes
+  redundant — and the inbox monitor suppresses a message only when both the
+  sender and the content match. The exclusion is counted under its own reason
+  naming the responsible routine, so it is traceable.
+- Anything from a covered sender that cannot be matched is counted separately
+  and raised as a coverage gap. The committed fixtures demonstrate both halves:
+  one notification is suppressed as already reported, and one — a comment on a
+  task in a project the radar is not configured for — raises a gap saying the
+  radar may be missing a project. The duplicate-suppression mechanism is
+  therefore also a detector for the radar's own blind spots.
+- Coverage is checked before the automated-sender rule, since a notification
+  would otherwise disappear as "automated" whether or not anything had seen it.
+- Two defects surfaced while building. The alert described a coverage gap as a
+  "mailbox access problem", conflating a blind spot with a failure to connect;
+  the two are now counted and named separately. And the sample Zoho
+  notifications were given conversation ids that collided with an existing
+  thread in the mailbox fixture, which made a notification look like a reply and
+  silently retired a follow-up. A test caught it.
+- Honest limitation: the Zoho adapter has never run against a live portal.
+  Zoho's REST surface differs across portal API versions, so the endpoint paths
+  are configuration with documented defaults and a wrong path is corrected in
+  config rather than in code.
+- Lesson: "don't tell me twice" is a request about evidence, not about volume.
+  Suppressing a channel is easy and wrong; suppressing what another routine can
+  prove it already said is the version that also tells you when it is wrong.
+- Validation: `python3 -m unittest discover -s tests` passes with 130 tests
+  (29 added), `python3 -m compileall milou_news` passes, and the committed
+  fixtures show the suppression, the coverage gap, and unchanged human mail.
