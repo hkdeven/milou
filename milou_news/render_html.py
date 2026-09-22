@@ -685,7 +685,8 @@ def app_document(title: str, body: str) -> str:
 
 
 def shell(views: Sequence[dict], current: str, body: str, who: str = "",
-          crumb: str = "", cadence: str = "", generated: str = "") -> str:
+          crumb: str = "", cadence: str = "", generated: str = "",
+          headline: dict = None) -> str:
     """The navigable application: routines on the left, one view on the right."""
     groups, seen = [], {}
     for view in views:
@@ -712,6 +713,15 @@ def shell(views: Sequence[dict], current: str, body: str, who: str = "",
 
     meta = " · ".join(part for part in (cadence, "last run " + generated if generated else "")
                       if part)
+    # The headline sits here rather than on a sidebar badge because only the
+    # open routine has been built: badging one item and not the other eleven
+    # reads as eleven quiet routines, which is a claim this page cannot make.
+    head = ""
+    if headline and headline.get("value"):
+        tone = {"critical": " crit", "notable": " note"}.get(headline.get("tone", ""), "")
+        head = ('<span class="nav-badge%s">%s</span>'
+                '<span class="small muted">%s</span>'
+                % (tone, _e(headline["value"]), _e(headline.get("label", ""))))
     return app_document(crumb or "Milou", (
         '<div class="app"><aside class="side">'
         '<div class="brand"><span class="mark" aria-hidden="true">&#128021;</span>'
@@ -723,10 +733,11 @@ def shell(views: Sequence[dict], current: str, body: str, who: str = "",
         '<button type="submit" class="btn" style="width:100%%">Sign out</button></form></div>'
         '</aside><main class="main"><div class="topbar">'
         '<span class="crumb">Milou · <b>%s</b></span>'
-        '%s<span style="flex:1 1 auto"></span></div>'
+        '%s%s<span style="flex:1 1 auto"></span></div>'
         '<div class="view wrap">%s</div></main></div>'
         % ("".join(nav), _e(who or "signed in"), _e(crumb or "Milou"),
            '<span class="dv"></span><span class="small muted">%s</span>' % _e(meta) if meta else "",
+           '<span class="dv"></span>' + head if head else "",
            body)))
 
 

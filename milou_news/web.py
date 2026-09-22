@@ -240,7 +240,7 @@ def make_handler(store, bearer_token=None, environ=None, scheduler=None,
             if entry is None:
                 self._send(404, "No such routine.\n", "text/plain; charset=utf-8")
                 return
-            generated = ""
+            generated, headline = "", None
             try:
                 report = console.report(key)
             except console_module.UnknownRoutine as exc:
@@ -248,13 +248,14 @@ def make_handler(store, bearer_token=None, environ=None, scheduler=None,
                     _Note("configuration", str(exc))], back="/routine/" + console_module.INBOX)
             else:
                 generated = report.generated
-                entry["headline"] = console.headline(report)
+                headline = console.headline(report)
                 body = render_html.render_report(report)
                 if entry.get("actions"):
                     body = _with_actions(console, report, body, csrf)
             self._send(200, render_html.shell(
                 views, key, body, who=getattr(console.config, "approver", ""),
-                crumb=entry["name"], cadence=entry["cadence"], generated=generated))
+                crumb=entry["name"], cadence=entry["cadence"], generated=generated,
+                headline=headline))
 
         def log_message(self, *_args):
             return

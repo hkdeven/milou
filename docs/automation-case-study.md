@@ -1119,3 +1119,60 @@ Implementation/build log:
 - Validation: `python3 -m unittest discover -s tests` passes with 163 tests
   (33 added), `python3 -m compileall milou_news` passes, and the drafted plan
   was exercised end to end against a stub writer.
+
+## September 22 — the console, and three ways an approval can lie
+
+Milou had been a command line and a read-only view of stored reports. The
+request was to build what the mockups showed, so this entry is about turning a
+drawing into an application — and about what the build surfaced.
+
+- The console adds navigation and actions, not a second way of producing
+  reports. Every routine is built by the routine that builds it and rendered by
+  the renderer the archive already used. That is the same rule the prototype
+  generator follows, and it is why a report that looks wrong in either place is
+  wrong in the product rather than wrong in a copy of it.
+- The forms are server-rendered, and every recomputation is a round trip. A
+  browser implementation would have been faster and would have been a *second*
+  implementation of the sprint rule, the description shape and the reply's
+  questions — free to drift from the one the CLI and the scheduler use. The
+  round trip buys one source of truth, and it made the application work on an
+  iPad, which the script-driven prototype had not.
+- **A rehearsal must not be reported as an act.** Running with no write
+  credentials is a first-class mode: every action reports exactly what it would
+  have done. The first version still headed the result "Ticket created", which
+  is the same class of lie as inventing a ticket number. The heading now follows
+  what was configured to write, and the stand-in number is an obviously fake
+  `0000`.
+
+Three defects in the write path, two of them found by an independent security
+review rather than by me. All three are the same shape: **the thing that was
+approved was not the thing that happened.**
+
+- An edited reply recipient list was accepted and then discarded. The send posts
+  to Graph's `replyAll`, which mails the *thread's* recipients, so deleting an
+  external party in the form and pressing Send would have mailed them anyway —
+  and then reported success naming the edited list. Worse, the guard written to
+  refuse exactly this was enabled by the very edit that should have tripped it,
+  because the console derived "edits are allowed" from "an edit was made". A
+  permission must come from the operator, never from the action asking for it.
+- A hand-edited description was overwritten on the submission that approved it.
+  Re-composition fired whenever a narrative field was *supplied*, and a form
+  submits every field on every request — so the rule that keeps the prose honest
+  when you correct a name also silently discarded a redaction. It now fires on a
+  value that actually changed, and each form carries the composed text it
+  displayed so an edit is distinguishable from a resubmission.
+- An edited acknowledgement draft was dropped entirely: editable in the form,
+  absent from the plan.
+- Lesson: "approval is bound to the plan's contents" is only true if the plan's
+  contents are what was on screen. Binding approval to a plan object is easy;
+  keeping the rendered form and the plan in agreement across a round trip is the
+  part that actually needs testing, and is now what `ApprovedTextIsWrittenTest`
+  exists to hold.
+- A smaller honesty fix in the same spirit: the sidebar badged the open routine
+  with its headline number and left the other eleven blank, which reads as
+  eleven quiet routines. Only one routine is built per request, so the number
+  moved to the topbar where it is true.
+- Validation: `python3 -m unittest discover -s tests` passes with 293 tests
+  (79 added), the console was driven end to end in a browser against the
+  committed fixtures, and a security review of the new write path found no
+  exploitable injection, authentication or CSRF weakness.

@@ -235,6 +235,19 @@ class RenderTest(unittest.TestCase):
         self.assertIn('aria-current="page"', page)
         self.assertIn("Outlook inbox monitor", page)
 
+    def test_no_routine_is_badged_with_a_number_nobody_computed(self):
+        # Only the open routine is built, so a sidebar badge on one item would
+        # read as eleven quiet routines.
+        page = render_html.shell(console().views(), INBOX, "<p>body</p>", crumb="Inbox")
+        self.assertNotIn('class="nav-badge', page)  # the class is in the CSS; no element uses it
+
+    def test_the_open_routines_headline_is_shown_where_it_is_true(self):
+        instance = console()
+        report = instance.report(INBOX, NOW)
+        page = render_html.shell(instance.views(), INBOX, "<p>body</p>", crumb="Inbox",
+                                 headline=instance.headline(report))
+        self.assertIn("Needs you", page)
+
     def test_the_ticket_form_states_that_nothing_has_happened(self):
         instance = console()
         plan, message = instance.ticket_plan("m10", {}, NOW)
