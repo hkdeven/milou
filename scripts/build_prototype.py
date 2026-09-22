@@ -24,9 +24,10 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
 from milou_news import render_html
-from milou_news.actions import DEFAULT_STATUSES
+from milou_news.actions import (DEFAULT_STATUSES, TicketConfig, draft_context_reply,
+                                draft_ticket, shorten)
 from milou_news.github_radar import FixtureApi, RadarConfig, build_radar_report
-from milou_news.intake import read_email
+from milou_news.intake import context_questions, read_email
 from milou_news.outlook import FixtureGraph, InboxConfig, build_outlook_report, html_to_text
 from milou_news.pipeline import BriefConfig, build_brief_report
 from milou_news.routines import build_routine_report
@@ -156,7 +157,7 @@ def actionable(outlook_fixture):
             reported=intake.reported_by, reportedGuessed="reported_by" in intake.guessed,
             reportedOn=intake.reported_on, reportedOnGuessed="reported_on" in intake.guessed,
             record=intake.record, recordGuessed="record" in intake.guessed,
-            context=intake.context, links=list(intake.links),
+            context=intake.context, links=list(intake.links), body=text,
             url=raw.get("webLink", "")))
     return mails
 
@@ -202,9 +203,292 @@ def main():
     target = os.path.join(ROOT, "prototypes", "milou-app.html")
     with open(target, "w", encoding="utf-8") as handle:
         handle.write(page)
-    print("built %d views, %d actionable messages, %d KB"
-          % (len(views), len(payload["mail"]), len(page) // 1024))
+    flat = flat_page(views, payload)
+    flat_target = os.path.join(ROOT, "prototypes", "milou-flat.html")
+    with open(flat_target, "w", encoding="utf-8") as handle:
+        handle.write(flat)
+    print("built %d views, %d actionable messages · app %d KB · flat %d KB"
+          % (len(views), len(payload["mail"]), len(page) // 1024, len(flat) // 1024))
     return payload
+
+
+FLAT_STYLES = """
+.flat{max-width:1100px;margin:0 auto;padding:40px 20px 90px;display:flex;flex-direction:column;gap:34px}
+@media(max-width:640px){.flat{padding:26px 14px 60px}}
+.flat h1{margin:0;font-size:34px;font-weight:600;letter-spacing:-.025em}
+.flat h2{margin:0;font-size:21px;font-weight:600;letter-spacing:-.02em}
+.lede{margin:0;font-size:15.5px;line-height:1.6;color:var(--ink-2);max-width:72ch}
+.eyebrow{margin:0;font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+.toc{padding:20px 22px;border-radius:20px;display:flex;flex-wrap:wrap;gap:8px}
+.toc a{display:inline-flex;align-items:center;height:30px;padding:0 13px;border-radius:999px;
+  background:rgba(255,255,255,.9);border:1px solid var(--hair);font-size:12.5px;color:var(--ink-2)}
+.sec{display:flex;flex-direction:column;gap:14px}
+.sec-head{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.sec-head .cad{font-size:12.5px;color:var(--ink-3)}
+.sheet{background:rgba(255,255,255,.86);border:1px solid var(--edge);border-radius:24px;
+  box-shadow:var(--spec),var(--lift);display:flex;flex-direction:column;overflow:hidden}
+.sheet-head{padding:20px 24px 15px;border-bottom:1px solid var(--hair)}
+.sheet-body{padding:20px 24px;display:flex;flex-direction:column;gap:16px}
+.sheet-foot{padding:15px 24px 19px;border-top:1px solid var(--hair);display:flex;
+  align-items:center;gap:12px;flex-wrap:wrap}
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.field-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+@media(max-width:600px){.field-row,.field-row-3{grid-template-columns:1fr}}
+.lbl{font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.val{font-size:14px;color:var(--ink-1);background:rgba(255,255,255,.92);border:1px solid var(--hair);
+  border-radius:12px;padding:10px 12px;min-height:40px;white-space:pre-wrap;overflow-wrap:anywhere}
+.val.mono{font-family:var(--mono);font-size:12.5px;line-height:1.6;color:var(--ink-2)}
+.val.empty{color:var(--ink-3)}
+.hint{font-size:11.5px;color:var(--ink-3)}
+.tag{display:inline-flex;align-items:center;height:18px;padding:0 7px;border-radius:999px;
+  font-size:9.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
+.tag-sug{background:var(--note-tint);border:1px solid var(--note-edge);color:var(--note)}
+.tag-req{background:var(--crit-tint);border:1px solid var(--crit-edge);color:var(--crit)}
+.tag-gue{background:var(--cov-tint);border:1px solid var(--cov-edge);color:var(--cov)}
+.tag-ok{background:rgba(12,163,12,.12);border:1px solid rgba(14,107,51,.24);color:var(--pos)}
+.tag-auto{background:rgba(0,0,0,.05);border:1px solid var(--hair);color:var(--ink-3)}
+.warn{display:flex;align-items:flex-start;gap:11px;padding:12px 15px;border-radius:14px;
+  background:rgba(255,255,255,.74);border:1px solid var(--note-edge)}
+.warn-ok{border-color:rgba(14,107,51,.24)}
+.warn b{display:block;font-size:12.5px;color:var(--note)}
+.warn-ok b{color:var(--pos)}
+.warn span{font-size:11.5px;color:var(--ink-3)}
+.fake-btn{display:inline-flex;align-items:center;height:32px;padding:0 14px;border-radius:999px;
+  font-size:12.5px;font-weight:500;background:var(--ink-1);color:#fff}
+.fake-btn.ghost{background:rgba(255,255,255,.9);color:var(--ink-2);border:1px solid var(--hair)}
+.opts{display:flex;flex-wrap:wrap;gap:6px}
+.opt{display:inline-flex;align-items:center;height:26px;padding:0 11px;border-radius:999px;
+  background:rgba(255,255,255,.72);border:1px solid var(--hair);font-size:12px;color:var(--ink-3)}
+.opt.on{background:#fff;border-color:rgba(22,87,217,.3);color:#1657D9;font-weight:600}
+.ask{display:flex;align-items:flex-start;gap:10px;font-size:13px;line-height:1.45}
+.box{flex:0 0 auto;width:15px;height:15px;margin-top:3px;border-radius:4px;border:1.5px solid var(--ink-3)}
+.box.on{background:#1657D9;border-color:#1657D9}
+.ask .sub{display:block;font-size:11px;color:var(--ink-3);margin-top:2px}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{text-align:left;font-size:10.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--ink-3);padding:0 12px 9px 0;border-bottom:1px solid var(--hair)}
+td{padding:10px 12px 10px 0;border-bottom:1px solid var(--hair-2);color:var(--ink-2);vertical-align:top}
+td b{color:var(--ink-1);font-weight:600}
+tr:last-child td{border-bottom:0}
+.panel{padding:24px 26px;display:flex;flex-direction:column;gap:14px}
+"""
+
+
+#: What each badge says, so the caller names the meaning rather than the colour.
+_TAG_TEXT = {"tag-sug": "suggested", "tag-req": "required", "tag-gue": "guessed",
+             "tag-ok": "not sent", "tag-auto": "automatic"}
+
+
+def _e(value):
+    return render_html._e(value)
+
+
+def _val(value, mono=False, placeholder="— not stated in the email"):
+    classes = "val" + (" mono" if mono else "") + ("" if value else " empty")
+    return '<div class="%s">%s</div>' % (classes, _e(value if value else placeholder))
+
+
+def _field(label, value, tag="", hint="", mono=False, placeholder="—", span=False):
+    return ('<div class="field"%s><span class="lbl">%s%s</span>%s%s</div>'
+            % (' style="grid-column:1/-1"' if span else "", _e(label),
+               (' <span class="tag %s">%s</span>' % (tag, _TAG_TEXT.get(tag, tag))) if tag else "",
+               _val(value, mono, placeholder),
+               '<span class="hint">%s</span>' % _e(hint) if hint else ""))
+
+
+def _options(values, selected):
+    return '<div class="opts">%s</div>' % "".join(
+        '<span class="opt%s">%s</span>' % (" on" if value == selected else "", _e(value))
+        for value in values)
+
+
+def ticket_sheet(mail, config):
+    """The Create-ticket dialog, filled in by the code that fills it in."""
+    plan = draft_ticket(config, NOW.date(), subject=mail["subject"], sender=mail["fromName"],
+                        received=mail["when"], body=mail["body"], url=mail["url"],
+                        message_id=mail["id"], received_date=NOW.date())
+    create = plan.actions[0].fields
+    is_bug = create["kind"] == "bug"
+    suggestion = shorten(mail["subject"])
+    missing = [name for name in plan.missing() if name != "title"]
+
+    bug_fields = ""
+    if is_bug:
+        bug_fields = (
+            _field("Reported by", create["reported_by"],
+                   "tag-gue" if create["reported_by"] else "tag-req",
+                   placeholder="required — ask for it") +
+            _field("Reported on", create["reported_on"],
+                   "tag-gue" if create["reported_on"] else "tag-req",
+                   placeholder="required — ask for it"))
+
+    return ('<div class="sheet"><div class="sheet-head">'
+            '<p class="eyebrow">New Zoho ticket</p>'
+            '<h2 style="margin-top:6px">Zoho project <span class="tag tag-req">not configured</span></h2>'
+            '<p class="hint" style="margin-top:6px">From <b>%s</b> · %s · %s</p></div>'
+            '<div class="sheet-body">'
+            '<div class="warn"><div><b>Nothing is created until you press Create</b>'
+            '<span>Three things happen in order: the Zoho task, one line in the sprint tracker, '
+            'then an unsent draft reply. The first failure stops the rest.</span></div></div>'
+            '%s'
+            '<div class="field"><span class="lbl">Status <span class="tag tag-auto">default selected</span></span>%s'
+            '<span class="hint">Your portal\'s full list, from configuration.</span></div>'
+            '<div class="field-row">%s%s</div>'
+            '<div class="field"><span class="lbl">Type <span class="tag tag-gue">detected</span></span>%s'
+            '<span class="hint">%s</span></div>'
+            '<div class="field-row-3">%s%s</div>'
+            '%s'
+            '%s'
+            '%s'
+            '</div>'
+            '<div class="sheet-foot"><span class="hint">%s</span>'
+            '<span style="flex:1 1 auto"></span>'
+            '<span class="fake-btn ghost">Cancel</span>'
+            '<span class="fake-btn">Create ticket</span></div></div>'
+            % (_e(mail["fromName"]), _e(mail["subject"]), _e(mail["when"]),
+               _field("Title", suggestion, "tag-sug",
+                      "Keep it extremely brief. Read by people who never saw the email.",
+                      span=True),
+               _options(STATUSES, config.ready_status),
+               _field("Owner", "Unassigned — the sprint is the queue", "tag-auto",
+                      "At Ready for Development the sprint is the queue."),
+               _field("Project / record", create["record"],
+                      "tag-gue" if create["record"] else "tag-auto", placeholder="— optional"),
+               _options(["Bug report", "Feature / change"],
+                        "Bug report" if is_bug else "Feature / change"),
+               "A bug needs a reporter and a report date. Both are required before it can be "
+               "created." if is_bug else "A change request needs only the requester.",
+               _field("Requested by", create["requested_by"], "tag-auto"), bug_fields,
+               _field("Sprint tag", create["tag"], "tag-auto",
+                      "Today is Tuesday — developers pick this up tomorrow.", span=True)
+               + _field("Expected release date", create["release_date"], "tag-auto",
+                        "Matches the sprint.", span=True),
+               _field("Description", create["description"], "tag-auto",
+                      "Composed from the fields above. Edit a field and it rewrites itself.",
+                      mono=True, span=True),
+               _field("Acknowledgement draft", plan.actions[2].fields["body"], "tag-auto",
+                      "The ticket number does not exist yet, so it is a placeholder here and is "
+                      "substituted the moment Zoho allocates one.", mono=True, span=True)
+               if len(plan.actions) > 2 else "",
+               ("waiting on: " + ", ".join(missing) + " · ask for them with “Ask for context”")
+               if missing else "ready · unassigned · " + config.ready_status))
+
+
+def reply_sheet(mail, config):
+    """The Ask-for-context dialog, filled in by the code that fills it in."""
+    plan = draft_context_reply(
+        config, subject=mail["subject"], sender=mail["fromName"], sender_address=mail["from"],
+        to=mail["to"], cc=mail["cc"], mailbox=mail["mailbox"], message_id=mail["id"],
+        body=mail["body"], received_date=NOW.date(), url=mail["url"])
+    fields = plan.actions[0].fields
+    intake = read_email(mail["subject"], mail["body"], mail["fromName"], NOW.date())
+    asks = "".join(
+        '<div class="ask"><span class="box%s"></span><span>%s<span class="sub">%s</span></span></div>'
+        % (" on" if question.outstanding else "", _e(question.text),
+           _e("missing — this is why the ticket cannot be created yet" if question.outstanding
+              else "the email already gave this"))
+        for question in context_questions(intake))
+
+    return ('<div class="sheet"><div class="sheet-head">'
+            '<p class="eyebrow">Reply to the thread</p>'
+            '<h2 style="margin-top:6px">Ask for the missing context</h2>'
+            '<p class="hint" style="margin-top:6px">Replying to <b>%s</b> · %s</p></div>'
+            '<div class="sheet-body">'
+            '<div class="warn"><div><b>Nothing is sent until you press Send</b>'
+            '<span>This goes out from your mailbox, in your name, to everyone listed below.</span>'
+            '</div></div>'
+            '%s%s%s'
+            '<div class="field"><span class="lbl">What to ask for '
+            '<span class="tag tag-auto">ticked = still missing</span></span>'
+            '<div class="val" style="display:flex;flex-direction:column;gap:10px">%s</div></div>'
+            '%s</div>'
+            '<div class="sheet-foot"><span class="hint">%d recipient(s) · asking for %s</span>'
+            '<span style="flex:1 1 auto"></span>'
+            '<span class="fake-btn ghost">Cancel</span>'
+            '<span class="fake-btn">Send reply</span></div></div>'
+            % (_e(mail["fromName"]), _e(mail["subject"]),
+               _field("To", ", ".join(fields["to"].splitlines()), "tag-auto",
+                      "Everyone on the thread except you. Sending this list as-is needs only "
+                      "Mail.Send.", span=True),
+               _field("Cc", ", ".join(fields["cc"].splitlines()), "", placeholder="— nobody",
+                      span=True),
+               _field("Subject", fields["subject"], "", span=True),
+               asks,
+               _field("Message", fields["body"], "tag-auto",
+                      "Composed from the ticks above.", mono=True, span=True),
+               len(fields["to"].splitlines()),
+               fields["asking_for"] or "nothing outstanding"))
+
+
+def flat_page(views, payload):
+    """A version with no JavaScript at all.
+
+    iPadOS renders a downloaded .html in Quick Look, which draws the CSS but
+    refuses to run scripts — so the app version opens and then does nothing. This
+    one has nothing to run: every routine is stacked on one scrolling page, and
+    the two dialogs are shown filled in, in place.
+    """
+    config = TicketConfig.from_mapping({
+        "statuses": STATUSES, "signature": payload["signature"], "document": "Sprint tracker"})
+    by_id = {mail["id"]: dict(mail, mailbox=payload["you"]) for mail in payload["mail"]}
+    bug = by_id.get("m10") or list(by_id.values())[0]
+    request = by_id.get("m2") or list(by_id.values())[-1]
+
+    toc = "".join('<a href="#%s">%s</a>' % (view["key"], _e(view["name"])) for view in views)
+    sections = "".join(
+        '<section class="sec" id="%s"><div class="sec-head"><h2>%s</h2>'
+        '<span class="cad">%s · last run %s</span></div>%s</section>'
+        % (view["key"], _e(view["name"]), _e(view["cadence"]), _e(view["report"].generated),
+           render_html.render_report(view["report"]))
+        for view in views)
+
+    rows = "".join(
+        '<tr><td><b>%s</b></td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>'
+        % (_e(item["name"]), _e(item["cadence"]), _e(item["timezone"] or "—"),
+           _e(item["last"]), "enabled" if item["enabled"] else "paused")
+        for item in payload["schedule"])
+
+    body = (
+        '<div class="flat">'
+        '<header style="display:flex;flex-direction:column;gap:12px">'
+        '<p class="eyebrow">Milou · prototype, flat version</p>'
+        '<h1>Every routine, on one page</h1>'
+        '<p class="lede">The same reports as the app version, stacked instead of navigated, with '
+        'the two inbox actions shown filled in. Nothing on this page runs, so it renders anywhere '
+        'that can draw a web page — including a file opened straight from the Files app on an '
+        'iPad, which will not execute scripts.</p></header>'
+        '<div class="glass-soft toc">%s<a href="#actions">The two actions</a>'
+        '<a href="#scheduler">Scheduler</a></div>'
+        '%s'
+        '<section class="sec" id="actions"><div class="sec-head"><h2>The two actions</h2>'
+        '<span class="cad">on every actionable inbox row</span></div>'
+        '<p class="lede">Every field below was filled in by the code that fills it in — the sprint '
+        'rule, the composed description, the reporter and date pulled out of the email, and which '
+        'questions the reply asks. In the app these are modal sheets; here they are shown open.</p>'
+        '%s%s</section>'
+        '<section class="sec" id="scheduler"><div class="sec-head"><h2>Scheduler</h2></div>'
+        '<div class="glass panel"><table><thead><tr><th>Routine</th><th>Cadence</th>'
+        '<th>Timezone</th><th>Last run</th><th>State</th></tr></thead><tbody>%s</tbody></table>'
+        '</div></section>'
+        '<section class="sec"><div class="sec-head"><h2>What is real here</h2></div>'
+        '<div class="glass panel"><p class="lede">Every report above is produced by the routine '
+        'that produces it in the running application, rendered by the renderer the web view uses, '
+        'over the fixtures the test suite runs against. If a report looks wrong here, it is wrong '
+        'in the product.</p>'
+        '<p class="lede">The sample mailbox, portal, repositories and people are fixtures. Nothing '
+        'has been created, edited or sent. The application has no navigation like this today: it '
+        'is a CLI and a read-only web view of stored reports, the two actions have no server '
+        'endpoint, and the Zoho and Graph adapters have never run against a live portal or '
+        'mailbox.</p></div></section>'
+        '</div>'
+        % (toc, sections, ticket_sheet(bug, config), reply_sheet(request, config), rows))
+
+    return ('<!doctype html><html lang="en"><head><meta charset="utf-8">'
+            '<meta name="viewport" content="width=device-width, initial-scale=1">'
+            '<title>Milou</title><style>%s%s</style></head><body>%s</body></html>'
+            % (render_html.STYLES, FLAT_STYLES, body))
 
 
 def schedule():
