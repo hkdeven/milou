@@ -233,6 +233,45 @@
           "importance": "normal",
           "inferenceClassification": "focused",
           "webLink": "https://outlook.office365.com/mail/id/m9"
+        },
+        {
+          "id": "m10",
+          "conversationId": "c10",
+          "subject": "Takeoff weight rollup is wrong on Bldg 4",
+          "from": {
+            "emailAddress": {
+              "address": "t.brennan@example.test",
+              "name": "T. Brennan"
+            }
+          },
+          "toRecipients": [
+            {
+              "emailAddress": {
+                "address": "deven@example.test",
+                "name": "Deven"
+              }
+            },
+            {
+              "emailAddress": {
+                "address": "ops@example.test",
+                "name": "Fabrication Ops"
+              }
+            }
+          ],
+          "ccRecipients": [
+            {
+              "emailAddress": {
+                "address": "pm@example.test",
+                "name": "K. Alvarez"
+              }
+            }
+          ],
+          "receivedDateTime": "2026-09-22T07:15:00Z",
+          "bodyPreview": "We have a problem on the Bldg 4 Fabrication project. Our estimator reported that the weight rollup on the takeoff screen is wrong. Could you raise a ticket? The total must include the nested weights before we quote.",
+          "isRead": false,
+          "importance": "normal",
+          "inferenceClassification": "focused",
+          "webLink": "https://outlook.office365.com/mail/id/m10"
         }
       ]
     },
@@ -305,6 +344,21 @@
           "webLink": "https://outlook.office365.com/mail/id/s3"
         }
       ]
+    },
+    "/me/messages/m10?$select=body,bodyPreview": {
+      "id": "m10",
+      "bodyPreview": "We have a problem on the Bldg 4 Fabrication project. Our estimator reported that the weight rollup on the takeoff screen is wrong. Could you raise a ticket? The total must include the nested weights before we quote.",
+      "body": {
+        "contentType": "html",
+        "content": "<html><body><p>Hi Deven,</p><p>We have a problem on the Bldg 4 Fabrication project. Our estimator Jane Kowalski reported that the weight rollup on the takeoff screen is wrong &mdash; it shows 0 lbs for any assembly with a nested sub-assembly. She hit it on Monday and it is still happening today.</p><p>Steps: open the takeoff, add a nested assembly, save. The total must include the nested weights before we can quote.</p><p>Could you raise a ticket for this? The agreed behaviour is written up <a href=\"https://example.test/sites/eng/takeoff-spec.docx\">here</a>.</p><p>Thanks,<br>Tom</p></body></html>"
+      }
+    },
+    "/me/messages/m2?$select=body,bodyPreview": {
+      "id": "m2",
+      "body": {
+        "contentType": "text",
+        "content": "Hi Deven,\n\nCould you send the stamped drawings for Building 4 when you get a moment? The fabricator is asking, and they cannot cut until the stamped set is issued.\n\nScope is unchanged from the drawing register at https://example.test/sites/eng/bldg4-register.xlsx\n\nThanks,\nMarco\n"
+      }
     }
   }
 }

@@ -7,6 +7,34 @@ the detailed reasoning and decisions behind each change.
 
 ### Added
 
+- Added a composed ticket description (`milou_news/intake.py`) with a fixed shape
+  on every ticket: type, who requested it, who reported it, when it was reported,
+  the project or record, a summarised context, and every document link shared in
+  the thread. Bug reports carry two facts a change request does not — the
+  reporter, who is usually not the sender, and the report date — and both are
+  **required**, so a bug ticket cannot be created half-blind. Both are extracted
+  from the wording where possible and marked as guesses; where nothing is found
+  the field stays empty rather than being invented. Correcting any field
+  re-composes the description, so the prose and the fields cannot disagree.
+- Added the context reply: a second action on every email that replies to the
+  whole thread asking for the full name of whoever reported or requested it, the
+  project or record title, the date, and any documentation. The questions are
+  derived from what is actually missing rather than from a template, and when
+  nothing is missing it asks them to confirm the guesses instead. Recipients are
+  reply-all minus the user's own address.
+- Added the acknowledgement draft: after a ticket is created, a reply-all is
+  left **in Outlook's Drafts** telling the thread the ticket number, that the
+  development, release and change log can be followed against it, and the
+  expected release date stated as the latest it should take. The number is a
+  placeholder until Zoho allocates one. It is drafted, never sent, and a failed
+  ticket leaves no draft.
+- Added `MILOU_OUTLOOK_WRITE_TOKEN`, separate from the monitor's read token.
+  Sending uses `Mail.Send` alone; editing the recipient list would need
+  `Mail.ReadWrite`, so it is refused rather than silently requiring the wider
+  grant. Owner is now a ticket field, defaulting to unassigned.
+- Added `--draft-reply`, `--to`, `--dry-run`, `--reported-by`, `--reported-on`,
+  `--requested-by`, `--record`, `--owner` and `--status` to the inbox monitor,
+  and `routines/context-reply.md`.
 - Added the first write capability, behind an explicit approval boundary: a Zoho
   ticket can be drafted from one email, carrying the email's scope, context and a
   link back to the source message. The plan describes exactly what would change
@@ -180,6 +208,10 @@ the detailed reasoning and decisions behind each change.
 
 ### Changed
 
+- The inbox monitor now reads the full body of **one** message on demand, when a
+  ticket or a reply is being drafted from it, rather than composing a description
+  out of the 240-character preview. The monitor itself still stores nothing but
+  the bounded preview, and the body is never written to the archive.
 - Ranked the daily brief before de-duplicating it, so the highest-scoring
   account of a corroborated event survives. De-duplicating first kept whichever
   outlet appeared earliest in the configured source list, which discarded

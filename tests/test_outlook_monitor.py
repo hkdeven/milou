@@ -312,8 +312,8 @@ class CommittedFixtureTest(unittest.TestCase):
         self.assertEqual(report.routine, ROUTINE_NAME)
         self.assertEqual([tier.label for tier in report.tiers],
                          ["Blocked on you", "Waiting on your reply", "You promised", "No reply yet"])
-        self.assertEqual(sum(tier.count for tier in report.tiers), 4,
-                         "ten messages must not become ten lines")
+        self.assertEqual(sum(tier.count for tier in report.tiers), 5,
+                         "thirteen messages must not become thirteen lines")
         markdown = generate_outlook_monitor(None, config, report=report)
         self.assertIn("Blocked on you", markdown)
         self.assertIn("Why mail was excluded", markdown)

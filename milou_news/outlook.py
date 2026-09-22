@@ -19,6 +19,7 @@ import urllib.parse
 import urllib.request
 from collections import Counter
 from dataclasses import dataclass
+from html.parser import HTMLParser
 from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Mapping, Optional, Sequence, Tuple
 
@@ -495,15 +496,100 @@ def build_outlook_report(api, config: InboxConfig = None, now=None,
     )
 
 
-def find_message(api, config: InboxConfig = None, identifier: str = "") -> Optional[Message]:
-    """Locate one mailbox message by id, so a ticket can be drafted from it."""
+class _Text(HTMLParser):
+    """HTML mail to plain text, keeping the links.
+
+    ``href`` values matter more than usual here: a shared specification is
+    normally a hyperlink behind a word like "here", so dropping attributes
+    would silently discard the supporting documents the ticket needs.
+    """
+
+    _BREAKS = {"br", "p", "div", "li", "tr", "h1", "h2", "h3", "h4", "blockquote"}
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.parts: List[str] = []
+        self._skip = 0
+        self._href = ""
+
+    def handle_starttag(self, tag, attrs):
+        if tag in ("script", "style", "head"):
+            self._skip += 1
+        elif tag == "a":
+            self._href = dict(attrs).get("href") or ""
+        elif tag in self._BREAKS:
+            self.parts.append("\n")
+
+    def handle_endtag(self, tag):
+        if tag in ("script", "style", "head"):
+            self._skip = max(0, self._skip - 1)
+        elif tag == "a":
+            if self._href.startswith(("http://", "https://")) and self._href not in "".join(self.parts[-4:]):
+                self.parts.append(" %s " % self._href)
+            self._href = ""
+        elif tag in self._BREAKS:
+            self.parts.append("\n")
+
+    def handle_data(self, data):
+        if not self._skip:
+            self.parts.append(data)
+
+    def text(self) -> str:
+        joined = "".join(self.parts)
+        joined = re.sub(r"[ \t\xa0]+", " ", joined)
+        return re.sub(r"\n\s*\n\s*\n+", "\n\n", joined).strip()
+
+
+def html_to_text(markup: str) -> str:
+    parser = _Text()
+    try:
+        parser.feed(markup or "")
+        parser.close()
+    except Exception:  # malformed mail must not take the action down
+        return re.sub(r"<[^>]+>", " ", markup or "")
+    return parser.text()
+
+
+def locate_message(api, config: InboxConfig = None,
+                   identifier: str = "") -> Tuple[str, Optional[Message]]:
+    """Find one message by id, and report which mailbox was searched.
+
+    The mailbox address is returned with it because a reply-all has to remove
+    the user from their own recipient list, and guessing that address is how a
+    reply ends up copying you on your own question.
+    """
     config = config or InboxConfig()
-    _mailbox, inbox, sent, _errors, _truncated = _collect(api, config)
+    mailbox, inbox, sent, _errors, _truncated = _collect(api, config)
     wanted = (identifier or "").strip().lower()
     for message in list(inbox) + list(sent):
         if message.id.lower() == wanted:
-            return message
-    return None
+            return mailbox, message
+    return mailbox, None
+
+
+def find_message(api, config: InboxConfig = None, identifier: str = "") -> Optional[Message]:
+    """Locate one mailbox message by id, so a ticket can be drafted from it."""
+    return locate_message(api, config, identifier)[1]
+
+
+def fetch_body(api, identifier: str) -> str:
+    """Read one message's body — only when drafting from it, never in the monitor.
+
+    The monitor deliberately keeps nothing but a bounded preview. A ticket
+    description built from 240 characters would be a truncated one, so the body
+    is read for exactly the message being acted on, used to compose the
+    description the user then reviews, and never written to the archive.
+    """
+    result = api.get("/me/messages/%s?$select=body,bodyPreview"
+                     % urllib.parse.quote(identifier or "", safe=""))
+    if result.error or not isinstance(result.data, Mapping):
+        return ""
+    body = result.data.get("body")
+    body = body if isinstance(body, Mapping) else {}
+    content = str(body.get("content") or result.data.get("bodyPreview") or "")
+    if str(body.get("contentType") or "").lower() == "html":
+        content = html_to_text(content)
+    return content
 
 
 def generate_outlook_monitor(api, config: InboxConfig = None, now=None,

@@ -18,11 +18,12 @@ from .models import default_registry
 from .supervisor import SupervisorDispatcher
 from .github_radar import (FixtureApi, GhApi, RadarConfig, build_radar_report,
                            generate_github_radar, prepare as prepare_radar)
-from .actions import (ApprovalRequired, DryRunDocumentWriter, IncompleteAction,
-                      TicketConfig, WriteNotConfigured, ZohoWriter, draft_ticket,
-                      execute, plan_report, shorten)
+from .actions import (ApprovalRequired, DryRunDocumentWriter, DryRunMailWriter, IncompleteAction,
+                      OutlookReplyWriter, TicketConfig, WriteNotConfigured, ZohoWriter,
+                      draft_context_reply, draft_ticket, execute, plan_report, reply_plan_report,
+                      shorten)
 from .outlook import (FixtureGraph, GraphApi, InboxConfig, build_outlook_report,
-                      find_message, generate_outlook_monitor)
+                      fetch_body, generate_outlook_monitor, locate_message)
 from .zoho import (FixtureZoho, ZohoApi, ZohoConfig, build_zoho_report, coverage_from,
                    generate_zoho_radar, prepare as prepare_zoho)
 
@@ -76,20 +77,36 @@ def scheduler_command(argv):
     return 0
 
 
-def _draft_ticket(parser, args, api, inbox_config, now) -> int:
-    """Draft a ticket from one email. Creates nothing without explicit approval."""
-    message = find_message(api, inbox_config, args.draft_ticket)
-    if message is None:
-        parser.error("no message %r in the mailbox window" % args.draft_ticket)
+def _ticket_settings(args) -> TicketConfig:
     settings = {}
     if args.ticket_config:
         with open(args.ticket_config, encoding="utf-8") as handle:
             settings = json.load(handle)
-    config = TicketConfig.from_mapping(settings)
+    return TicketConfig.from_mapping(settings)
+
+
+def _locate(parser, api, inbox_config, identifier):
+    mailbox, message = locate_message(api, inbox_config, identifier)
+    if message is None:
+        parser.error("no message %r in the mailbox window" % identifier)
+    return mailbox, message
+
+
+def _draft_ticket(parser, args, api, inbox_config, now) -> int:
+    """Draft a ticket from one email. Creates nothing without explicit approval."""
+    _mailbox, message = _locate(parser, api, inbox_config, args.draft_ticket)
+    config = _ticket_settings(args)
+    body = fetch_body(api, message.id) or message.preview
     plan = draft_ticket(
         config, now.date(), subject=message.subject, sender=message.display,
         received=message.when.strftime("%b %d, %H:%M UTC") if message.when else "",
-        body=message.preview, url=message.url, title=args.title or "")
+        body=body, url=message.url, title=args.title or "", message_id=message.id,
+        received_date=message.when.date() if message.when else now.date())
+    edits = {name: getattr(args, name) for name in
+             ("reported_by", "reported_on", "requested_by", "record", "owner", "status")
+             if getattr(args, name, None) is not None}
+    if edits:
+        plan = plan.with_inputs(**edits)
 
     if not args.approve:
         report = plan_report(plan, config, now.date())
@@ -100,11 +117,48 @@ def _draft_ticket(parser, args, api, inbox_config, now) -> int:
             print("\nSuggested title: %s" % (suggestion or "(none — the subject gave nothing usable)"))
             print("Milou will not choose the title. Re-run with --title \"...\" to set it,")
             print("then add --approve \"<your name>\" to create the ticket.")
+        for name in plan.missing():
+            if name != "title":
+                print("Still missing: %s — supply it with --%s, or ask for it with "
+                      "--draft-reply %s" % (name, name.replace("_", "-"), message.id))
         return 0
 
     try:
         approved = plan.approve(args.approve, now)
-        results = execute(approved, ZohoWriter(), DryRunDocumentWriter())
+        results = execute(approved, ZohoWriter(), DryRunDocumentWriter(),
+                          mail_writer=DryRunMailWriter() if args.dry_run else OutlookReplyWriter())
+    except (ApprovalRequired, IncompleteAction, WriteNotConfigured) as exc:
+        parser.error(str(exc))
+    for result in results:
+        print("%s %s — %s" % ("ok  " if result.ok else "FAIL", result.action, result.detail))
+    return 0 if all(result.ok for result in results) else 1
+
+
+def _draft_reply(parser, args, api, inbox_config, now) -> int:
+    """Draft the context reply. Sends nothing without explicit approval."""
+    mailbox, message = _locate(parser, api, inbox_config, args.draft_reply)
+    config = _ticket_settings(args)
+    plan = draft_context_reply(
+        config, subject=message.subject, sender=message.display,
+        sender_address=message.sender, to=message.to, cc=message.cc, mailbox=mailbox,
+        message_id=message.id, body=fetch_body(api, message.id) or message.preview,
+        received_date=message.when.date() if message.when else now.date(), url=message.url)
+    if args.to:
+        plan = plan.with_inputs(to="\n".join(args.to))
+
+    if not args.approve:
+        report = reply_plan_report(plan, now.date())
+        print(render_html.report_page(report) if args.format == "html"
+              else render_text.render_markdown(report))
+        print("\n--- the reply, as it would be sent ---")
+        print(plan.actions[0].fields["body"])
+        print("\nNothing has been sent. Add --approve \"<your name>\" to send it.")
+        return 0
+
+    writer = DryRunMailWriter() if args.dry_run else OutlookReplyWriter(
+        allow_recipient_edits=bool(args.to))
+    try:
+        results = execute(plan.approve(args.approve, now), mail_writer=writer)
     except (ApprovalRequired, IncompleteAction, WriteNotConfigured) as exc:
         parser.error(str(exc))
     for result in results:
@@ -165,9 +219,27 @@ def main(argv=None) -> int:
     parser.add_argument("--draft-ticket", metavar="MESSAGE_ID",
                         help="inbox monitor: draft a Zoho ticket from one email. Nothing is "
                              "created; the plan is printed for review")
+    parser.add_argument("--draft-reply", metavar="MESSAGE_ID",
+                        help="inbox monitor: draft a reply-all asking for the context a ticket "
+                             "needs. Nothing is sent; the reply is printed for review")
+    parser.add_argument("--to", action="append", metavar="ADDRESS",
+                        help="override the reply-all recipients; repeatable. Editing the "
+                             "recipient list needs a wider Graph grant than sending as-is")
+    parser.add_argument("--dry-run", action="store_true",
+                        help="with --draft-reply --approve: print the reply instead of sending it")
     parser.add_argument("--title", help="the ticket title; required before a draft can be approved")
+    parser.add_argument("--reported-by", dest="reported_by",
+                        help="bug tickets: the person who reported it, if the email did not say")
+    parser.add_argument("--reported-on", dest="reported_on",
+                        help="bug tickets: when it was reported, if the email did not say")
+    parser.add_argument("--requested-by", dest="requested_by",
+                        help="override the requester; defaults to the email's sender")
+    parser.add_argument("--record", help="the project or record the ticket concerns")
+    parser.add_argument("--owner", help="Zoho user id to assign; the default is unassigned")
+    parser.add_argument("--status", help="override the ticket status")
     parser.add_argument("--approve", metavar="WHO",
-                        help="approve and run a drafted plan. Requires MILOU_ZOHO_WRITE_TOKEN")
+                        help="approve and run a drafted plan. Requires MILOU_ZOHO_WRITE_TOKEN, "
+                             "or MILOU_OUTLOOK_WRITE_TOKEN for a reply")
     parser.add_argument("--ticket-config", metavar="PATH",
                         help="JSON portal/project/status/document settings for ticket creation")
     parser.add_argument("--zoho-coverage", metavar="PATH",
@@ -219,6 +291,8 @@ def main(argv=None) -> int:
         inbox_config = InboxConfig.from_mapping(settings)
         if args.draft_ticket:
             return _draft_ticket(parser, args, api, inbox_config, now)
+        if args.draft_reply:
+            return _draft_reply(parser, args, api, inbox_config, now)
         coverages = []
         if args.zoho_coverage:
             zoho_api, zoho_config = _zoho(args.zoho_coverage)

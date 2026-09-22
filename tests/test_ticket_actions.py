@@ -152,6 +152,7 @@ class ApprovalBoundaryTest(unittest.TestCase):
 
     def _ready(self):
         return draft_ticket(CONFIG, TUESDAY, subject="Warehouse drawings",
+                            sender="M. Castillo",
                             body="Please send them").with_inputs(title="Issue drawings")
 
     def test_execution_without_approval_is_refused(self):
@@ -159,7 +160,8 @@ class ApprovalBoundaryTest(unittest.TestCase):
             execute(self._ready(), ZohoWriter(token="t"), DryRunDocumentWriter())
 
     def test_approval_without_a_title_is_refused(self):
-        plan = draft_ticket(CONFIG, TUESDAY, subject="Warehouse drawings")
+        plan = draft_ticket(CONFIG, TUESDAY, subject="Warehouse drawings",
+                            sender="M. Castillo")
         with self.assertRaises(IncompleteAction):
             plan.approve("Deven")
 
@@ -186,7 +188,8 @@ class ApprovalBoundaryTest(unittest.TestCase):
         self.assertIsNone(writer.token, "the write path must not fall back to the read token")
 
     def test_an_unconfigured_portal_is_refused(self):
-        plan = draft_ticket(TicketConfig(), TUESDAY, subject="X").with_inputs(title="X")
+        plan = draft_ticket(TicketConfig(), TUESDAY, subject="X",
+                            sender="M. Castillo").with_inputs(title="X")
         with self.assertRaises(WriteNotConfigured):
             execute(plan.approve("Deven"), ZohoWriter(token="t"), DryRunDocumentWriter())
 
@@ -205,7 +208,7 @@ class ExecutionTest(unittest.TestCase):
                 {"ticket_id": self.identifier} if self.ok else {})
 
     def _approved(self, title="Issue Bldg 4 drawings"):
-        return draft_ticket(CONFIG, TUESDAY, subject="Warehouse drawings",
+        return draft_ticket(CONFIG, TUESDAY, subject="Warehouse drawings", sender="M. Castillo",
                             body="Please send them").with_inputs(title=title).approve("Deven")
 
     def test_the_document_line_uses_the_created_ticket_number(self):
@@ -254,15 +257,15 @@ class ExecutionTest(unittest.TestCase):
 class PlanReportTest(unittest.TestCase):
 
     def test_the_review_report_says_nothing_has_happened(self):
-        report = plan_report(draft_ticket(CONFIG, TUESDAY, subject="Warehouse drawings"),
-                             CONFIG, TUESDAY)
+        report = plan_report(draft_ticket(CONFIG, TUESDAY, subject="Warehouse drawings",
+                                          sender="M. Castillo"), CONFIG, TUESDAY)
         self.assertIn("Approval required", report.alert)
         self.assertIn("changed nothing", report.alert_detail)
         self.assertEqual(report.tiers[0].label, "Nothing has been created yet")
 
     def test_the_report_names_the_sprint_and_what_is_missing(self):
-        report = plan_report(draft_ticket(CONFIG, TUESDAY, subject="Warehouse drawings"),
-                             CONFIG, TUESDAY)
+        report = plan_report(draft_ticket(CONFIG, TUESDAY, subject="Warehouse drawings",
+                                          sender="M. Castillo"), CONFIG, TUESDAY)
         kpis = {kpi.label: kpi.value for kpi in report.kpis}
         self.assertEqual(kpis["Sprint"], "30 SEP SPRINT")
         self.assertEqual(kpis["Status"], "Ready for Development")
