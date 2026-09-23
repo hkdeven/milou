@@ -26,6 +26,11 @@ is the contract, including what a write requires.
 The command line still does everything the console does, one routine at a time
 — see the sections below.
 
+**To connect it to your real mailbox, portal and tracker, follow
+`docs/going-live.md`.** It is ordered so each step is verifiable on its own, and
+it is honest about the one piece that is still missing: access tokens expire
+after about an hour, and the OAuth refresh flow has not been built yet.
+
 ## What Milou does
 
 Routines do the domain work. Milou manages their registry, planning,
