@@ -104,7 +104,9 @@ class AppendTest(unittest.TestCase):
     def test_an_absent_heading_writes_nothing(self):
         with self.assertRaises(DocumentError) as caught:
             append_line(DOCUMENT, "14 OCT SPRINT", "1993 - Issue drawings")
-        self.assertIn("nothing was written", str(caught.exception))
+        self.assertIn("Nothing was written", str(caught.exception))
+        self.assertIn("14 OCT SPRINT", str(caught.exception),
+                      "name the heading it looked for, so the fix is obvious")
 
     def test_writing_the_same_line_twice_is_a_no_op(self):
         once, _detail = append_line(DOCUMENT, "30 SEP SPRINT", "1993 - Issue drawings")
@@ -195,7 +197,8 @@ class SharePointWriterTest(unittest.TestCase):
         writer = _fake_writer(name="Sprint Tracker.doc")
         with self.assertRaises(WriteNotConfigured) as caught:
             writer.append_under_heading("doc", "30 SEP SPRINT", "1993 - X")
-        self.assertIn("save it as .docx", str(caught.exception))
+        self.assertIn("Save As", str(caught.exception))
+        self.assertIn(".docx", str(caught.exception))
         self.assertEqual(writer.calls[-1][0], "GET", "nothing was uploaded")
 
     def test_the_original_is_backed_up_before_the_upload(self):
@@ -211,7 +214,7 @@ class SharePointWriterTest(unittest.TestCase):
         writer = _fake_writer()
         result = writer.append_under_heading("doc", "14 OCT SPRINT", "1993 - X")
         self.assertFalse(result.ok)
-        self.assertIn("nothing was written", result.detail)
+        self.assertIn("Nothing was written", result.detail)
         self.assertNotIn("PUT", [method for method, _path, _data in writer.calls])
 
     def test_a_repeat_run_uploads_nothing(self):

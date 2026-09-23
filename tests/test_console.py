@@ -386,7 +386,8 @@ class RoutesTest(unittest.TestCase):
         body = ("csrf=%s&message=m10&intent=create&title=Rollup&reported_by=J&reported_on=X"
                 "&approver=" % token)
         _status, _h, page = self._request("POST", "/action/ticket", body, cookie=cookie)
-        self.assertIn("approval requires an identified approver", page)
+        self.assertIn("approval needs a name", page)
+        self.assertIn("Nothing was done", page, "say what did not happen, first")
         self.assertIn("This could not be done", page)
 
     def test_creating_reports_every_step_including_the_rehearsal(self):
@@ -409,7 +410,8 @@ class RoutesTest(unittest.TestCase):
         body = ("csrf=%s&message=m10&intent=create&title=Rollup&reported_by=J&reported_on=X"
                 "&status=Ready+for+QA&approver=Deven" % token)
         _status, _h, page = self._request("POST", "/action/ticket", body, cookie=cookie)
-        self.assertIn("is not one of", page)
+        self.assertIn("not one your Zoho portal offers", page)
+        self.assertIn("Ready for Development", page, "it lists the real options")
 
     def test_sending_a_reply_reports_what_it_would_have_sent(self):
         cookie = self._sign_in()
@@ -428,7 +430,7 @@ class RoutesTest(unittest.TestCase):
         body = ("csrf=%s&message=m10&intent=send&approver=&to=a%%40b.test"
                 "&original_to=a%%40b.test&body=Hello" % token)
         _status, _h, page = self._request("POST", "/action/reply", body, cookie=cookie)
-        self.assertIn("approval requires an identified approver", page)
+        self.assertIn("approval needs a name", page)
 
 
 if __name__ == "__main__":

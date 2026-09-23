@@ -125,8 +125,9 @@ class AccessTest(unittest.TestCase):
 
     def test_missing_token_fails_closed(self):
         result = ZohoApi(environ={}).get("/restapi/portals/")
+        self.assertIsNone(result.data, "no token must mean no data, never a silent empty report")
         self.assertIn("MILOU_ZOHO_TOKEN", result.error)
-        self.assertIn("fails closed", result.error)
+        self.assertIn("docs/going-live.md", result.error)
 
     def test_only_get_is_issued_and_the_token_is_never_echoed(self):
         captured = {}

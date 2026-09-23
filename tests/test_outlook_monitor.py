@@ -268,9 +268,11 @@ class ReadOnlyTest(unittest.TestCase):
 
     def test_missing_token_fails_closed(self):
         result = GraphApi(environ={}).get("/me")
+        self.assertIsNone(result.data, "no token must mean no data, never a silent empty report")
+        # The message has to name the variable to set and where the steps are;
+        # "fails closed" is the behaviour, not something a reader can act on.
         self.assertIn("MILOU_OUTLOOK_TOKEN", result.error)
-        self.assertIn("fails closed", result.error)
-        self.assertIsNone(result.data)
+        self.assertIn("docs/going-live.md", result.error)
 
     def test_only_get_is_issued_and_the_token_is_never_echoed(self):
         captured = {}

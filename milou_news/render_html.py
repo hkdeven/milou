@@ -969,3 +969,21 @@ def result_panel(title: str, results: Sequence, back: str = "/") -> str:
               '</thead><tbody>%s</tbody></table>'
               '<div><a class="btn" href="%s">Back to the inbox</a></div></div>'
             % (rows, _e(back)))
+
+
+def problem_page(title: str, detail: str, back: str = "/", back_label: str = "Back") -> str:
+    """A failure the reader is meant to act on, rendered like the rest of the app.
+
+    Plain text in a browser window reads as a crash. A page that names the
+    problem, says what was and was not changed, and offers a way back reads as
+    the application still being in control of itself.
+    """
+    return app_document(title, (
+        '<div class="app"><main class="main"><div class="view wrap">'
+        '<div class="glass panel">'
+        '<p class="eyebrow">Milou</p>'
+        '<h2>%s</h2>'
+        '<p class="small muted" style="max-width:70ch;line-height:1.6">%s</p>'
+        '<div><a class="btn" href="%s">%s</a></div>'
+        '</div></div></main></div>'
+        % (_e(title), _e(detail), _e(back), _e(back_label))))

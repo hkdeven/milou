@@ -27,6 +27,7 @@ from typing import Dict, List, Mapping, Sequence, Tuple
 from .intake import (Intake, compose_acknowledgement, compose_description, compose_reply,
                      context_questions, intake_from_mapping, long_date, read_email,
                      reply_all_recipients, reply_subject)
+from . import explain
 from . import worddoc
 from .report import Kpi, Report, Row, Signal, Tier
 from .sprints import sprint_for
@@ -105,8 +106,10 @@ class TicketConfig:
             # Sending Zoho a status its portal does not have fails at write time
             # with an unhelpful error. Catching it in configuration is cheaper.
             raise ValueError(
-                "ready_status %r is not in the configured statuses: %s"
-                % (ready, ", ".join(statuses)))
+                "`ticket.ready_status` is %r, which is not in `ticket.statuses`. The default "
+                "selection has to be one of the statuses your portal offers. Either add it to "
+                "the list or pick one of: %s. See %s."
+                % (ready, ", ".join(statuses), explain.RUNBOOK))
         return cls(
             portal=str(value.get("portal") or ""),
             project=str(value.get("project") or ""),
@@ -211,13 +214,21 @@ class ActionPlan:
         so a plan cannot be approved and then quietly edited before it runs.
         """
         if not who:
-            raise ApprovalRequired("approval requires an identified approver")
+            raise ApprovalRequired(
+                "Nothing was done, because approval needs a name. Put yours in "
+                "\u201cApproved by\u201d so the record of who approved this is not blank.")
         missing = self.missing()
         if missing:
-            raise IncompleteAction("still missing: %s" % ", ".join(missing))
+            raise IncompleteAction(
+                "Nothing was done, because %s %s still empty. %s"
+                % (explain.labels(missing), "is" if len(missing) == 1 else "are",
+                   "The email did not state it, so fill it in, or use "
+                   "\u201cAsk for context\u201d to ask the thread for it."
+                   if set(missing) & {"reported_by", "reported_on", "record"}
+                   else "Fill it in before approving."))
         invalid = self.invalid()
         if invalid:
-            raise IncompleteAction("; ".join(invalid))
+            raise IncompleteAction("Nothing was done. " + "; ".join(invalid))
         stamp = (when or datetime.now(timezone.utc)).astimezone(timezone.utc)
         return replace(self, approved_by=who, approved_at=stamp.isoformat())
 
@@ -233,7 +244,10 @@ class ActionPlan:
             options = _split_lines(action.fields.get("status_options", ""))
             status = str(action.fields.get("status", "")).strip()
             if options and status and status not in options:
-                problems.append("status %r is not one of: %s" % (status, ", ".join(options)))
+                problems.append(
+                    "The status %r is not one your Zoho portal offers, and Zoho rejects an "
+                    "unknown status with an error that names no alternatives. Pick one of: %s"
+                    % (status, ", ".join(options)))
         return problems
 
 
@@ -421,10 +435,16 @@ class ZohoWriter:
 
     def create_task(self, portal: str, project: str, fields: Mapping) -> ExecutionResult:
         if not self.token:
-            raise WriteNotConfigured(
-                "%s is not set; ticket creation fails closed" % ZOHO_WRITE_TOKEN_ENV)
-        if not portal or not project:
-            raise WriteNotConfigured("a portal and project must be configured before writing")
+            raise WriteNotConfigured(explain.missing_token(
+                "Zoho Projects write", ZOHO_WRITE_TOKEN_ENV, "creating a ticket"))
+        if not portal:
+            raise WriteNotConfigured(explain.not_configured(
+                "ticket.portal", "Milou does not know which Zoho portal to create the ticket in",
+                '"portal": "yourportal"'))
+        if not project:
+            raise WriteNotConfigured(explain.not_configured(
+                "ticket.project", "Milou does not know which project to create the ticket in",
+                '"project": "5001" (the numeric id in the project\'s URL)'))
         payload = {
             "name": fields.get("title", ""),
             "description": fields.get("description", ""),
@@ -447,11 +467,18 @@ class ZohoWriter:
             with urllib.request.urlopen(request, timeout=self.timeout) as response:
                 payload = json.loads(response.read().decode("utf-8"))
         except urllib.error.HTTPError as exc:
-            return ExecutionResult("zoho.create_task", False,
-                                   "Zoho returned HTTP %s %s" % (exc.code, exc.reason))
-        except (urllib.error.URLError, ValueError, TimeoutError) as exc:
-            return ExecutionResult("zoho.create_task", False,
-                                   "Zoho write failed: %s" % type(exc).__name__)
+            return ExecutionResult("zoho.create_task", False, explain.http_failure(
+                "Zoho Projects", "creating the ticket", exc.code, exc.reason,
+                ZOHO_WRITE_TOKEN_ENV, "ZohoProjects.tasks.CREATE"))
+        except urllib.error.URLError as exc:
+            return ExecutionResult("zoho.create_task", False, explain.unreachable(
+                "Zoho Projects", "creating the ticket", str(exc.reason)))
+        except TimeoutError:
+            return ExecutionResult("zoho.create_task", False, explain.timed_out(
+                "Zoho Projects", "creating the ticket", self.timeout))
+        except ValueError:
+            return ExecutionResult("zoho.create_task", False, explain.unreadable(
+                "Zoho Projects", "creating the ticket"))
         tasks = payload.get("tasks") if isinstance(payload, Mapping) else None
         created = tasks[0] if isinstance(tasks, list) and tasks else (
             payload if isinstance(payload, Mapping) else {})
@@ -462,8 +489,11 @@ class ZohoWriter:
             inner = link.get("self")
             url = str((inner or {}).get("url") or "") if isinstance(inner, Mapping) else str(inner or "")
         return ExecutionResult("zoho.create_task", bool(identifier),
-                               "created task %s" % identifier if identifier
-                               else "Zoho accepted the write but returned no task id",
+                               "Created task %s." % identifier if identifier
+                               else "Zoho accepted the ticket but did not return its number, so "
+                                    "the tracker line and the acknowledgement cannot reference it. "
+                                    "Check the project in Zoho before creating it again — it may "
+                                    "already be there.",
                                {"ticket_id": identifier, "ticket_url": url})
 
 
@@ -502,21 +532,26 @@ class OutlookReplyWriter:
 
     def send_reply(self, fields: Mapping) -> ExecutionResult:
         if not self.token:
-            raise WriteNotConfigured(
-                "%s is not set; the reply fails closed" % OUTLOOK_WRITE_TOKEN_ENV)
+            raise WriteNotConfigured(explain.missing_token(
+                "Microsoft Graph send", OUTLOOK_WRITE_TOKEN_ENV, "sending this reply"))
         message_id = str(fields.get("message_id") or "")
         if not message_id:
-            raise WriteNotConfigured("a reply needs the message it is replying to")
+            raise WriteNotConfigured(explain.internal(
+                "a reply was built without the message it replies to"))
         recipients = _split_links(fields.get("to", ""))
         if not recipients:
-            raise IncompleteAction("a reply needs at least one recipient")
+            raise IncompleteAction(
+                "Nothing was sent, because the reply has no recipients. Add at least one "
+                "address to \u201cTo\u201d.")
         edited = (recipients != _split_links(fields.get("original_to", ""))
                   or _split_links(fields.get("cc", "")) != _split_links(fields.get("original_cc", "")))
         if edited and not self.allow_recipient_edits:
             raise WriteNotConfigured(
-                "the recipient list was changed, which needs a draft-then-send flow and a "
-                "wider Mail.ReadWrite grant; send it unchanged, or enable recipient edits "
-                "deliberately")
+                "Nothing was sent, because you changed who this reply goes to. Sending the "
+                "thread's own recipients needs only Mail.Send; sending an edited list has to "
+                "build a draft first, which needs the wider Mail.ReadWrite grant. Either put "
+                "the original recipients back, or set `allow_recipient_edits: true` once that "
+                "grant is in place. See %s." % explain.RUNBOOK)
         try:
             if edited:
                 # replyAll would send to Outlook's own list and quietly discard
@@ -530,11 +565,18 @@ class OutlookReplyWriter:
         except urllib.error.HTTPError as exc:
             # Status and reason only. The response body and the request headers
             # can both carry the token back.
-            return ExecutionResult("outlook.reply_all", False,
-                                   "Graph returned HTTP %s %s" % (exc.code, exc.reason))
-        except (urllib.error.URLError, ValueError, TimeoutError) as exc:
-            return ExecutionResult("outlook.reply_all", False,
-                                   "the reply failed to send: %s" % type(exc).__name__)
+            return ExecutionResult("outlook.reply_all", False, explain.http_failure(
+                "Microsoft Graph", "sending the reply", exc.code, exc.reason,
+                OUTLOOK_WRITE_TOKEN_ENV, "Mail.Send"))
+        except urllib.error.URLError as exc:
+            return ExecutionResult("outlook.reply_all", False, explain.unreachable(
+                "Microsoft Graph", "sending the reply", str(exc.reason)))
+        except TimeoutError:
+            return ExecutionResult("outlook.reply_all", False, explain.timed_out(
+                "Microsoft Graph", "sending the reply", self.timeout))
+        except ValueError:
+            return ExecutionResult("outlook.reply_all", False, explain.unreadable(
+                "Microsoft Graph", "sending the reply"))
         return ExecutionResult("outlook.reply_all", True,
                                "replied to %d recipient%s"
                                % (len(recipients), "" if len(recipients) == 1 else "s"),
@@ -575,26 +617,38 @@ class OutlookReplyWriter:
         number already in it.
         """
         if not self.token:
-            raise WriteNotConfigured(
-                "%s is not set; the acknowledgement draft fails closed" % OUTLOOK_WRITE_TOKEN_ENV)
+            raise WriteNotConfigured(explain.missing_token(
+                "Microsoft Graph", OUTLOOK_WRITE_TOKEN_ENV,
+                "leaving the acknowledgement draft in your mailbox"))
         message_id = str(fields.get("message_id") or "")
         if not message_id:
-            raise WriteNotConfigured("a reply draft needs the message it is replying to")
+            raise WriteNotConfigured(explain.internal(
+                "a draft was built without the message it replies to"))
         quoted = urllib.parse.quote(message_id, safe="")
         try:
             created = self._post("/me/messages/%s/createReplyAll" % quoted, {})
             draft_id = str((created or {}).get("id") or "")
             if not draft_id:
                 return ExecutionResult("outlook.create_draft", False,
-                                       "Graph created no draft to write into")
+                                       "The ticket was created, but Outlook did not return a "
+                                       "draft to write the acknowledgement into. Nothing is "
+                                       "waiting in your Drafts; you can reply to the thread by "
+                                       "hand with the ticket number above.")
             self._patch("/me/messages/%s" % urllib.parse.quote(draft_id, safe=""),
                         {"body": {"contentType": "text", "content": str(fields.get("body") or "")}})
         except urllib.error.HTTPError as exc:
-            return ExecutionResult("outlook.create_draft", False,
-                                   "Graph returned HTTP %s %s" % (exc.code, exc.reason))
-        except (urllib.error.URLError, ValueError, TimeoutError) as exc:
-            return ExecutionResult("outlook.create_draft", False,
-                                   "the draft could not be created: %s" % type(exc).__name__)
+            return ExecutionResult("outlook.create_draft", False, explain.http_failure(
+                "Microsoft Graph", "leaving the acknowledgement draft", exc.code, exc.reason,
+                OUTLOOK_WRITE_TOKEN_ENV, "Mail.ReadWrite"))
+        except urllib.error.URLError as exc:
+            return ExecutionResult("outlook.create_draft", False, explain.unreachable(
+                "Microsoft Graph", "leaving the acknowledgement draft", str(exc.reason)))
+        except TimeoutError:
+            return ExecutionResult("outlook.create_draft", False, explain.timed_out(
+                "Microsoft Graph", "leaving the acknowledgement draft", self.timeout))
+        except ValueError:
+            return ExecutionResult("outlook.create_draft", False, explain.unreadable(
+                "Microsoft Graph", "leaving the acknowledgement draft"))
         return ExecutionResult("outlook.create_draft", True,
                                "draft saved in Outlook, unsent", {"draft_id": draft_id})
 
@@ -672,21 +726,29 @@ class SharePointWordWriter:
         drive, item = str(parent.get("driveId") or ""), str(payload.get("id") or "")
         name = str(payload.get("name") or "")
         if not drive or not item:
-            raise WriteNotConfigured("that link does not resolve to a file Milou can open")
+            raise WriteNotConfigured(
+                "The sprint tracker link does not resolve to a file Milou can open. Use the "
+                "link Word gives you under Share \u2192 Copy link, and make sure the account "
+                "whose token you configured can open it.")
         if not name.lower().endswith(".docx"):
             # A .doc, or a page that merely looks like one, would be destroyed
             # by writing .docx bytes over it.
             raise WriteNotConfigured(
-                "%r is not a .docx; open it in Word and save it as .docx first" % name)
+                "The sprint tracker %r is not a .docx, and writing .docx bytes over it would "
+                "destroy it. Open it in Word and use File \u2192 Save As to save a .docx, then "
+                "point `ticket.document_url` at the new file." % name)
         return drive, item, name
 
     def append_under_heading(self, document: str, heading: str, line: str) -> ExecutionResult:
         if not self.token:
-            raise WriteNotConfigured(
-                "%s is not set; the tracker update fails closed" % DOCUMENT_WRITE_TOKEN_ENV)
+            raise WriteNotConfigured(explain.missing_token(
+                "Microsoft Graph file", DOCUMENT_WRITE_TOKEN_ENV,
+                "adding the line to the sprint tracker"))
         if not self.share_url:
-            raise WriteNotConfigured(
-                "no document link configured; set document_url to the Word file's share link")
+            raise WriteNotConfigured(explain.not_configured(
+                "ticket.document_url",
+                "Milou does not know which document to add the sprint line to",
+                "the link from Word \u2192 Share \u2192 Copy link"))
         try:
             drive, item, name = self._locate()
             path = "/drives/%s/items/%s/content" % (urllib.parse.quote(drive, safe=""),
@@ -703,11 +765,18 @@ class SharePointWordWriter:
         except worddoc.DocumentError as exc:
             return ExecutionResult("document.append_line", False, str(exc))
         except urllib.error.HTTPError as exc:
-            return ExecutionResult("document.append_line", False,
-                                   "Graph returned HTTP %s %s" % (exc.code, exc.reason))
-        except (urllib.error.URLError, ValueError, TimeoutError) as exc:
-            return ExecutionResult("document.append_line", False,
-                                   "the tracker could not be updated: %s" % type(exc).__name__)
+            return ExecutionResult("document.append_line", False, explain.http_failure(
+                "Microsoft Graph", "updating the sprint tracker", exc.code, exc.reason,
+                DOCUMENT_WRITE_TOKEN_ENV, "Files.ReadWrite.All"))
+        except urllib.error.URLError as exc:
+            return ExecutionResult("document.append_line", False, explain.unreachable(
+                "Microsoft Graph", "updating the sprint tracker", str(exc.reason)))
+        except TimeoutError:
+            return ExecutionResult("document.append_line", False, explain.timed_out(
+                "Microsoft Graph", "updating the sprint tracker", self.timeout))
+        except ValueError:
+            return ExecutionResult("document.append_line", False, explain.unreadable(
+                "Microsoft Graph", "updating the sprint tracker"))
         return ExecutionResult("document.append_line", True, "%s in %s" % (detail, name))
 
 
@@ -734,10 +803,12 @@ def execute(plan: ActionPlan, zoho_writer=None, document_writer=None,
     """Run an approved plan. Refuses anything unapproved or incomplete."""
     if not plan.approved:
         raise ApprovalRequired(
-            "this plan changes external systems and has not been approved")
+            "Nothing was done. This plan changes systems outside Milou and has not been "
+            "approved, so it will not run.")
     missing = plan.missing()
     if missing:
-        raise IncompleteAction("still missing: %s" % ", ".join(missing))
+        raise IncompleteAction(
+            "Nothing was done, because %s still empty." % explain.labels(missing))
 
     results: List[ExecutionResult] = []
     context: Dict[str, str] = {}
@@ -751,7 +822,7 @@ def execute(plan: ActionPlan, zoho_writer=None, document_writer=None,
                 resolved.fields)
         elif resolved.kind == "document.append_line":
             if document_writer is None:
-                raise WriteNotConfigured("no document writer supplied")
+                raise WriteNotConfigured(explain.internal("no document writer was supplied to execute()"))
             # Built here, not at draft time: the ticket number does not exist
             # until the task above has actually been created.
             line = document_line(context.get("ticket_id", ""), resolved.fields.get("title", ""))
@@ -759,14 +830,15 @@ def execute(plan: ActionPlan, zoho_writer=None, document_writer=None,
                 resolved.target, resolved.fields.get("heading", ""), line)
         elif resolved.kind == "outlook.reply_all":
             if mail_writer is None:
-                raise WriteNotConfigured("no mail writer supplied")
+                raise WriteNotConfigured(explain.internal("no mail writer was supplied to execute()"))
             result = mail_writer.send_reply(resolved.fields)
         elif resolved.kind == "outlook.create_draft":
             if mail_writer is None:
-                raise WriteNotConfigured("no mail writer supplied")
+                raise WriteNotConfigured(explain.internal("no mail writer was supplied to execute()"))
             result = mail_writer.create_draft(resolved.fields)
         else:
-            result = ExecutionResult(resolved.kind, False, "no writer for this action kind")
+            result = ExecutionResult(resolved.kind, False, explain.internal(
+                "there is no writer for the action kind %r" % resolved.kind))
         results.append(result)
         context.update(result.produced)
         if not result.ok:

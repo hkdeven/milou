@@ -23,6 +23,7 @@ from html.parser import HTMLParser
 from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Mapping, Optional, Sequence, Tuple
 
+from . import explain
 from .coverage import Coverage, find_owner
 from .render_text import render_markdown
 from .report import Bar, Kpi, Report, Row, Segment, Signal, Tier, humanize_age
@@ -84,13 +85,21 @@ class InboxConfig:
         lookback = int(value.get("lookback_days", 14))
         messages = int(value.get("max_messages", 200))
         if not 1 <= follow_up <= 30:
-            raise ValueError("follow_up_days must be 1..30 business days")
+            raise ValueError(explain.out_of_range(
+                "inbox.follow_up_days", 1, 30,
+                "It counts business days of silence before sent mail is chased."))
         if not 1 <= items <= 25:
-            raise ValueError("max_items must be 1..25; an uncapped report is the inbox again")
+            raise ValueError(explain.out_of_range(
+                "inbox.max_items", 1, 25,
+                "An uncapped report is the inbox again, which is the thing this "
+                "routine exists to replace."))
         if not 1 <= lookback <= 90:
-            raise ValueError("lookback_days must be 1..90")
+            raise ValueError(explain.out_of_range(
+                "inbox.lookback_days", 1, 90, "It is how far back the monitor reads."))
         if not 1 <= messages <= 1000:
-            raise ValueError("max_messages must be 1..1000")
+            raise ValueError(explain.out_of_range(
+                "inbox.max_messages", 1, 1000,
+                "It caps how many messages are fetched per folder."))
         muted = tuple(str(item).strip().lower() for item in (value.get("mute_senders") or ()) if str(item).strip())
         return cls(follow_up, items, lookback, messages, bool(value.get("include_other", False)), muted)
 
@@ -114,11 +123,13 @@ class GraphApi:
         self.timeout = timeout
         self.root = root
 
-    def get(self, path: str) -> GraphResult:
+    def get(self, path: str, doing: str = "reading your mailbox") -> GraphResult:
         if not self.token:
-            return GraphResult(error="%s is not set; mailbox access fails closed" % TOKEN_ENV)
+            return GraphResult(error=explain.missing_token(
+                "Microsoft Graph", TOKEN_ENV, doing))
         if not path.startswith("/"):
-            return GraphResult(error="invalid Graph path")
+            return GraphResult(error=explain.internal(
+                "a Graph request was built with the path %r, which is not absolute" % path))
         request = urllib.request.Request(
             self.root + path, method="GET",
             headers={"Authorization": "Bearer " + self.token,
@@ -129,12 +140,14 @@ class GraphApi:
         except urllib.error.HTTPError as exc:
             # Status and reason only: never the response body or request headers,
             # which can carry the token back.
-            return GraphResult(error="Graph %s returned HTTP %s %s" % (path, exc.code, exc.reason))
+            return GraphResult(error=explain.http_failure(
+                "Microsoft Graph", doing, exc.code, exc.reason, TOKEN_ENV, "Mail.Read"))
         except urllib.error.URLError as exc:
-            return GraphResult(error="Graph %s unreachable: %s" % (path, exc.reason))
-        except (ValueError, TimeoutError) as exc:
-            return GraphResult(error="Graph %s returned an unreadable response: %s"
-                               % (path, type(exc).__name__))
+            return GraphResult(error=explain.unreachable("Microsoft Graph", doing, str(exc.reason)))
+        except TimeoutError:
+            return GraphResult(error=explain.timed_out("Microsoft Graph", doing, self.timeout))
+        except ValueError:
+            return GraphResult(error=explain.unreadable("Microsoft Graph", doing))
         return GraphResult(payload, truncated=bool(payload.get("@odata.nextLink"))
                            if isinstance(payload, Mapping) else False)
 
@@ -145,11 +158,12 @@ class FixtureGraph:
     def __init__(self, responses, errors=None):
         self.responses, self.errors = responses or {}, errors or {}
 
-    def get(self, path: str) -> GraphResult:
+    def get(self, path: str, doing: str = "") -> GraphResult:
         if path in self.errors:
             return GraphResult(error=self.errors[path])
         if path not in self.responses:
-            return GraphResult(error="fixture missing Graph path %s" % path)
+            return GraphResult(error=explain.internal(
+                "the test fixture has no Graph response for %s" % path))
         return GraphResult(self.responses[path])
 
 

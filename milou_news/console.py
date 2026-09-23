@@ -135,14 +135,21 @@ class Console:
             return build_zoho_report(self.zoho, config.zoho, now)
         if key == "github-change-radar":
             if config.radar is None:
-                raise UnknownRoutine("the GitHub radar has no configured scope")
+                raise UnknownRoutine(
+                    "The GitHub change radar has nothing to watch yet. Add a `radar` section "
+                    "to your console configuration naming the organisation and repositories "
+                    "it should follow; until then this routine has no scope and would report "
+                    "an empty week, which would be misleading rather than quiet.")
             return build_radar_report(self.github, config.radar, now)
         if key == "daily-global-ai-news-brief":
             return build_brief_report(SOURCES, self.fetcher, now, config.brief)
         payload = config.payloads.get(key)
         report = build_routine_report(key, payload) if payload is not None else None
         if report is None:
-            raise UnknownRoutine("no routine named %r" % key)
+            raise UnknownRoutine(
+                "Milou has no routine called %r, or it has one that needs a payload this "
+                "console was not given. Routines fed from a fixture need an entry under "
+                "`payloads` in the console configuration." % key)
         return report
 
     def _coverages(self, now):

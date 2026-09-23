@@ -137,7 +137,10 @@ def append_line(markup: str, heading: str, line: str) -> Tuple[str, str]:
     index = find_heading(items, heading)
     if index is None:
         raise DocumentError(
-            "no heading %r in the document; nothing was written" % heading)
+            "Nothing was written to the tracker, because it has no heading reading %r. "
+            "Milou will not guess where a line belongs: a line filed under the wrong sprint "
+            "is harder to notice than one that was never added. Add that heading to the "
+            "document, or correct the sprint tag on the ticket." % heading)
     end = _section_end(items, index)
     body = items[index + 1:end]
     if any(_normalise(item.text) == _normalise(line) for item in body):
@@ -169,10 +172,15 @@ def append_to_docx(data: bytes, heading: str, line: str) -> Tuple[bytes, str]:
     try:
         source = zipfile.ZipFile(BytesIO(data))
     except zipfile.BadZipFile as exc:
-        raise DocumentError("this is not a .docx file: %s" % exc)
+        raise DocumentError(
+            "Nothing was written: the tracker did not open as a Word file. A .docx is a zip "
+            "archive, and this is not one — check that `ticket.document_url` points at the "
+            "document itself rather than at a folder or a web page.")
     if DOCUMENT_PART not in source.namelist():
-        raise DocumentError("no %s in the document; is it a .doc rather than a .docx?"
-                            % DOCUMENT_PART)
+        raise DocumentError(
+            "Nothing was written: the file opened, but it has no %s inside, which means it is "
+            "not a Word document in the modern format. If it is an older .doc, open it in Word "
+            "and save it as .docx first." % DOCUMENT_PART)
     markup = source.read(DOCUMENT_PART).decode("utf-8")
     updated, detail = append_line(markup, heading, line)
     if updated == markup:

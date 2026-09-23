@@ -244,6 +244,21 @@ the detailed reasoning and decisions behind each change.
 - Recorded the accepted manual README layout correction and the lesson to
   validate GitHub-rendered layout visually.
 
+### Changed
+
+- Rewrote every error message a person can see (`milou_news/explain.py`). They
+  used to speak in the vocabulary of whatever failed — `Graph /me returned HTTP
+  401 Unauthorized` — which is accurate and useless. Now one module knows what
+  each failure means and each adapter says what it was doing, so a 401 reads as
+  "the access token is not valid; these expire after about an hour, so this is
+  most likely an expired one — set MILOU_OUTLOOK_TOKEN again". Three rules hold
+  throughout: name the cause rather than the status code, say what to do next,
+  and never let a credential into a message. Field names are shown the way the
+  form shows them, so nobody is asked for `reported_by`. Configuration errors
+  name the setting and the range. Failures caused by wiring Milou up wrongly say
+  they are bugs, so nobody searches their Azure tenant for a missing argument.
+  The web layer's bare-text error responses became real pages.
+
 ### Fixed
 
 - A hand-edited ticket description was overwritten on the submission that

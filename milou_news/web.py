@@ -103,8 +103,12 @@ def make_handler(store, bearer_token=None, environ=None, scheduler=None,
             path = urlparse(self.path).path
             if path == "/login":
                 if not token:
-                    self._send(503, "Report delivery is not configured.\n",
-                               "text/plain; charset=utf-8")
+                    self._send(503, render_html.problem_page(
+                        "Milou has no sign-in secret",
+                        "Nobody can sign in until MILOU_REPORT_TOKEN is set in the environment "
+                        "Milou was started from. It is the password for this console. Stop "
+                        "Milou, set it, and start it again \u2014 docs/going-live.md has the "
+                        "one-line command."))
                     return
                 try:
                     length = int(self.headers.get("Content-Length", "0"))
@@ -128,7 +132,11 @@ def make_handler(store, bearer_token=None, environ=None, scheduler=None,
             if console is not None and path in ("/action/ticket", "/action/reply"):
                 self._action(path, console)
                 return
-            self._send(405, "Method not allowed.\n", "text/plain; charset=utf-8")
+            self._send(405, render_html.problem_page(
+                "That is not something you can post to",
+                "Milou received a form submission for an address that does not accept one. "
+                "Nothing was changed. This usually means a stale page \u2014 go back and "
+                "reload it."))
 
         def _form(self):
             try:
@@ -153,8 +161,13 @@ def make_handler(store, bearer_token=None, environ=None, scheduler=None,
             form = self._form()
             supplied = form.get("csrf", [""])[0]
             if not supplied or not hmac.compare_digest(supplied, record["csrf"]):
-                self._send(403, "This form has expired. Reload the page and try again.\n",
-                           "text/plain; charset=utf-8")
+                self._send(403, render_html.problem_page(
+                    "This form has expired",
+                    "Nothing was created or sent. Forms carry a token that is tied to your "
+                    "sign-in, and this one no longer matches \u2014 usually because Milou was "
+                    "restarted, or the page sat open past the hour. Open the message again and "
+                    "redo it; nothing was lost except what was typed on that form.",
+                    back="/routine/" + console_module.INBOX, back_label="Back to the inbox"))
                 return
             single = {name: values[0] for name, values in form.items()}
             single["ask"] = form.get("ask", [])
@@ -178,7 +191,10 @@ def make_handler(store, bearer_token=None, environ=None, scheduler=None,
                     self.send_header("WWW-Authenticate", AUTH_SCHEME + ' realm="milou-reports"')
                     self.end_headers()
                 else:
-                    self._send(503, "Report delivery is not configured.\n", "text/plain; charset=utf-8")
+                    self._send(503, render_html.problem_page(
+                        "Milou has no sign-in secret",
+                        "Nobody can sign in until MILOU_REPORT_TOKEN is set in the environment "
+                        "Milou was started from. Stop Milou, set it, and start it again."))
                 return
             if console is not None:
                 record = _session(self)
@@ -217,7 +233,11 @@ def make_handler(store, bearer_token=None, environ=None, scheduler=None,
             if path.startswith("/report/"):
                 payload = store.get(unquote(path[len("/report/"):]))
                 if payload is None:
-                    self._send(404, "Report not found.\n", "text/plain; charset=utf-8")
+                    self._send(404, render_html.problem_page(
+                        "That stored report is not here",
+                        "The archive has no report at that address. It may have been written "
+                        "before the current archive directory was configured, or removed since "
+                        "the link was made.", back="/", back_label="Back to the archive"))
                     return
                 label = payload.get("metadata", {}).get("routine", "report")
                 status = payload.get("metadata", {}).get("status", "stored")
@@ -230,7 +250,10 @@ def make_handler(store, bearer_token=None, environ=None, scheduler=None,
                         pass  # fall back to the stored Markdown rather than 500
                 self._send(200, render_html.markdown_page(label, status, payload.get("markdown", "")))
                 return
-            self._send(404, "Not found.\n", "text/plain; charset=utf-8")
+            self._send(404, render_html.problem_page(
+                "There is nothing at that address",
+                "Milou has no page there. If you followed a link from inside the application, "
+                "that is a bug worth reporting."))
 
         def _routine(self, console, key, csrf):
             """One routine's report, inside the application shell."""
@@ -238,7 +261,11 @@ def make_handler(store, bearer_token=None, environ=None, scheduler=None,
             views = console.views()
             entry = next((view for view in views if view["key"] == key), None)
             if entry is None:
-                self._send(404, "No such routine.\n", "text/plain; charset=utf-8")
+                self._send(404, render_html.problem_page(
+                    "There is no routine by that name",
+                    "Milou has no routine called %r. The routines it does have are listed in "
+                    "the sidebar of any other page." % key,
+                    back="/routine/" + console_module.INBOX, back_label="Back to the inbox"))
                 return
             generated, headline = "", None
             try:

@@ -26,6 +26,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import List, Mapping, Optional, Sequence, Tuple
 
+from . import explain
 from .coverage import Coverage, normalize
 from .report import Bar, Kpi, Report, Row, Segment, Signal, Tier, humanize_age
 from .render_text import render_markdown
@@ -72,11 +73,15 @@ class ZohoConfig:
         items = int(value.get("max_items", 10))
         projects_cap = int(value.get("max_projects", 20))
         if not 1 <= hours <= 744:
-            raise ValueError("window_hours must be 1..744")
+            raise ValueError(explain.out_of_range(
+                "zoho.window_hours", 1, 744, "It is how far back the radar looks."))
         if not 1 <= items <= 25:
-            raise ValueError("max_items must be 1..25; an uncapped report is the ticket list again")
+            raise ValueError(explain.out_of_range(
+                "zoho.max_items", 1, 25,
+                "An uncapped report is the ticket list again."))
         if not 1 <= projects_cap <= 200:
-            raise ValueError("max_projects must be 1..200")
+            raise ValueError(explain.out_of_range(
+                "zoho.max_projects", 1, 200, "It caps how many projects are read."))
         domains = tuple(str(d).strip().lower() for d in
                         (value.get("notification_domains") or DEFAULT_NOTIFICATION_DOMAINS)
                         if str(d).strip())
@@ -104,11 +109,12 @@ class ZohoApi:
         self.timeout = timeout
         self.root = root
 
-    def get(self, path: str) -> ZohoResult:
+    def get(self, path: str, doing: str = "reading your Zoho projects") -> ZohoResult:
         if not self.token:
-            return ZohoResult(error="%s is not set; Zoho access fails closed" % TOKEN_ENV)
+            return ZohoResult(error=explain.missing_token("Zoho Projects", TOKEN_ENV, doing))
         if not path.startswith("/"):
-            return ZohoResult(error="invalid Zoho path")
+            return ZohoResult(error=explain.internal(
+                "a Zoho request was built with the path %r, which is not absolute" % path))
         request = urllib.request.Request(
             self.root + path, method="GET",
             headers={"Authorization": "Zoho-oauthtoken " + self.token,
@@ -118,12 +124,15 @@ class ZohoApi:
                 return ZohoResult(json.loads(response.read().decode("utf-8")))
         except urllib.error.HTTPError as exc:
             # Status and reason only: never the body or the request headers.
-            return ZohoResult(error="Zoho %s returned HTTP %s %s" % (path, exc.code, exc.reason))
+            return ZohoResult(error=explain.http_failure(
+                "Zoho Projects", doing, exc.code, exc.reason, TOKEN_ENV,
+                "the ZohoProjects read scopes"))
         except urllib.error.URLError as exc:
-            return ZohoResult(error="Zoho %s unreachable: %s" % (path, exc.reason))
-        except (ValueError, TimeoutError) as exc:
-            return ZohoResult(error="Zoho %s returned an unreadable response: %s"
-                              % (path, type(exc).__name__))
+            return ZohoResult(error=explain.unreachable("Zoho Projects", doing, str(exc.reason)))
+        except TimeoutError:
+            return ZohoResult(error=explain.timed_out("Zoho Projects", doing, self.timeout))
+        except ValueError:
+            return ZohoResult(error=explain.unreadable("Zoho Projects", doing))
 
 
 class FixtureZoho:
@@ -132,11 +141,12 @@ class FixtureZoho:
     def __init__(self, responses, errors=None):
         self.responses, self.errors = responses or {}, errors or {}
 
-    def get(self, path: str) -> ZohoResult:
+    def get(self, path: str, doing: str = "") -> ZohoResult:
         if path in self.errors:
             return ZohoResult(error=self.errors[path])
         if path not in self.responses:
-            return ZohoResult(error="fixture missing Zoho path %s" % path)
+            return ZohoResult(error=explain.internal(
+                "the test fixture has no Zoho response for %s" % path))
         return ZohoResult(self.responses[path])
 
 
