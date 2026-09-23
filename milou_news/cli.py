@@ -1,6 +1,11 @@
 import argparse
 import json
+import os
+import secrets
 import sys
+import threading
+import time
+import webbrowser
 from datetime import datetime, timezone
 
 from . import render_html, render_text
@@ -13,7 +18,9 @@ from .routines import (build_routine_report, generate_daily_wins, generate_morni
                        generate_commitments_tracker, generate_stale_work_finder,
                        generate_dependabot_pr_triage, generate_launch_decoder,
                        generate_launch_radar, generate_travel_logistics_tracker)
+from . import oauth
 from .console import Console, ConsoleConfig
+from .oauth import OAuthConfig, default_store
 from .scheduler import Scheduler
 from .web import serve
 from .models import default_registry
@@ -94,6 +101,68 @@ def _locate(parser, api, inbox_config, identifier):
     return mailbox, message
 
 
+def login_command(argv) -> int:
+    """Sign in once, in a browser, and keep the session.
+
+    Everything is stored in the macOS Keychain where there is one. Nothing is
+    printed: an access token on a terminal ends up in scrollback and shell
+    history, which is exactly where a credential should not be.
+    """
+    parser = argparse.ArgumentParser(
+        prog="milou login", description="Sign in to Microsoft 365 or Zoho Projects.")
+    parser.add_argument("provider", choices=("outlook", "zoho", "status", "forget"))
+    parser.add_argument("--config", required=False,
+                        help="JSON console configuration holding the `oauth` section")
+    parser.add_argument("--writes", action="store_true",
+                        help="also ask for the permissions the write actions need, so the "
+                             "consent screen is shown once rather than twice")
+    args = parser.parse_args(argv[1:])
+
+    settings = _load(args.config) if args.config else {}
+    config = OAuthConfig.from_mapping(settings.get("oauth", {}))
+    store = default_store(config.token_file)
+
+    if args.provider == "status":
+        for name, label in (("outlook", "Microsoft 365"), ("zoho", "Zoho Projects")):
+            record = store.read(name) or {}
+            if record.get("refresh_token"):
+                left = int(record.get("expires_at", 0)) - int(time.time())
+                print("%-16s signed in; this access token %s"
+                      % (label, "expires in %d minutes" % (left // 60) if left > 0
+                         else "has expired and will be renewed on the next request"))
+            else:
+                print("%-16s not signed in \u2014 run: milou login %s" % (label, name))
+        return 0
+
+    if args.provider == "forget":
+        for name in ("outlook", "zoho"):
+            store.forget(name)
+        print("Signed out of both providers. Nothing else was changed.")
+        return 0
+
+    try:
+        if args.provider == "outlook":
+            scopes = list(oauth.GRAPH_READ)
+            if args.writes:
+                scopes += list(oauth.GRAPH_SEND + oauth.GRAPH_DRAFT + oauth.GRAPH_FILES)
+            app = oauth.graph_app(config, scopes)
+        else:
+            secret = os.environ.get("MILOU_ZOHO_CLIENT_SECRET", "")
+            if not secret:
+                parser.error(
+                    "Zoho requires a client secret as well as a client id. Put it in "
+                    "MILOU_ZOHO_CLIENT_SECRET for this one command; it is saved with the "
+                    "tokens afterwards and is not needed in the environment again.")
+            scopes = list(oauth.ZOHO_READ) + (list(oauth.ZOHO_WRITE) if args.writes else [])
+            app = oauth.zoho_app(config, secret, scopes)
+        print("Opening your browser to sign in to %s\u2026" % app.label)
+        oauth.sign_in(app, store, port=config.port)
+    except oauth.OAuthError as exc:
+        parser.error(str(exc))
+    print("Signed in. Milou keeps itself signed in from here \u2014 nothing to paste again.")
+    return 0
+
+
 def serve_command(argv) -> int:
     """Run the console: the navigable application, bound to localhost.
 
@@ -108,6 +177,9 @@ def serve_command(argv) -> int:
                         help="JSON console configuration; see console.example.json")
     parser.add_argument("--host", default=None)
     parser.add_argument("--port", type=int, default=None)
+    parser.add_argument("--open", action="store_true", dest="open_browser",
+                        help="open the console in your browser, already signed in. The link "
+                             "carries a one-time sign-in that is spent on first use")
     parser.add_argument("--fixtures", action="store_true",
                         help="read the committed fixtures instead of live systems, so the "
                              "console can be walked through without any credentials")
@@ -124,6 +196,7 @@ def serve_command(argv) -> int:
         approver=str(settings.get("approver", "")),
         allow_recipient_edits=bool(settings.get("allow_recipient_edits", False)),
         payloads={name: _load(path) for name, path in (settings.get("payloads") or {}).items()},
+        oauth=OAuthConfig.from_mapping(settings.get("oauth", {})),
     )
     graph = zoho_api = None
     if args.fixtures:
@@ -132,17 +205,40 @@ def serve_command(argv) -> int:
         graph = FixtureGraph(outlook["responses"], outlook.get("errors", {}))
         zoho_api = FixtureZoho(zoho_fixture["responses"], zoho_fixture.get("errors", {}))
 
-    console = Console(console_config, graph=graph, zoho=zoho_api)
+    token_store = default_store(OAuthConfig.from_mapping(settings.get("oauth", {})).token_file)
+    console = Console(console_config, graph=graph, zoho=zoho_api, store=token_store)
     store = ReportStore(settings.get("store", "reports"))
     host = args.host or settings.get("host", "127.0.0.1")
     port = args.port or int(settings.get("port", 8080))
+    # The console's own password lives with the tokens, so a double-clicked
+    # application needs no terminal and no environment variable. It is created
+    # once, on first run.
+    report_token = os.environ.get("MILOU_REPORT_TOKEN") or ""
+    if not report_token:
+        saved = token_store.read("console") or {}
+        report_token = saved.get("password") or secrets.token_urlsafe(32)
+        if not saved.get("password"):
+            token_store.write("console", {"password": report_token})
+    nonce = secrets.token_urlsafe(32) if args.open_browser else None
+
     available = console.can_write()
+    signed = console.signed_in()
     print("Milou console on http://%s:%d" % (host, port))
+    print("Signed in: " + (", ".join(name for name, yes in signed.items() if yes)
+                           or "nobody yet \u2014 run: milou login outlook"))
     print("Writes configured: " + (", ".join(name for name, ready in available.items() if ready)
                                    or "none — every action is a rehearsal"))
     if args.fixtures:
         print("Reading committed fixtures, not live systems.")
-    serve(store, host=host, port=port, console=console)
+    if args.open_browser:
+        url = "http://%s:%d/?signin=%s" % (host, port, nonce)
+        print("Opening %s://%s:%d \u2014 the link signs you in once." % ("http", host, port))
+        threading.Timer(0.6, webbrowser.open, args=(url,)).start()
+    else:
+        print("Sign in at http://%s:%d with the password stored under \u201cmilou\u201d in "
+              "your Keychain, or start with --open to skip that." % (host, port))
+    serve(store, host=host, port=port, bearer_token=report_token, console=console,
+          launch_nonce=nonce)
     return 0
 
 
@@ -236,6 +332,8 @@ def main(argv=None) -> int:
         return scheduler_command(argv)
     if argv and argv[0] == "serve":
         return serve_command(argv)
+    if argv and argv[0] == "login":
+        return login_command(argv)
     parser = argparse.ArgumentParser(description="Generate a read-only Milou routine report.")
     parser.add_argument(
         "--routine",

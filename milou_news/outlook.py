@@ -118,13 +118,25 @@ class GraphApi:
     never logged, echoed into an error, or written to a report.
     """
 
-    def __init__(self, token=None, environ=None, timeout=20, root=GRAPH_ROOT):
+    def __init__(self, token=None, environ=None, timeout=20, root=GRAPH_ROOT,
+                 credentials=None):
         self.token = token if token is not None else (environ or os.environ).get(TOKEN_ENV)
+        #: A signed-in session, which mints a fresh access token per request.
+        #: Preferred over the static token when both are present, because a
+        #: token pasted into the environment an hour ago is probably dead.
+        self.credentials = credentials
         self.timeout = timeout
         self.root = root
 
+    def _access_token(self):
+        return self.credentials.token() if self.credentials is not None else self.token
+
     def get(self, path: str, doing: str = "reading your mailbox") -> GraphResult:
-        if not self.token:
+        try:
+            token = self._access_token()
+        except Exception as exc:
+            return GraphResult(error=str(exc))
+        if not token:
             return GraphResult(error=explain.missing_token(
                 "Microsoft Graph", TOKEN_ENV, doing))
         if not path.startswith("/"):
@@ -132,7 +144,7 @@ class GraphApi:
                 "a Graph request was built with the path %r, which is not absolute" % path))
         request = urllib.request.Request(
             self.root + path, method="GET",
-            headers={"Authorization": "Bearer " + self.token,
+            headers={"Authorization": "Bearer " + token,
                      "Accept": "application/json"})
         try:
             with urllib.request.urlopen(request, timeout=self.timeout) as response:

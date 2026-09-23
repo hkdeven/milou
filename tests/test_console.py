@@ -435,3 +435,51 @@ class RoutesTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class LaunchSignInTest(unittest.TestCase):
+    """The one-time link a double-clicked application opens.
+
+    It is a secret in a URL, which is a real cost, so the properties that make
+    it acceptable are the ones worth pinning: single use, short-lived, and
+    honoured only from this machine.
+    """
+
+    def setUp(self):
+        self.store = tempfile.TemporaryDirectory()
+        self.nonce = "launch-nonce-value"
+        self.server = ThreadingHTTPServer(
+            ("127.0.0.1", 0),
+            make_handler(ReportStore(self.store.name), "secret", console=console(),
+                         launch_nonce=self.nonce))
+        Thread(target=self.server.serve_forever, daemon=True).start()
+
+    def tearDown(self):
+        self.server.shutdown()
+        self.server.server_close()
+        self.store.cleanup()
+
+    def _get(self, path, cookie=None):
+        connection = http.client.HTTPConnection(*self.server.server_address)
+        connection.request("GET", path, headers={"Cookie": cookie} if cookie else {})
+        response = connection.getresponse()
+        body = response.read().decode("utf-8")
+        headers = dict(response.getheaders())
+        connection.close()
+        return response.status, headers, body
+
+    def test_the_link_signs_you_in(self):
+        status, headers, _body = self._get("/?signin=" + self.nonce)
+        self.assertEqual(status, 303)
+        self.assertIn("milou_session=", headers.get("Set-Cookie", ""))
+
+    def test_it_is_spent_on_first_use(self):
+        self._get("/?signin=" + self.nonce)
+        status, headers, _body = self._get("/?signin=" + self.nonce)
+        self.assertNotEqual(status, 303, "a link in a browser history must not work twice")
+        self.assertNotIn("milou_session=", headers.get("Set-Cookie", ""))
+
+    def test_a_wrong_link_does_not_sign_anyone_in(self):
+        status, headers, _body = self._get("/?signin=guessed")
+        self.assertNotIn("milou_session=", headers.get("Set-Cookie", ""))
+        self.assertNotEqual(status, 303)

@@ -6,6 +6,15 @@
   "owners": ["A. Rivera", "D. Nguyen", "S. Okafor"],
   "allow_recipient_edits": false,
 
+  "oauth": {
+    "client_id": "",
+    "tenant": "organizations",
+    "zoho_client_id": "",
+    "zoho_region": "com",
+    "port": 8765,
+    "token_file": "~/.milou/tokens.json"
+  },
+
   "inbox": {
     "follow_up_days": 2,
     "max_items": 8,

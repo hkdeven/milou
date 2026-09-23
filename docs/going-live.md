@@ -97,25 +97,38 @@ watch it against real mail while nothing can act.
 
 ---
 
-## Step 3 — the piece that is genuinely missing
+## Step 3 — signing in
 
-**Graph and Zoho access tokens expire after about an hour.** The adapters read a
-token from the environment and use it as-is. That is fine for a CLI run and for
-the evaluation in step 2, and it is not fine for something you leave running:
-you would be pasting a fresh token into the terminal every hour.
+Access tokens from Microsoft and Zoho expire after about an hour, so Milou does
+not hold one. You sign in once in a browser and it keeps the **refresh** token,
+exchanging it for a fresh access token before each request.
 
-What is needed is an OAuth refresh-token flow — a one-time sign-in that stores a
-refresh token locally, and a client that exchanges it for a fresh access token
-whenever the current one expires. Device-code flow for Graph, self-client
-refresh token for Zoho, both stored outside the repository with file
-permissions.
+```
+./mac/install.sh
+python3 -m milou_news.cli login outlook --config ~/.milou/console.json
+python3 -m milou_news.cli login zoho    --config ~/.milou/console.json
+python3 -m milou_news.cli login status
+```
 
-**I have not built this.** It is maybe half a day's work and I would rather you
-decide where the refresh token lives before I write it. Say the word and it is
-the next thing I do.
+The tokens go into your **Keychain** (service `milou`), so they are somewhere
+the system already protects and you can inspect or revoke from Keychain Access.
+On anything that is not a Mac they fall back to a file created 0600, which is
+re-checked on every read and refused if it ever became readable by others.
 
-Until then: Milou is usable on demand (run it, look at it, act, stop) but not
-usable as something that is simply always on.
+Two things to know:
+
+- The redirect comes back to `http://localhost:8765/callback` on this machine,
+  so the authorisation code never passes through anyone else's server. Add that
+  URI to the app registration under **Mobile and desktop applications**.
+- Microsoft is a **public client with PKCE** — there is no client secret to
+  store. Zoho's OAuth does require one; put it in `MILOU_ZOHO_CLIENT_SECRET` for
+  the single `login zoho` command, after which it is kept with the tokens.
+
+Add `--writes` to either command to request the write permissions at the same
+time, so the consent screen appears once rather than twice. Leave it off to
+start: read-only access keeps every action a rehearsal.
+
+`mac/README.md` covers the application itself.
 
 ---
 
@@ -202,6 +215,9 @@ python3 -m milou_news.cli run --config scheduler.json --store reports
 
 Put that on a cron entry or a launchd job. The console reads whatever the
 scheduler stored, so the two fit together without further work.
+
+**On a Mac**, `./mac/install.sh --login-item` does this with launchd instead,
+and `mac/README.md` explains the parts.
 
 **Where to run it:** your own machine is the right answer for now. The server
 binds `127.0.0.1` and is not built to be exposed — there are no user accounts,

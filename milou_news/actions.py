@@ -428,13 +428,19 @@ def draft_context_reply(config: TicketConfig, subject: str = "", sender: str = "
 class ZohoWriter:
     """Creates a Zoho task. Requires its own write-scoped token."""
 
-    def __init__(self, token=None, environ=None, timeout=20, root=ZOHO_API_ROOT):
+    def __init__(self, token=None, environ=None, timeout=20, root=ZOHO_API_ROOT,
+                 credentials=None):
         self.token = token if token is not None else (environ or os.environ).get(ZOHO_WRITE_TOKEN_ENV)
+        self.credentials = credentials
         self.timeout = timeout
         self.root = root
 
+    def _access_token(self):
+        return self.credentials.token() if self.credentials is not None else self.token
+
     def create_task(self, portal: str, project: str, fields: Mapping) -> ExecutionResult:
-        if not self.token:
+        token = self._access_token()
+        if not token:
             raise WriteNotConfigured(explain.missing_token(
                 "Zoho Projects write", ZOHO_WRITE_TOKEN_ENV, "creating a ticket"))
         if not portal:
@@ -460,7 +466,7 @@ class ZohoWriter:
         request = urllib.request.Request(
             "%s/restapi/portal/%s/projects/%s/tasks/" % (self.root, portal, project),
             data=body, method="POST",
-            headers={"Authorization": "Zoho-oauthtoken " + self.token,
+            headers={"Authorization": "Zoho-oauthtoken " + token,
                      "Content-Type": "application/x-www-form-urlencoded",
                      "Accept": "application/json"})
         try:
@@ -514,24 +520,28 @@ class OutlookReplyWriter:
     """
 
     def __init__(self, token=None, environ=None, timeout=20, root=GRAPH_API_ROOT,
-                 allow_recipient_edits=False):
+                 allow_recipient_edits=False, credentials=None):
         self.token = token if token is not None else (environ or os.environ).get(
             OUTLOOK_WRITE_TOKEN_ENV)
+        self.credentials = credentials
         self.timeout = timeout
         self.root = root
         self.allow_recipient_edits = allow_recipient_edits
 
+    def _access_token(self):
+        return self.credentials.token() if self.credentials is not None else self.token
+
     def _post(self, path: str, payload: Mapping):
         request = urllib.request.Request(
             self.root + path, data=json.dumps(payload).encode("utf-8"), method="POST",
-            headers={"Authorization": "Bearer " + self.token,
+            headers={"Authorization": "Bearer " + self._access_token(),
                      "Content-Type": "application/json", "Accept": "application/json"})
         with urllib.request.urlopen(request, timeout=self.timeout) as response:
             raw = response.read().decode("utf-8")
         return json.loads(raw) if raw.strip() else {}
 
     def send_reply(self, fields: Mapping) -> ExecutionResult:
-        if not self.token:
+        if not self._access_token():
             raise WriteNotConfigured(explain.missing_token(
                 "Microsoft Graph send", OUTLOOK_WRITE_TOKEN_ENV, "sending this reply"))
         message_id = str(fields.get("message_id") or "")
@@ -616,7 +626,7 @@ class OutlookReplyWriter:
         sits in Outlook until you press Send yourself, with the real ticket
         number already in it.
         """
-        if not self.token:
+        if not self._access_token():
             raise WriteNotConfigured(explain.missing_token(
                 "Microsoft Graph", OUTLOOK_WRITE_TOKEN_ENV,
                 "leaving the acknowledgement draft in your mailbox"))
@@ -655,7 +665,7 @@ class OutlookReplyWriter:
     def _patch(self, path: str, payload: Mapping):
         request = urllib.request.Request(
             self.root + path, data=json.dumps(payload).encode("utf-8"), method="PATCH",
-            headers={"Authorization": "Bearer " + self.token,
+            headers={"Authorization": "Bearer " + self._access_token(),
                      "Content-Type": "application/json", "Accept": "application/json"})
         with urllib.request.urlopen(request, timeout=self.timeout) as response:
             raw = response.read().decode("utf-8")
@@ -695,13 +705,17 @@ class SharePointWordWriter:
     """
 
     def __init__(self, share_url: str = "", token=None, environ=None, timeout=30,
-                 root=GRAPH_API_ROOT, keep_backup=None):
+                 root=GRAPH_API_ROOT, keep_backup=None, credentials=None):
         self.share_url = share_url
         self.token = token if token is not None else (environ or os.environ).get(
             DOCUMENT_WRITE_TOKEN_ENV)
+        self.credentials = credentials
         self.timeout = timeout
         self.root = root
         self.keep_backup = keep_backup
+
+    def _access_token(self):
+        return self.credentials.token() if self.credentials is not None else self.token
 
     @staticmethod
     def share_id(url: str) -> str:
@@ -710,7 +724,8 @@ class SharePointWordWriter:
         return "u!" + encoded.rstrip("=")
 
     def _request(self, path: str, method="GET", data=None, content_type=None):
-        headers = {"Authorization": "Bearer " + self.token, "Accept": "application/json"}
+        headers = {"Authorization": "Bearer " + self._access_token(),
+                   "Accept": "application/json"}
         if content_type:
             headers["Content-Type"] = content_type
         request = urllib.request.Request(self.root + path, data=data, method=method,
@@ -740,7 +755,7 @@ class SharePointWordWriter:
         return drive, item, name
 
     def append_under_heading(self, document: str, heading: str, line: str) -> ExecutionResult:
-        if not self.token:
+        if not self._access_token():
             raise WriteNotConfigured(explain.missing_token(
                 "Microsoft Graph file", DOCUMENT_WRITE_TOKEN_ENV,
                 "adding the line to the sprint tracker"))

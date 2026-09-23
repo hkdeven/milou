@@ -104,20 +104,29 @@ class ZohoResult:
 class ZohoApi:
     """Read-only Zoho Projects adapter. Only GET is issued."""
 
-    def __init__(self, token=None, environ=None, timeout=20, root=API_ROOT):
+    def __init__(self, token=None, environ=None, timeout=20, root=API_ROOT, credentials=None):
         self.token = token if token is not None else (environ or os.environ).get(TOKEN_ENV)
+        #: A signed-in session; see GraphApi for why it wins over a static token.
+        self.credentials = credentials
         self.timeout = timeout
         self.root = root
 
+    def _access_token(self):
+        return self.credentials.token() if self.credentials is not None else self.token
+
     def get(self, path: str, doing: str = "reading your Zoho projects") -> ZohoResult:
-        if not self.token:
+        try:
+            token = self._access_token()
+        except Exception as exc:
+            return ZohoResult(error=str(exc))
+        if not token:
             return ZohoResult(error=explain.missing_token("Zoho Projects", TOKEN_ENV, doing))
         if not path.startswith("/"):
             return ZohoResult(error=explain.internal(
                 "a Zoho request was built with the path %r, which is not absolute" % path))
         request = urllib.request.Request(
             self.root + path, method="GET",
-            headers={"Authorization": "Zoho-oauthtoken " + self.token,
+            headers={"Authorization": "Zoho-oauthtoken " + token,
                      "Accept": "application/json"})
         try:
             with urllib.request.urlopen(request, timeout=self.timeout) as response:

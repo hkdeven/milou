@@ -10,8 +10,18 @@ routines. It supports human judgment; it does not replace it.
 
 ## Running it
 
+On a Mac:
+
 ```
-MILOU_REPORT_TOKEN=... python3 -m milou_news.cli serve --config console.json
+./mac/install.sh
+```
+
+Then open `Milou.app` from `~/Applications`. See [`mac/README.md`](mac/README.md).
+
+Anywhere else:
+
+```
+python3 -m milou_news.cli serve --config console.json --open
 ```
 
 That is the console: routines on the left, one report at a time, and the two

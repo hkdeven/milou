@@ -35,6 +35,8 @@ from .actions import (DryRunDocumentWriter, DryRunMailWriter, OutlookReplyWriter
                       draft_ticket)
 from .github_radar import GhApi, RadarConfig, build_radar_report
 from .intake import context_questions, intake_from_mapping, read_email
+from . import oauth
+from .oauth import OAuthConfig
 from .outlook import GraphApi, InboxConfig, build_outlook_report, fetch_body, locate_message
 from .pipeline import BriefConfig, build_brief_report
 from .report import Report
@@ -90,6 +92,10 @@ class ConsoleConfig:
     allow_recipient_edits: bool = False
     #: Payload fixtures for the routines that are fed rather than fetched.
     payloads: Mapping = field(default_factory=dict)
+    #: The app registrations to sign in with. When a provider is signed in, the
+    #: console uses that session rather than a token pasted into the
+    #: environment, because a pasted one is dead an hour later.
+    oauth: OAuthConfig = field(default_factory=OAuthConfig)
 
     @property
     def statuses(self) -> Tuple[str, ...]:
@@ -104,13 +110,39 @@ class Console:
     """
 
     def __init__(self, config: ConsoleConfig = None, graph=None, zoho=None, fetcher=None,
-                 github=None, environ=None):
+                 github=None, environ=None, store=None):
         self.config = config or ConsoleConfig()
-        self.graph = graph if graph is not None else GraphApi(environ=environ)
-        self.zoho = zoho if zoho is not None else ZohoApi(environ=environ)
+        self.store = store
+        self.graph = graph if graph is not None else GraphApi(
+            environ=environ, credentials=self._credentials("outlook"))
+        self.zoho = zoho if zoho is not None else ZohoApi(
+            environ=environ, credentials=self._credentials("zoho"))
         self.github = github if github is not None else GhApi()
         self.fetcher = fetcher if fetcher is not None else JsonSourceFetcher()
         self.environ = environ if environ is not None else os.environ
+
+    def _credentials(self, provider: str):
+        """A signed-in session for this provider, when there is one.
+
+        Absent a sign-in this returns nothing and the adapters fall back to a
+        token from the environment, so the older way of running Milou keeps
+        working unchanged.
+        """
+        if self.store is None:
+            return None
+        try:
+            if provider == "outlook":
+                app = oauth.graph_app(self.config.oauth, oauth.GRAPH_READ)
+            else:
+                app = oauth.zoho_app(self.config.oauth, "", oauth.ZOHO_READ)
+        except oauth.OAuthError:
+            return None
+        credentials = oauth.Credentials(app, self.store)
+        return credentials if credentials.signed_in() else None
+
+    def signed_in(self) -> Dict[str, bool]:
+        """Which providers have a saved sign-in, for the console to report."""
+        return {name: self._credentials(name) is not None for name in ("outlook", "zoho")}
 
     # ---------------------------------------------------------------- views
 

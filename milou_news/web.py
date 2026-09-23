@@ -36,10 +36,16 @@ def _bearer_authorized(handler, token):
 
 
 def make_handler(store, bearer_token=None, environ=None, scheduler=None,
-                 session_ttl=SESSION_TTL, console=None):
+                 session_ttl=SESSION_TTL, console=None, launch_nonce=None):
     token = bearer_token if bearer_token is not None else (environ or os.environ).get("MILOU_REPORT_TOKEN")
     #: session id -> {"expires": float, "csrf": str}
     sessions = {}
+    #: A one-time sign-in handed to the browser the launcher opens, so a
+    #: double-clicked application does not need a terminal to read a password
+    #: out of. Single use, short-lived, and only honoured from loopback — the
+    #: same shape Jupyter uses, and worth the same caution: it is in a URL, so
+    #: it is spent the moment it is used.
+    launch = {"nonce": launch_nonce, "expires": time.time() + 300 if launch_nonce else 0}
 
     def _session(handler):
         if not token:
@@ -176,10 +182,33 @@ def make_handler(store, bearer_token=None, environ=None, scheduler=None,
             status, body = handler(console, single, record["csrf"])
             self._send(status, body)
 
+        def _spend_launch_nonce(self):
+            """Sign in from the launcher's one-time URL, if this is one."""
+            supplied = parse_qs(urlparse(self.path).query).get("signin", [""])[0]
+            if not supplied or not launch["nonce"]:
+                return False
+            if self.client_address[0] not in ("127.0.0.1", "::1"):
+                return False
+            if launch["expires"] <= time.time():
+                launch["nonce"] = None
+                return False
+            if not hmac.compare_digest(supplied, launch["nonce"]):
+                return False
+            launch["nonce"] = None  # single use
+            session_id = secrets.token_urlsafe(32)
+            sessions[session_id] = {"expires": time.time() + session_ttl,
+                                    "csrf": secrets.token_urlsafe(32)}
+            self._redirect("/routine/" + console_module.INBOX if console is not None else "/",
+                           "%s=%s; Max-Age=%d; Path=/; HttpOnly; SameSite=Strict"
+                           % (SESSION_COOKIE, session_id, session_ttl))
+            return True
+
         def do_GET(self):
             path = urlparse(self.path).path
             if path == "/logout":
                 self._logout()
+                return
+            if path == "/" and self._spend_launch_nonce():
                 return
             allowed, failure = _authorized(self)
             if not allowed:
@@ -405,9 +434,10 @@ def _outcome(ok: bool, live: bool, done: str, rehearsed: str, failed: str) -> st
 
 
 def serve(store, host="127.0.0.1", port=8080, bearer_token=None, environ=None, scheduler=None,
-          console=None):
+          console=None, launch_nonce=None):
     """Run the private server; bind localhost by default and never publish."""
     server = ThreadingHTTPServer(
         (host, port),
-        make_handler(store, bearer_token, environ, scheduler, console=console))
+        make_handler(store, bearer_token, environ, scheduler, console=console,
+                     launch_nonce=launch_nonce))
     server.serve_forever()
